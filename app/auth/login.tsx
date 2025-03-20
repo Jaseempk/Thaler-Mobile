@@ -6,149 +6,132 @@ import {
   SafeAreaView, 
   TouchableOpacity,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
 import Button from '../../components/common/Button';
 import Colors from '../../constants/Colors';
-import { useWallet } from '../../context/WalletContext';
+import { usePrivy } from '../../context/PrivyContext';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { connectWallet, isConnected } = useWallet();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const { login, isAuthenticated, isLoading, walletAddress, createWallet } = usePrivy();
+  
+  // If user is already authenticated, redirect to tabs
+  React.useEffect(() => {
+    if (isAuthenticated && walletAddress) {
+      router.replace('/tabs');
+    } else if (isAuthenticated && !walletAddress) {
+      // User is authenticated but doesn't have a wallet yet
+      handleCreateWallet();
+    }
+  }, [isAuthenticated, walletAddress]);
   
   const handleLogin = async () => {
-    // For demo purposes, we'll just connect the wallet
-    // In a real app, you would validate credentials here
     try {
-      await connectWallet();
-      router.replace('/tabs');
+      if (!email) {
+        Alert.alert('Email Required', 'Please enter your email address');
+        return;
+      }
+      
+      // Login with email
+      await login('email', email);
     } catch (error) {
+      console.error('Login error:', error);
       Alert.alert('Login Failed', 'Please try again later.');
     }
   };
   
-  const handleConnectWallet = async () => {
+  const handleCreateWallet = async () => {
     try {
-      await connectWallet();
-      if (isConnected) {
-        router.replace('/tabs');
-      }
+      await createWallet();
+      router.replace('/tabs');
     } catch (error) {
-      Alert.alert('Connection Failed', 'Could not connect to wallet. Please try again.');
+      console.error('Wallet creation error:', error);
+      Alert.alert('Wallet Creation Failed', 'Could not create your embedded wallet. Please try again.');
     }
   };
   
-  const handleForgotPassword = () => {
-    Alert.alert('Reset Password', 'A password reset link will be sent to your email.');
+  const handleSignUp = () => {
+    router.push('/auth/welcome');
   };
   
-  const togglePasswordVisibility = () => {
-    setIsPasswordVisible(!isPasswordVisible);
-  };
-  
-  const handleBackToWelcome = () => {
-    router.back();
-  };
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loadingContainer]}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </SafeAreaView>
+    );
+  }
   
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}
-      >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={handleBackToWelcome}
-          >
-            <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
-          </TouchableOpacity>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={styles.backButton}>Back</Text>
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.contentContainer}>
+        <Text style={styles.title}>Welcome Back</Text>
+        
+        <Text style={styles.subtitle}>
+          Sign in to continue managing your savings
+        </Text>
+        
+        <View style={styles.formContainer}>
+          <Text style={styles.inputLabel}>Email Address</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your email"
+            placeholderTextColor={Colors.light.gray}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
+          />
           
-          <View style={styles.headerContainer}>
-            <Text style={styles.headerTitle}>Welcome Back</Text>
-            <Text style={styles.headerSubtitle}>Login to access your savings</Text>
-          </View>
+          <Button 
+            title="Login" 
+            onPress={handleLogin}
+            variant="primary"
+            size="large"
+            style={styles.loginButton}
+            textStyle={styles.loginButtonText}
+          />
           
-          <View style={styles.formContainer}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Email</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="mail-outline" size={20} color={Colors.light.text} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your email"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                />
-              </View>
-            </View>
-            
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Password</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="lock-closed-outline" size={20} color={Colors.light.text} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!isPasswordVisible}
-                />
-                <TouchableOpacity onPress={togglePasswordVisibility} style={styles.visibilityIcon}>
-                  <Ionicons 
-                    name={isPasswordVisible ? "eye-off-outline" : "eye-outline"} 
-                    size={20} 
-                    color={Colors.light.text} 
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-            
-            <TouchableOpacity 
-              style={styles.forgotPasswordContainer}
-              onPress={handleForgotPassword}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-            
+          <View style={styles.socialLoginContainer}>
             <Button 
-              title="Login" 
-              onPress={handleLogin}
-              variant="primary"
-              size="large"
-              style={styles.loginButton}
-            />
-            
-            <View style={styles.orContainer}>
-              <View style={styles.divider} />
-              <Text style={styles.orText}>OR</Text>
-              <View style={styles.divider} />
-            </View>
-            
-            <Button 
-              title="Connect with Wallet" 
-              onPress={handleConnectWallet}
+              title="Continue with Google" 
+              onPress={() => login('google')}
               variant="outline"
               size="large"
-              style={styles.walletButton}
-              icon={<Ionicons name="wallet-outline" size={20} color={Colors.light.primary} />}
+              style={styles.socialButton}
+              icon={<Text style={styles.socialIcon}>G</Text>}
+            />
+            
+            <Button 
+              title="Continue with Apple" 
+              onPress={() => login('apple')}
+              variant="outline"
+              size="large"
+              style={styles.socialButton}
+              icon={<Text style={styles.socialIcon}>A</Text>}
             />
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </View>
+        
+        <View style={styles.signupContainer}>
+          <Text style={styles.signupText}>Don't have an account?</Text>
+          <TouchableOpacity onPress={handleSignUp}>
+            <Text style={styles.signupButton}>Sign Up</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -156,98 +139,96 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.light.secondary,
   },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 24,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.light.secondaryLight,
+  loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 18,
+    color: Colors.light.primary,
+    fontWeight: 'bold',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    padding: 16,
+  },
+  backButton: {
+    fontSize: 16,
+    color: Colors.light.primary,
+    fontWeight: 'bold',
+  },
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: 32,
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: Colors.light.primary,
+    marginBottom: 16,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: Colors.light.text,
+    marginBottom: 48,
+    lineHeight: 24,
+  },
+  formContainer: {
     marginBottom: 24,
   },
-  headerContainer: {
-    marginBottom: 32,
-  },
-  headerTitle: {
-    fontSize: 28,
+  inputLabel: {
+    fontSize: 14,
     fontWeight: 'bold',
     color: Colors.light.text,
     marginBottom: 8,
   },
-  headerSubtitle: {
-    fontSize: 16,
-    color: Colors.light.textSecondary,
-  },
-  formContainer: {
-    flex: 1,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.light.text,
-    marginBottom: 8,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 56,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
   input: {
-    flex: 1,
-    height: '100%',
+    backgroundColor: Colors.light.background,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
     fontSize: 16,
     color: Colors.light.text,
-  },
-  visibilityIcon: {
-    padding: 8,
-  },
-  forgotPasswordContainer: {
-    alignItems: 'flex-end',
-    marginBottom: 24,
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    color: Colors.light.primary,
-    fontWeight: '600',
   },
   loginButton: {
+    backgroundColor: Colors.light.primary,
     marginBottom: 24,
   },
-  orContainer: {
+  loginButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  socialLoginContainer: {
+    marginBottom: 24,
+  },
+  socialButton: {
+    marginBottom: 12,
+    borderColor: Colors.light.border,
+  },
+  socialIcon: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    width: 24,
+    height: 24,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  signupContainer: {
     flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
   },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.light.border,
-  },
-  orText: {
+  signupText: {
     fontSize: 14,
-    color: Colors.light.textSecondary,
-    marginHorizontal: 16,
+    color: Colors.light.text,
   },
-  walletButton: {
-    borderColor: Colors.light.primary,
+  signupButton: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: Colors.light.primary,
+    marginLeft: 4,
   },
 });

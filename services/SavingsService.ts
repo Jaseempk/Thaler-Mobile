@@ -11,15 +11,18 @@ import {
   WithdrawalParams,
   DonationProof 
 } from '../models/savings';
+import { usePrivy } from '../context/PrivyContext';
 
 export class SavingsService {
   private provider: ethers.providers.Provider;
   private signer: ethers.Signer | null;
   private contract: ethers.Contract | null = null;
+  private privyWallet: any | null = null;
 
-  constructor(provider: ethers.providers.Provider, signer: ethers.Signer | null = null) {
+  constructor(provider: ethers.providers.Provider, signer: ethers.Signer | null = null, privyWallet: any | null = null) {
     this.provider = provider;
     this.signer = signer;
+    this.privyWallet = privyWallet;
     
     // Initialize contract with provider for read-only operations
     this.contract = new ethers.Contract(
@@ -27,6 +30,11 @@ export class SavingsService {
       THALER_SAVINGS_POOL_ABI,
       this.provider
     );
+    
+    // If signer is available, connect contract with signer
+    if (this.signer) {
+      this.contract = this.contract.connect(this.signer);
+    }
   }
 
   /**
@@ -36,21 +44,31 @@ export class SavingsService {
     this.signer = signer;
     
     // Reinitialize contract with signer if available
-    if (this.signer) {
-      this.contract = new ethers.Contract(
-        THALER_SAVINGS_POOL_ADDRESS,
-        THALER_SAVINGS_POOL_ABI,
-        this.signer
-      );
+    if (this.signer && this.contract) {
+      this.contract = this.contract.connect(this.signer);
     }
+  }
+  
+  /**
+   * Set a Privy embedded wallet
+   */
+  setPrivyWallet(privyWallet: any) {
+    this.privyWallet = privyWallet;
+    
+    // When using Privy wallet, we'll use their transaction methods
+    // The contract instance is still useful for read operations
   }
 
   /**
-   * Create a new savings pool
+   * Create a new savings pool using Privy embedded wallet
    */
   async createSavingsPool(params: SavingsPoolCreationParams): Promise<string> {
-    if (!this.signer || !this.contract) {
-      throw new Error('Signer not available');
+    if (!this.contract) {
+      throw new Error('Contract not initialized');
+    }
+    
+    if (!this.signer && !this.privyWallet) {
+      throw new Error('No signer or Privy wallet available');
     }
 
     try {
@@ -60,23 +78,71 @@ export class SavingsService {
 
       if (params.tokenType === 'eth') {
         // Create ETH savings pool
-        tx = await this.contract.createSavingsPoolEth(
-          amountToSaveValue,
-          params.duration,
-          initialDepositValue,
-          params.totalIntervals,
-          { value: initialDepositValue }
-        );
+        if (this.privyWallet) {
+          // Using Privy embedded wallet
+          const { usePrivy } = require('../context/PrivyContext');
+          const { sendTransaction } = usePrivy();
+          
+          // Prepare transaction data for Privy
+          const data = this.contract.interface.encodeFunctionData('createSavingsPoolEth', [
+            amountToSaveValue,
+            params.duration,
+            initialDepositValue,
+            params.totalIntervals
+          ]);
+          
+          // Send transaction via Privy
+          tx = await sendTransaction(
+            THALER_SAVINGS_POOL_ADDRESS,
+            initialDepositValue.toString(),
+            data
+          );
+        } else {
+          // Using regular ethers.js signer
+          tx = await this.contract.createSavingsPoolEth(
+            amountToSaveValue,
+            params.duration,
+            initialDepositValue,
+            params.totalIntervals,
+            { value: initialDepositValue }
+          );
+        }
       } else if (params.tokenType === 'erc20' && params.tokenAddress) {
-        // Create ERC20 savings pool
-        // Note: User needs to approve the contract to spend tokens first
-        tx = await this.contract.createSavingsPoolERC20(
-          params.tokenAddress,
-          amountToSaveValue,
-          params.duration,
-          initialDepositValue,
-          params.totalIntervals
-        );
+        // For ERC20 tokens, we need to approve the contract first
+        // This would be handled differently with Privy vs regular ethers.js
+        
+        if (this.privyWallet) {
+          // Using Privy embedded wallet for ERC20
+          const { usePrivy } = require('../context/PrivyContext');
+          const { sendTransaction } = usePrivy();
+          
+          // First approve the token spending
+          // This would require another transaction through Privy
+          
+          // Then create the savings pool
+          const data = this.contract.interface.encodeFunctionData('createSavingsPoolERC20', [
+            params.tokenAddress,
+            amountToSaveValue,
+            params.duration,
+            initialDepositValue,
+            params.totalIntervals
+          ]);
+          
+          tx = await sendTransaction(
+            THALER_SAVINGS_POOL_ADDRESS,
+            '0', // No ETH value for ERC20 pools
+            data
+          );
+        } else {
+          // Using regular ethers.js signer
+          tx = await this.contract.createSavingsPoolERC20(
+            params.tokenAddress,
+            amountToSaveValue,
+            params.duration,
+            initialDepositValue,
+            params.totalIntervals
+          );
+        }
       } else {
         throw new Error('Invalid token type or missing token address');
       }
@@ -102,8 +168,12 @@ export class SavingsService {
    * Deposit to an existing savings pool
    */
   async deposit(params: DepositParams): Promise<boolean> {
-    if (!this.signer || !this.contract) {
-      throw new Error('Signer not available');
+    if (!this.contract) {
+      throw new Error('Contract not initialized');
+    }
+    
+    if (!this.signer && !this.privyWallet) {
+      throw new Error('No signer or Privy wallet available');
     }
 
     try {
@@ -114,18 +184,56 @@ export class SavingsService {
       let tx;
       if (pool.isEth) {
         // Deposit to ETH pool
-        tx = await this.contract.depositToEthSavingPool(
-          params.savingsPoolId,
-          depositAmount,
-          { value: depositAmount }
-        );
+        if (this.privyWallet) {
+          // Using Privy embedded wallet
+          const { usePrivy } = require('../context/PrivyContext');
+          const { sendTransaction } = usePrivy();
+          
+          const data = this.contract.interface.encodeFunctionData('depositToEthSavingPool', [
+            params.savingsPoolId,
+            depositAmount
+          ]);
+          
+          tx = await sendTransaction(
+            THALER_SAVINGS_POOL_ADDRESS,
+            depositAmount.toString(),
+            data
+          );
+        } else {
+          // Using regular ethers.js signer
+          tx = await this.contract.depositToEthSavingPool(
+            params.savingsPoolId,
+            depositAmount,
+            { value: depositAmount }
+          );
+        }
       } else {
         // Deposit to ERC20 pool
-        // Note: User needs to approve the contract to spend tokens first
-        tx = await this.contract.depositToERC20SavingPool(
-          params.savingsPoolId,
-          depositAmount
-        );
+        if (this.privyWallet) {
+          // Using Privy embedded wallet
+          const { usePrivy } = require('../context/PrivyContext');
+          const { sendTransaction } = usePrivy();
+          
+          // For ERC20, we need to approve the token spending first
+          // This would require another transaction through Privy
+          
+          const data = this.contract.interface.encodeFunctionData('depositToERC20SavingPool', [
+            params.savingsPoolId,
+            depositAmount
+          ]);
+          
+          tx = await sendTransaction(
+            THALER_SAVINGS_POOL_ADDRESS,
+            '0', // No ETH value for ERC20 deposits
+            data
+          );
+        } else {
+          // Using regular ethers.js signer
+          tx = await this.contract.depositToERC20SavingPool(
+            params.savingsPoolId,
+            depositAmount
+          );
+        }
       }
 
       // Wait for transaction to be mined
@@ -142,8 +250,12 @@ export class SavingsService {
    * For early withdrawals, a ZK proof of donation is required
    */
   async withdraw(params: WithdrawalParams): Promise<boolean> {
-    if (!this.signer || !this.contract) {
-      throw new Error('Signer not available');
+    if (!this.contract) {
+      throw new Error('Contract not initialized');
+    }
+    
+    if (!this.signer && !this.privyWallet) {
+      throw new Error('No signer or Privy wallet available');
     }
 
     try {
@@ -154,17 +266,56 @@ export class SavingsService {
       if (pool.endDate <= Date.now()) {
         // Normal withdrawal (pool has ended)
         if (pool.isEth) {
-          tx = await this.contract.withdrawFromEthSavingPool(
-            params.savingsPoolId,
-            "0x", // Empty proof for normal withdrawals
-            [] // Empty public inputs for normal withdrawals
-          );
+          if (this.privyWallet) {
+            // Using Privy embedded wallet
+            const { usePrivy } = require('../context/PrivyContext');
+            const { sendTransaction } = usePrivy();
+            
+            const data = this.contract.interface.encodeFunctionData('withdrawFromEthSavingPool', [
+              params.savingsPoolId,
+              "0x", // Empty proof for normal withdrawals
+              [] // Empty public inputs for normal withdrawals
+            ]);
+            
+            tx = await sendTransaction(
+              THALER_SAVINGS_POOL_ADDRESS,
+              '0',
+              data
+            );
+          } else {
+            // Using regular ethers.js signer
+            tx = await this.contract.withdrawFromEthSavingPool(
+              params.savingsPoolId,
+              "0x", // Empty proof for normal withdrawals
+              [] // Empty public inputs for normal withdrawals
+            );
+          }
         } else {
-          tx = await this.contract.withdrawFromERC20SavingPool(
-            params.savingsPoolId,
-            "0x", // Empty proof for normal withdrawals
-            [] // Empty public inputs for normal withdrawals
-          );
+          // Similar pattern for ERC20 withdrawals
+          if (this.privyWallet) {
+            // Using Privy embedded wallet
+            const { usePrivy } = require('../context/PrivyContext');
+            const { sendTransaction } = usePrivy();
+            
+            const data = this.contract.interface.encodeFunctionData('withdrawFromERC20SavingPool', [
+              params.savingsPoolId,
+              "0x", // Empty proof for normal withdrawals
+              [] // Empty public inputs for normal withdrawals
+            ]);
+            
+            tx = await sendTransaction(
+              THALER_SAVINGS_POOL_ADDRESS,
+              '0',
+              data
+            );
+          } else {
+            // Using regular ethers.js signer
+            tx = await this.contract.withdrawFromERC20SavingPool(
+              params.savingsPoolId,
+              "0x", // Empty proof for normal withdrawals
+              [] // Empty public inputs for normal withdrawals
+            );
+          }
         }
       } else {
         // Early withdrawal (requires ZK proof of donation)
@@ -173,17 +324,56 @@ export class SavingsService {
         }
         
         if (pool.isEth) {
-          tx = await this.contract.withdrawFromEthSavingPool(
-            params.savingsPoolId,
-            params.proof,
-            params.publicInputs
-          );
+          if (this.privyWallet) {
+            // Using Privy embedded wallet
+            const { usePrivy } = require('../context/PrivyContext');
+            const { sendTransaction } = usePrivy();
+            
+            const data = this.contract.interface.encodeFunctionData('withdrawFromEthSavingPool', [
+              params.savingsPoolId,
+              params.proof,
+              params.publicInputs
+            ]);
+            
+            tx = await sendTransaction(
+              THALER_SAVINGS_POOL_ADDRESS,
+              '0',
+              data
+            );
+          } else {
+            // Using regular ethers.js signer
+            tx = await this.contract.withdrawFromEthSavingPool(
+              params.savingsPoolId,
+              params.proof,
+              params.publicInputs
+            );
+          }
         } else {
-          tx = await this.contract.withdrawFromERC20SavingPool(
-            params.savingsPoolId,
-            params.proof,
-            params.publicInputs
-          );
+          // Similar pattern for ERC20 early withdrawals
+          if (this.privyWallet) {
+            // Using Privy embedded wallet
+            const { usePrivy } = require('../context/PrivyContext');
+            const { sendTransaction } = usePrivy();
+            
+            const data = this.contract.interface.encodeFunctionData('withdrawFromERC20SavingPool', [
+              params.savingsPoolId,
+              params.proof,
+              params.publicInputs
+            ]);
+            
+            tx = await sendTransaction(
+              THALER_SAVINGS_POOL_ADDRESS,
+              '0',
+              data
+            );
+          } else {
+            // Using regular ethers.js signer
+            tx = await this.contract.withdrawFromERC20SavingPool(
+              params.savingsPoolId,
+              params.proof,
+              params.publicInputs
+            );
+          }
         }
       }
 

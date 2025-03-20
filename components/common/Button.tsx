@@ -5,7 +5,8 @@ import {
   StyleSheet, 
   ActivityIndicator, 
   ViewStyle, 
-  TextStyle 
+  TextStyle,
+  View
 } from 'react-native';
 import Colors from '../../constants/Colors';
 
@@ -19,6 +20,7 @@ interface ButtonProps {
   style?: ViewStyle;
   textStyle?: TextStyle;
   fullWidth?: boolean;
+  icon?: React.ReactNode;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -31,6 +33,7 @@ const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
   fullWidth = false,
+  icon,
 }) => {
   const getButtonStyle = () => {
     let buttonStyle: ViewStyle = {};
@@ -153,18 +156,33 @@ const Button: React.FC<ButtonProps> = ({
   
   return (
     <TouchableOpacity
-      style={[styles.button, getButtonStyle(), style]}
+      style={[
+        styles.button,
+        getButtonStyle(),
+        fullWidth && styles.fullWidth,
+        disabled && styles.disabled,
+        style,
+      ]}
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.7}
     >
       {loading ? (
         <ActivityIndicator 
-          color={variant === 'outline' ? Colors.light.primary : '#FFFFFF'} 
           size="small" 
+          color={variant === 'outline' ? Colors.light.primary : '#FFFFFF'} 
         />
       ) : (
-        <Text style={[getTextStyle(), textStyle]}>{title}</Text>
+        <>
+          {icon && <View style={styles.iconContainer}>{icon}</View>}
+          <Text style={[
+            styles.text,
+            getTextStyle(),
+            disabled && styles.textDisabled,
+            textStyle,
+          ]}>
+            {title}
+          </Text>
+        </>
       )}
     </TouchableOpacity>
   );
@@ -175,6 +193,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+  },
+  text: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  fullWidth: {
+    width: '100%',
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  textDisabled: {
+    opacity: 0.5,
+  },
+  iconContainer: {
+    marginRight: 8,
   },
 });
 

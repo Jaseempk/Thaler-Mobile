@@ -1,324 +1,229 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
-  ScrollView, 
+  SafeAreaView, 
+  ScrollView,
   TouchableOpacity,
-  SafeAreaView,
-  FlatList
+  Alert,
+  ActivityIndicator
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import Card from '../../components/common/Card';
-import Button from '../../components/common/Button';
 import Colors from '../../constants/Colors';
-import { useWallet } from '../../context/WalletContext';
-import { SavingsPool, SavingsPoolStatus } from '../../models/savings';
-
-// Mock data for savings pools
-const mockSavingsPools: SavingsPool[] = [
-  {
-    id: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-    user: '0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620',
-    endDate: Date.now() + 86400000 * 30 * 3, // 3 months from now
-    duration: 7884000, // 3 months in seconds
-    startDate: Date.now(),
-    totalSaved: '0.5',
-    tokenToSave: '0x0000000000000000000000000000000000000000', // ETH
-    amountToSave: '1.5',
-    totalIntervals: 3,
-    initialDeposit: '0.5',
-    nextDepositDate: Date.now() + 86400000 * 30, // 1 month from now
-    numberOfDeposits: 1,
-    lastDepositedTimestamp: Date.now(),
-    isEth: true,
-    progress: 33,
-  },
-  {
-    id: '0x2345678901abcdef2345678901abcdef2345678901abcdef2345678901abcdef',
-    user: '0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620',
-    endDate: Date.now() + 86400000 * 30 * 6, // 6 months from now
-    duration: 15768000, // 6 months in seconds
-    startDate: Date.now() - 86400000 * 30, // Started 1 month ago
-    totalSaved: '1000',
-    tokenToSave: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
-    amountToSave: '3000',
-    totalIntervals: 6,
-    initialDeposit: '500',
-    nextDepositDate: Date.now() + 86400000 * 30, // 1 month from now
-    numberOfDeposits: 2,
-    lastDepositedTimestamp: Date.now() - 86400000 * 15,
-    isEth: false,
-    progress: 33,
-    tokenSymbol: 'USDC',
-    tokenDecimals: 6,
-  },
-  {
-    id: '0x3456789012abcdef3456789012abcdef3456789012abcdef3456789012abcdef',
-    user: '0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620',
-    endDate: Date.now() - 86400000 * 30, // Ended 1 month ago
-    duration: 7884000, // 3 months in seconds
-    startDate: Date.now() - 86400000 * 30 * 4, // Started 4 months ago
-    totalSaved: '2.0',
-    tokenToSave: '0x0000000000000000000000000000000000000000', // ETH
-    amountToSave: '2.0',
-    totalIntervals: 3,
-    initialDeposit: '0.5',
-    nextDepositDate: 0, // No next deposit, pool completed
-    numberOfDeposits: 3,
-    lastDepositedTimestamp: Date.now() - 86400000 * 30 * 2,
-    isEth: true,
-    progress: 100,
-  },
-];
+import { usePrivy } from '../../context/PrivyContext';
+import { SavingsPool } from '../../models/savings';
+import SavingsPoolCard from '../../components/savings/SavingsPoolCard';
+import { SavingsService } from '../../services/SavingsService';
+import { ethers } from 'ethers';
 
 export default function SavingsScreen() {
-  const { isConnected, connectWallet } = useWallet();
-  const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
+  const router = useRouter();
+  const { isAuthenticated, walletAddress, user } = usePrivy();
+  const [pools, setPools] = useState<SavingsPool[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Filter pools based on active tab
-  const filteredPools = mockSavingsPools.filter(pool => {
-    if (activeTab === 'active') {
-      return pool.endDate > Date.now();
-    } else {
-      return pool.endDate <= Date.now();
+  // Initialize savings service with provider
+  const provider = new ethers.providers.JsonRpcProvider(
+    'https://goerli.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161' // Goerli testnet for demo
+  );
+  const savingsService = new SavingsService(provider);
+  
+  // Set Privy wallet in savings service
+  useEffect(() => {
+    if (walletAddress) {
+      savingsService.setPrivyWallet(walletAddress);
     }
-  });
+  }, [walletAddress]);
   
-  // Format date for display
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
+  // Load user's savings pools
+  useEffect(() => {
+    const loadPools = async () => {
+      if (!isAuthenticated || !walletAddress) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        setIsLoading(true);
+        
+        // In a real app, this would fetch the user's pools from the blockchain
+        // For this demo, we'll use mock data
+        const mockPools: SavingsPool[] = [
+          {
+            id: '1',
+            user: walletAddress,
+            endDate: Date.now() + 90 * 24 * 60 * 60 * 1000, // 90 days from now
+            duration: 90 * 24 * 60 * 60, // 90 days in seconds
+            startDate: Date.now(),
+            totalSaved: '0.5',
+            tokenToSave: '0x0000000000000000000000000000000000000000', // ETH
+            amountToSave: '3',
+            totalIntervals: 3,
+            initialDeposit: '0.5',
+            nextDepositDate: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
+            numberOfDeposits: 1,
+            lastDepositedTimestamp: Date.now(),
+            isEth: true,
+            progress: 17, // (0.5 / 3) * 100
+            tokenSymbol: 'ETH',
+            tokenDecimals: 18,
+          },
+          {
+            id: '2',
+            user: walletAddress,
+            endDate: Date.now() - 30 * 24 * 60 * 60 * 1000, // 30 days ago (completed)
+            duration: 180 * 24 * 60 * 60, // 180 days in seconds
+            startDate: Date.now() - 210 * 24 * 60 * 60 * 1000, // 210 days ago
+            totalSaved: '1000',
+            tokenToSave: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984', // UNI token
+            amountToSave: '1000',
+            totalIntervals: 6,
+            initialDeposit: '200',
+            nextDepositDate: Date.now() - 30 * 24 * 60 * 60 * 1000,
+            numberOfDeposits: 6,
+            lastDepositedTimestamp: Date.now() - 60 * 24 * 60 * 60 * 1000,
+            isEth: false,
+            progress: 100,
+            tokenSymbol: 'UNI',
+            tokenDecimals: 18,
+          }
+        ];
+        
+        setPools(mockPools);
+      } catch (error) {
+        console.error('Error loading savings pools:', error);
+        Alert.alert('Error', 'Failed to load your savings pools. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadPools();
+  }, [isAuthenticated, walletAddress]);
+  
+  const handleCreateSavingsPool = () => {
+    router.push('/savings/create');
+  };
+  
+  const handlePoolPress = (pool: SavingsPool) => {
+    // Navigate to pool details screen
+    router.push({
+      pathname: '/savings/[id]',
+      params: { id: pool.id }
     });
   };
   
-  // Format amount for display
-  const formatAmount = (amount: string, isEth: boolean, decimals: number = 18) => {
-    const num = parseFloat(amount);
-    return isEth 
-      ? `${num.toFixed(4)} ETH` 
-      : `${num.toFixed(2)} ${mockSavingsPools[1].tokenSymbol}`;
+  const handleDeposit = (pool: SavingsPool) => {
+    // Navigate to deposit screen
+    router.push({
+      pathname: '/savings/deposit',
+      params: { id: pool.id }
+    });
   };
   
-  // Calculate days remaining
-  const getDaysRemaining = (endDate: number) => {
+  const handleWithdraw = (pool: SavingsPool) => {
+    // Check if pool has ended
     const now = Date.now();
-    const diff = endDate - now;
-    if (diff <= 0) return 'Completed';
-    
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    return `${days} days remaining`;
+    if (now < pool.endDate && pool.progress < 100) {
+      Alert.alert(
+        'Early Withdrawal',
+        'This pool has not ended yet. Early withdrawals require a donation verification. Do you want to proceed?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Proceed',
+            onPress: () => {
+              router.push({
+                pathname: '/savings/withdraw',
+                params: { id: pool.id, early: 'true' }
+              });
+            },
+          },
+        ]
+      );
+    } else {
+      // Regular withdrawal
+      router.push({
+        pathname: '/savings/withdraw',
+        params: { id: pool.id }
+      });
+    }
   };
   
-  // Render a savings pool card
-  const renderSavingsPool = ({ item }: { item: SavingsPool }) => {
+  if (!isAuthenticated) {
     return (
-      <Card variant="elevated" style={styles.poolCard}>
-        <View style={styles.poolHeader}>
-          <View style={styles.poolTitleContainer}>
-            <Text style={styles.poolTitle}>
-              {item.isEth ? 'ETH' : item.tokenSymbol} Savings Pool
-            </Text>
-            <Text style={styles.poolDuration}>
-              {item.duration === 7884000 ? '3 Months' : 
-               item.duration === 15768000 ? '6 Months' : '12 Months'}
-            </Text>
-          </View>
-          <View 
-            style={[
-              styles.statusBadge,
-              { 
-                backgroundColor: item.endDate > Date.now() 
-                  ? Colors.light.secondaryLight 
-                  : Colors.light.success + '30'
-              }
-            ]}
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="light" />
+        <View style={styles.authContainer}>
+          <Text style={styles.authTitle}>Authentication Required</Text>
+          <Text style={styles.authSubtitle}>Please log in to view your savings pools</Text>
+          <TouchableOpacity 
+            style={styles.authButton}
+            onPress={() => router.push('/auth/welcome')}
           >
-            <Text 
-              style={[
-                styles.statusText,
-                { 
-                  color: item.endDate > Date.now() 
-                    ? Colors.light.primary 
-                    : Colors.light.success
-                }
-              ]}
-            >
-              {item.endDate > Date.now() ? 'Active' : 'Completed'}
-            </Text>
-          </View>
+            <Text style={styles.authButtonText}>Go to Login</Text>
+          </TouchableOpacity>
         </View>
-        
-        <View style={styles.poolDetails}>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Total Saved:</Text>
-            <Text style={styles.detailValue}>
-              {formatAmount(item.totalSaved, item.isEth, item.tokenDecimals)}
-            </Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Target Amount:</Text>
-            <Text style={styles.detailValue}>
-              {formatAmount(item.amountToSave, item.isEth, item.tokenDecimals)}
-            </Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Start Date:</Text>
-            <Text style={styles.detailValue}>{formatDate(item.startDate)}</Text>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>End Date:</Text>
-            <Text style={styles.detailValue}>{formatDate(item.endDate)}</Text>
-          </View>
-          
-          {item.endDate > Date.now() && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Next Deposit:</Text>
-              <Text style={styles.detailValue}>{formatDate(item.nextDepositDate)}</Text>
-            </View>
-          )}
-        </View>
-        
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBarContainer}>
-            <View 
-              style={[
-                styles.progressBar, 
-                { width: `${item.progress}%` }
-              ]} 
-            />
-          </View>
-          <Text style={styles.progressText}>{item.progress}% Complete</Text>
-        </View>
-        
-        <View style={styles.poolActions}>
-          {item.endDate > Date.now() ? (
-            <>
-              <Button 
-                title="Deposit" 
-                onPress={() => {}}
-                variant="primary"
-                size="small"
-                style={styles.actionButton}
-              />
-              <Button 
-                title="Early Withdraw" 
-                onPress={() => {}}
-                variant="outline"
-                size="small"
-                style={styles.actionButton}
-              />
-            </>
-          ) : (
-            <Button 
-              title="Withdraw" 
-              onPress={() => {}}
-              variant="primary"
-              size="small"
-              style={[styles.actionButton, { flex: 1 }]}
-            />
-          )}
-        </View>
-      </Card>
+      </SafeAreaView>
     );
-  };
+  }
   
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar style="light" />
+      
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Savings Pools</Text>
-        <TouchableOpacity style={styles.addButton}>
+        <TouchableOpacity 
+          style={styles.createButton}
+          onPress={handleCreateSavingsPool}
+        >
           <Ionicons name="add" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
       
-      {!isConnected ? (
-        <View style={styles.connectContainer}>
-          <Text style={styles.connectText}>
-            Connect your wallet to view and manage your savings pools
-          </Text>
-          <Button 
-            title="Connect Wallet" 
-            onPress={connectWallet}
-            variant="primary"
-            style={styles.connectButton}
-          />
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.light.primary} />
+          <Text style={styles.loadingText}>Loading your savings pools...</Text>
         </View>
       ) : (
-        <>
-          <View style={styles.tabContainer}>
-            <TouchableOpacity 
-              style={[
-                styles.tab, 
-                activeTab === 'active' ? styles.activeTab : null
-              ]}
-              onPress={() => setActiveTab('active')}
-            >
-              <Text 
-                style={[
-                  styles.tabText,
-                  activeTab === 'active' ? styles.activeTabText : null
-                ]}
-              >
-                Active
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.tab, 
-                activeTab === 'completed' ? styles.activeTab : null
-              ]}
-              onPress={() => setActiveTab('completed')}
-            >
-              <Text 
-                style={[
-                  styles.tabText,
-                  activeTab === 'completed' ? styles.activeTabText : null
-                ]}
-              >
-                Completed
-              </Text>
-            </TouchableOpacity>
-          </View>
-          
-          {filteredPools.length === 0 ? (
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+          {pools.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons 
-                name="wallet-outline" 
-                size={64} 
-                color={Colors.light.primary} 
-              />
-              <Text style={styles.emptyText}>
-                {activeTab === 'active' 
-                  ? "You don't have any active savings pools" 
-                  : "You don't have any completed savings pools"}
+              <Ionicons name="wallet-outline" size={64} color={Colors.light.textSecondary} />
+              <Text style={styles.emptyTitle}>No Savings Pools Yet</Text>
+              <Text style={styles.emptySubtitle}>
+                Start saving by creating your first savings pool
               </Text>
-              {activeTab === 'active' && (
-                <Button 
-                  title="Create New Pool" 
-                  onPress={() => {}}
-                  variant="primary"
-                  style={styles.createButton}
-                />
-              )}
+              <TouchableOpacity 
+                style={styles.emptyButton}
+                onPress={handleCreateSavingsPool}
+              >
+                <Text style={styles.emptyButtonText}>Create Savings Pool</Text>
+              </TouchableOpacity>
             </View>
           ) : (
-            <FlatList
-              data={filteredPools}
-              renderItem={renderSavingsPool}
-              keyExtractor={item => item.id}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-            />
+            <>
+              <Text style={styles.sectionTitle}>Your Savings Pools</Text>
+              {pools.map(pool => (
+                <SavingsPoolCard
+                  key={pool.id}
+                  pool={pool}
+                  onPress={handlePoolPress}
+                  onDeposit={handleDeposit}
+                  onWithdraw={handleWithdraw}
+                />
+              ))}
+            </>
           )}
-        </>
+        </ScrollView>
       )}
     </SafeAreaView>
   );
@@ -327,160 +232,109 @@ export default function SavingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
-    padding: 16,
+    backgroundColor: Colors.light.secondary,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    padding: 16,
+    backgroundColor: Colors.light.primary,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.light.text,
+    color: '#FFFFFF',
   },
-  addButton: {
+  createButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.light.primary,
+    backgroundColor: Colors.light.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  connectContainer: {
+  scrollView: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
   },
-  connectText: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 24,
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
     color: Colors.light.text,
-  },
-  connectButton: {
-    width: '100%',
-  },
-  tabContainer: {
-    flexDirection: 'row',
     marginBottom: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.light.secondaryLight,
-    padding: 4,
   },
-  tab: {
+  loadingContainer: {
     flex: 1,
-    paddingVertical: 8,
+    justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 6,
   },
-  activeTab: {
-    backgroundColor: '#FFFFFF',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
     color: Colors.light.text,
-  },
-  activeTabText: {
-    color: Colors.light.primary,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    paddingVertical: 64,
   },
-  emptyText: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginVertical: 16,
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
     color: Colors.light.text,
-  },
-  createButton: {
     marginTop: 16,
-  },
-  listContent: {
-    paddingBottom: 16,
-  },
-  poolCard: {
-    marginBottom: 16,
-  },
-  poolHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  poolTitleContainer: {
-    flex: 1,
-  },
-  poolTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.light.text,
-  },
-  poolDuration: {
-    fontSize: 14,
-    color: Colors.light.text,
-    opacity: 0.7,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 16,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  poolDetails: {
-    marginBottom: 16,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: 8,
   },
-  detailLabel: {
-    fontSize: 14,
-    color: Colors.light.text,
-    opacity: 0.7,
+  emptySubtitle: {
+    fontSize: 16,
+    color: Colors.light.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 32,
   },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.light.text,
-  },
-  progressContainer: {
-    marginBottom: 16,
-  },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: Colors.light.border,
-    borderRadius: 4,
-    marginBottom: 4,
-  },
-  progressBar: {
-    height: 8,
+  emptyButton: {
     backgroundColor: Colors.light.primary,
-    borderRadius: 4,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
   },
-  progressText: {
-    fontSize: 12,
-    color: Colors.light.text,
-    opacity: 0.7,
-    textAlign: 'right',
+  emptyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
-  poolActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  actionButton: {
+  authContainer: {
     flex: 1,
-    marginHorizontal: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  authTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.light.text,
+    marginBottom: 8,
+  },
+  authSubtitle: {
+    fontSize: 16,
+    color: Colors.light.textSecondary,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  authButton: {
+    backgroundColor: Colors.light.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  authButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

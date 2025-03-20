@@ -3,206 +3,229 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  ScrollView, 
+  SafeAreaView, 
   TouchableOpacity,
-  SafeAreaView,
+  ScrollView,
   Switch,
   Alert
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import Card from '../../components/common/Card';
-import Button from '../../components/common/Button';
 import Colors from '../../constants/Colors';
-import { useWallet } from '../../context/WalletContext';
+import { usePrivy } from '../../context/PrivyContext';
 
 export default function ProfileScreen() {
-  const { address, isConnected, connectWallet, disconnectWallet } = useWallet();
-  const [darkMode, setDarkMode] = useState(false);
+  const router = useRouter();
+  const { logout, isAuthenticated, walletAddress, user } = usePrivy();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   
-  // Format the address for display
-  const formatAddress = (address: string | null) => {
-    if (!address) return '';
-    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.replace('/auth/welcome');
+    } catch (error) {
+      console.error('Logout error:', error);
+      Alert.alert('Logout Failed', 'Please try again later.');
+    }
   };
   
-  // Toggle switches
-  const toggleDarkMode = () => setDarkMode(prev => !prev);
-  const toggleNotifications = () => setNotificationsEnabled(prev => !prev);
-  const toggleBiometrics = () => setBiometricsEnabled(prev => !prev);
-  
-  // Handle logout
-  const handleLogout = () => {
+  const handleWalletDetails = () => {
+    // Show wallet details or redirect to wallet management screen
     Alert.alert(
-      'Disconnect Wallet',
-      'Are you sure you want to disconnect your wallet?',
+      'Wallet Details', 
+      `Address: ${walletAddress}\n\nThis is a Privy embedded wallet managed securely for you.`
+    );
+  };
+  
+  const handleExportPrivateKey = () => {
+    // In a real app, this would require additional security confirmations
+    Alert.alert(
+      'Security Notice', 
+      'For security reasons, private key export is not available for embedded wallets. Your wallet is securely managed by Privy.'
+    );
+  };
+  
+  const handleChangePassword = () => {
+    // In a real app, this would navigate to a password change screen
+    Alert.alert(
+      'Change Password', 
+      'Password management is handled by Privy authentication. Please use the password reset option from the login screen if needed.'
+    );
+  };
+  
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This action cannot be undone.',
       [
         {
           text: 'Cancel',
           style: 'cancel',
         },
         {
-          text: 'Disconnect',
-          onPress: disconnectWallet,
+          text: 'Delete',
           style: 'destructive',
+          onPress: () => {
+            // In a real app, this would call an API to delete the user's account
+            Alert.alert('Account Deletion', 'Your account deletion request has been submitted.');
+            handleLogout();
+          },
         },
       ]
     );
   };
   
+  if (!isAuthenticated) {
+    router.replace('/auth/welcome');
+    return null;
+  }
+  
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar style="light" />
+      
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Profile</Text>
+      </View>
+      
       <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
+        <View style={styles.profileSection}>
+          <View style={styles.profileAvatar}>
+            <Text style={styles.profileInitial}>
+              {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
+            </Text>
+          </View>
+          
+          <Text style={styles.profileName}>
+            {user?.email ? user.email.split('@')[0] : 'User'}
+          </Text>
+          
+          <Text style={styles.profileEmail}>{user?.email || 'No email provided'}</Text>
+          
+          <TouchableOpacity style={styles.walletButton} onPress={handleWalletDetails}>
+            <Text style={styles.walletButtonText}>
+              {walletAddress ? `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}` : 'No Wallet Connected'}
+            </Text>
+            <Ionicons name="copy-outline" size={16} color={Colors.light.primary} />
+          </TouchableOpacity>
         </View>
         
-        {/* Wallet Section */}
-        <Card variant="elevated" style={styles.walletCard}>
-          <View style={styles.walletHeader}>
-            <View style={styles.walletIconContainer}>
-              <Ionicons name="wallet-outline" size={24} color={Colors.light.primary} />
-            </View>
-            <View style={styles.walletInfo}>
-              <Text style={styles.walletTitle}>Wallet</Text>
-              <Text style={styles.walletAddress}>
-                {isConnected ? formatAddress(address) : 'Not connected'}
-              </Text>
-            </View>
-            {isConnected ? (
-              <TouchableOpacity 
-                style={styles.copyButton}
-                onPress={() => Alert.alert('Copied', 'Address copied to clipboard')}
-              >
-                <Ionicons name="copy-outline" size={20} color={Colors.light.primary} />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-          
-          {isConnected ? (
-            <Button 
-              title="Disconnect Wallet" 
-              onPress={handleLogout}
-              variant="outline"
-              size="small"
-              style={styles.walletButton}
-            />
-          ) : (
-            <Button 
-              title="Connect Wallet" 
-              onPress={connectWallet}
-              variant="primary"
-              size="small"
-              style={styles.walletButton}
-            />
-          )}
-        </Card>
-        
-        {/* Settings Section */}
-        <Card variant="elevated" style={styles.settingsCard}>
-          <Text style={styles.sectionTitle}>Settings</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Preferences</Text>
           
           <View style={styles.settingItem}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="moon-outline" size={20} color={Colors.light.text} />
-              <Text style={styles.settingText}>Dark Mode</Text>
-            </View>
-            <Switch
-              value={darkMode}
-              onValueChange={toggleDarkMode}
-              trackColor={{ false: Colors.light.border, true: Colors.light.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="notifications-outline" size={20} color={Colors.light.text} />
+            <View style={styles.settingTextContainer}>
+              <Ionicons name="notifications-outline" size={24} color={Colors.light.text} />
               <Text style={styles.settingText}>Notifications</Text>
             </View>
             <Switch
               value={notificationsEnabled}
-              onValueChange={toggleNotifications}
+              onValueChange={setNotificationsEnabled}
               trackColor={{ false: Colors.light.border, true: Colors.light.primary }}
               thumbColor="#FFFFFF"
             />
           </View>
           
           <View style={styles.settingItem}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="finger-print-outline" size={20} color={Colors.light.text} />
+            <View style={styles.settingTextContainer}>
+              <Ionicons name="finger-print-outline" size={24} color={Colors.light.text} />
               <Text style={styles.settingText}>Biometric Authentication</Text>
             </View>
             <Switch
-              value={biometricsEnabled}
-              onValueChange={toggleBiometrics}
+              value={biometricEnabled}
+              onValueChange={setBiometricEnabled}
               trackColor={{ false: Colors.light.border, true: Colors.light.primary }}
               thumbColor="#FFFFFF"
             />
           </View>
-        </Card>
+          
+          <View style={styles.settingItem}>
+            <View style={styles.settingTextContainer}>
+              <Ionicons name="moon-outline" size={24} color={Colors.light.text} />
+              <Text style={styles.settingText}>Dark Mode</Text>
+            </View>
+            <Switch
+              value={darkModeEnabled}
+              onValueChange={setDarkModeEnabled}
+              trackColor={{ false: Colors.light.border, true: Colors.light.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+        </View>
         
-        {/* Security Section */}
-        <Card variant="elevated" style={styles.securityCard}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Security</Text>
           
-          <TouchableOpacity style={styles.securityItem}>
-            <View style={styles.securityInfo}>
-              <Ionicons name="key-outline" size={20} color={Colors.light.text} />
-              <Text style={styles.securityText}>Change Password</Text>
+          <TouchableOpacity style={styles.menuItem} onPress={handleWalletDetails}>
+            <View style={styles.menuItemContent}>
+              <Ionicons name="wallet-outline" size={24} color={Colors.light.text} />
+              <Text style={styles.menuItemText}>Wallet Details</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.light.text} />
+            <Ionicons name="chevron-forward" size={20} color={Colors.light.textSecondary} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.securityItem}>
-            <View style={styles.securityInfo}>
-              <Ionicons name="shield-checkmark-outline" size={20} color={Colors.light.text} />
-              <Text style={styles.securityText}>Two-Factor Authentication</Text>
+          <TouchableOpacity style={styles.menuItem} onPress={handleExportPrivateKey}>
+            <View style={styles.menuItemContent}>
+              <Ionicons name="key-outline" size={24} color={Colors.light.text} />
+              <Text style={styles.menuItemText}>Export Private Key</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.light.text} />
+            <Ionicons name="chevron-forward" size={20} color={Colors.light.textSecondary} />
           </TouchableOpacity>
-        </Card>
+          
+          <TouchableOpacity style={styles.menuItem} onPress={handleChangePassword}>
+            <View style={styles.menuItemContent}>
+              <Ionicons name="lock-closed-outline" size={24} color={Colors.light.text} />
+              <Text style={styles.menuItemText}>Change Password</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.light.textSecondary} />
+          </TouchableOpacity>
+        </View>
         
-        {/* About Section */}
-        <Card variant="elevated" style={styles.aboutCard}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
           
-          <TouchableOpacity style={styles.aboutItem}>
-            <View style={styles.aboutInfo}>
-              <Ionicons name="information-circle-outline" size={20} color={Colors.light.text} />
-              <Text style={styles.aboutText}>About Thaler</Text>
+          <TouchableOpacity style={styles.menuItem}>
+            <View style={styles.menuItemContent}>
+              <Ionicons name="information-circle-outline" size={24} color={Colors.light.text} />
+              <Text style={styles.menuItemText}>About Thaler</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.light.text} />
+            <Ionicons name="chevron-forward" size={20} color={Colors.light.textSecondary} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.aboutItem}>
-            <View style={styles.aboutInfo}>
-              <Ionicons name="document-text-outline" size={20} color={Colors.light.text} />
-              <Text style={styles.aboutText}>Terms of Service</Text>
+          <TouchableOpacity style={styles.menuItem}>
+            <View style={styles.menuItemContent}>
+              <Ionicons name="document-text-outline" size={24} color={Colors.light.text} />
+              <Text style={styles.menuItemText}>Terms of Service</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.light.text} />
+            <Ionicons name="chevron-forward" size={20} color={Colors.light.textSecondary} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.aboutItem}>
-            <View style={styles.aboutInfo}>
-              <Ionicons name="lock-closed-outline" size={20} color={Colors.light.text} />
-              <Text style={styles.aboutText}>Privacy Policy</Text>
+          <TouchableOpacity style={styles.menuItem}>
+            <View style={styles.menuItemContent}>
+              <Ionicons name="shield-outline" size={24} color={Colors.light.text} />
+              <Text style={styles.menuItemText}>Privacy Policy</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.light.text} />
+            <Ionicons name="chevron-forward" size={20} color={Colors.light.textSecondary} />
           </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.aboutItem}>
-            <View style={styles.aboutInfo}>
-              <Ionicons name="help-circle-outline" size={20} color={Colors.light.text} />
-              <Text style={styles.aboutText}>Help & Support</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.light.text} />
-          </TouchableOpacity>
-        </Card>
+        </View>
         
-        <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>Version 1.0.0</Text>
+        <View style={styles.actionSection}>
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.logoutButton]} 
+            onPress={handleLogout}
+          >
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.deleteButton]} 
+            onPress={handleDeleteAccount}
+          >
+            <Text style={styles.deleteButtonText}>Delete Account</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -212,134 +235,137 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: Colors.light.secondary,
+  },
+  header: {
+    padding: 16,
+    backgroundColor: Colors.light.primary,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   scrollView: {
     flex: 1,
-    padding: 16,
   },
-  header: {
-    marginBottom: 24,
+  profileSection: {
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: Colors.light.card,
+    marginBottom: 16,
   },
-  headerTitle: {
-    fontSize: 24,
+  profileAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.light.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  profileInitial: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  profileName: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: Colors.light.text,
+    marginBottom: 4,
   },
-  walletCard: {
-    marginBottom: 16,
-  },
-  walletHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  walletIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.light.secondaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  walletInfo: {
-    flex: 1,
-  },
-  walletTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.light.text,
-  },
-  walletAddress: {
+  profileEmail: {
     fontSize: 14,
-    color: Colors.light.text,
-    opacity: 0.7,
-  },
-  copyButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.light.secondaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    color: Colors.light.textSecondary,
+    marginBottom: 16,
   },
   walletButton: {
-    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.light.secondaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
-  settingsCard: {
+  walletButtonText: {
+    fontSize: 14,
+    color: Colors.light.primary,
+    marginRight: 8,
+  },
+  section: {
+    backgroundColor: Colors.light.card,
     marginBottom: 16,
+    paddingVertical: 8,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.light.text,
-    marginBottom: 16,
+    fontWeight: 'bold',
+    color: Colors.light.textSecondary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   settingItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
   },
-  settingInfo: {
+  settingTextContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   settingText: {
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.light.text,
     marginLeft: 12,
   },
-  securityCard: {
-    marginBottom: 16,
-  },
-  securityItem: {
+  menuItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
   },
-  securityInfo: {
+  menuItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  securityText: {
-    fontSize: 14,
+  menuItemText: {
+    fontSize: 16,
     color: Colors.light.text,
     marginLeft: 12,
   },
-  aboutCard: {
-    marginBottom: 16,
+  actionSection: {
+    padding: 16,
+    marginBottom: 32,
   },
-  aboutItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  actionButton: {
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-  },
-  aboutInfo: {
-    flexDirection: 'row',
+    borderRadius: 8,
     alignItems: 'center',
+    marginBottom: 12,
   },
-  aboutText: {
-    fontSize: 14,
-    color: Colors.light.text,
-    marginLeft: 12,
+  logoutButton: {
+    backgroundColor: Colors.light.primary,
   },
-  versionContainer: {
-    alignItems: 'center',
-    marginVertical: 24,
+  logoutButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
-  versionText: {
-    fontSize: 12,
-    color: Colors.light.text,
-    opacity: 0.7,
+  deleteButton: {
+    backgroundColor: Colors.light.error,
+  },
+  deleteButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });
