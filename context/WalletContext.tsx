@@ -1,6 +1,6 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ethers } from 'ethers';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { usePrivy } from '@privy-io/expo';
 import Config from '../constants/Config';
 
 interface WalletContextType {
@@ -8,10 +8,9 @@ interface WalletContextType {
   balance: string;
   isConnected: boolean;
   isLoading: boolean;
-  connectWallet: () => Promise<void>;
-  disconnectWallet: () => Promise<void>;
-  getProvider: () => ethers.providers.Provider | null;
-  getSigner: () => ethers.Signer | null;
+  getProvider: () => Promise<ethers.providers.Provider | null>;
+  getSigner: () => Promise<ethers.Signer | null>;
+  sendTransaction: (to: string, amount: string, data?: string) => Promise<ethers.providers.TransactionResponse>;
 }
 
 const WalletContext = createContext<WalletContextType>({
@@ -19,10 +18,9 @@ const WalletContext = createContext<WalletContextType>({
   balance: '0',
   isConnected: false,
   isLoading: false,
-  connectWallet: async () => {},
-  disconnectWallet: async () => {},
-  getProvider: () => null,
-  getSigner: () => null,
+  getProvider: async () => null,
+  getSigner: async () => null,
+  sendTransaction: async () => { throw new Error('Not implemented'); },
 });
 
 export const useWallet = () => useContext(WalletContext);
@@ -36,85 +34,71 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   const [balance, setBalance] = useState<string>('0');
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [provider, setProvider] = useState<ethers.providers.Provider | null>(null);
+  
+  const { ready, user, wallet } = usePrivy();
 
-  // Initialize provider
   useEffect(() => {
-    const initProvider = async () => {
+    const initializeWallet = async () => {
+      if (!ready) return;
+
       try {
-        // In a real app, this would use WalletConnect or a similar service
-        // For now, we'll use a simple JSON RPC provider
-        const newProvider = new ethers.providers.JsonRpcProvider(Config.BLOCKCHAIN.RPC_URL);
-        setProvider(newProvider);
-        
-        // Check if we have a stored address
-        const storedAddress = await AsyncStorage.getItem(Config.STORAGE_KEYS.USER_ADDRESS);
-        if (storedAddress) {
-          setAddress(storedAddress);
-          setIsConnected(true);
+        if (user?.linkedAccounts?.length > 0) {
+          const walletAccount = user.linkedAccounts.find(
+            account => account.type === 'wallet'
+          );
           
-          // Get balance
-          const ethBalance = await newProvider.getBalance(storedAddress);
-          setBalance(ethers.utils.formatEther(ethBalance));
+          if (walletAccount) {
+            setAddress(walletAccount.address);
+            setIsConnected(true);
+            
+            // Get initial balance
+            const provider = new ethers.providers.JsonRpcProvider(Config.BLOCKCHAIN.RPC_URL);
+            const balanceWei = await provider.getBalance(walletAccount.address);
+            setBalance(ethers.utils.formatEther(balanceWei));
+          }
         }
       } catch (error) {
-        console.error('Failed to initialize wallet provider:', error);
+        console.error('Failed to initialize wallet:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    initProvider();
-  }, []);
+    initializeWallet();
+  }, [ready, user]);
 
-  // Mock wallet connection (in a real app, this would use WalletConnect)
-  const connectWallet = async () => {
-    setIsLoading(true);
-    try {
-      // This is a mock implementation - in a real app, this would trigger a wallet connection flow
-      const mockAddress = '0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620';
-      setAddress(mockAddress);
-      setIsConnected(true);
-      
-      // Store the address
-      await AsyncStorage.setItem(Config.STORAGE_KEYS.USER_ADDRESS, mockAddress);
-      
-      // Get balance
-      if (provider) {
-        const ethBalance = await provider.getBalance(mockAddress);
-        setBalance(ethers.utils.formatEther(ethBalance));
-      }
-    } catch (error) {
-      console.error('Failed to connect wallet:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const getProvider = async () => {
+    if (!wallet) return null;
+    return await wallet.getProvider();
   };
 
-  const disconnectWallet = async () => {
-    setIsLoading(true);
-    try {
-      setAddress(null);
-      setBalance('0');
-      setIsConnected(false);
-      
-      // Clear stored address
-      await AsyncStorage.removeItem(Config.STORAGE_KEYS.USER_ADDRESS);
-    } catch (error) {
-      console.error('Failed to disconnect wallet:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const getSigner = async () => {
+    const provider = await getProvider();
+    if (!provider) return null;
+    return new ethers.providers.Web3Provider(provider).getSigner();
   };
 
-  const getProvider = () => provider;
-
-  const getSigner = () => {
-    if (!provider || !address) return null;
+  const sendTransaction = async (to: string, amount: string, data?: string) => {
+    if (!wallet) throw new Error('No wallet available');
     
-    // In a real app with WalletConnect, this would return a proper signer
-    // For now, we'll return a mock signer that won't actually sign transactions
-    return new ethers.VoidSigner(address, provider);
+    const provider = await getProvider();
+    if (!provider) throw new Error('No provider available');
+
+    const accounts = await provider.request({
+      method: 'eth_requestAccounts'
+    });
+
+    const tx = await provider.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: accounts[0],
+        to,
+        value: ethers.utils.parseEther(amount).toHexString(),
+        data
+      }]
+    });
+
+    return tx;
   };
 
   return (
@@ -124,10 +108,9 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
         balance,
         isConnected,
         isLoading,
-        connectWallet,
-        disconnectWallet,
         getProvider,
         getSigner,
+        sendTransaction,
       }}
     >
       {children}

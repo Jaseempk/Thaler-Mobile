@@ -13,11 +13,15 @@ import { StatusBar } from 'expo-status-bar';
 import Button from '../../components/common/Button';
 import Colors from '../../constants/Colors';
 import { usePrivy } from '../../context/PrivyContext';
+import { useLoginWithEmail } from '@privy-io/expo';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
   const { login, isAuthenticated, isLoading, walletAddress, createWallet } = usePrivy();
+  const { sendCode, loginWithCode } = useLoginWithEmail();
   
   // If user is already authenticated, redirect to tabs
   React.useEffect(() => {
@@ -29,18 +33,23 @@ export default function LoginScreen() {
     }
   }, [isAuthenticated, walletAddress]);
   
+  const handleSendCode = async () => {
+    try {
+      await sendCode({ email });
+      setCodeSent(true);
+    } catch (error) {
+      console.error('Failed to send code:', error);
+      Alert.alert('Error', 'Failed to send verification code. Please try again.');
+    }
+  };
+  
   const handleLogin = async () => {
     try {
-      if (!email) {
-        Alert.alert('Email Required', 'Please enter your email address');
-        return;
-      }
-      
-      // Login with email
-      await login('email', email);
+      await loginWithCode({ code, email });
+      router.replace('/tabs');
     } catch (error) {
-      console.error('Login error:', error);
-      Alert.alert('Login Failed', 'Please try again later.');
+      console.error('Failed to login:', error);
+      Alert.alert('Error', 'Failed to verify code. Please try again.');
     }
   };
   
@@ -93,16 +102,38 @@ export default function LoginScreen() {
             autoCapitalize="none"
             value={email}
             onChangeText={setEmail}
+            editable={!codeSent}
           />
           
-          <Button 
-            title="Login" 
-            onPress={handleLogin}
-            variant="primary"
-            size="large"
-            style={styles.loginButton}
-            textStyle={styles.loginButtonText}
-          />
+          {codeSent && (
+            <TextInput
+              style={styles.input}
+              placeholder="Enter verification code"
+              keyboardType="number-pad"
+              value={code}
+              onChangeText={setCode}
+            />
+          )}
+          
+          {!codeSent ? (
+            <Button 
+              title="Send Code" 
+              onPress={handleSendCode}
+              variant="primary"
+              size="large"
+              style={styles.loginButton}
+              textStyle={styles.loginButtonText}
+            />
+          ) : (
+            <Button 
+              title="Verify Code" 
+              onPress={handleLogin}
+              variant="primary"
+              size="large"
+              style={styles.loginButton}
+              textStyle={styles.loginButtonText}
+            />
+          )}
           
           <View style={styles.socialLoginContainer}>
             <Button 
