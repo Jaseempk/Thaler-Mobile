@@ -11,43 +11,33 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { usePrivy, useLoginWithEmail } from '@privy-io/expo';
+import { UsePrivy } from '../../types/privy';
 import Button from '../../components/common/Button';
 import Colors from '../../constants/Colors';
-import { usePrivy } from '../../context/PrivyContext';
 
 const { width, height } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const { login, user, isLoading, walletAddress, createWallet } = usePrivy();
+  const privyHook = usePrivy();
+  const { user, authenticated } = privyHook as unknown as UsePrivy;
+  const { sendCode, state: { status } } = useLoginWithEmail();
   
   // If user is already authenticated, redirect to tabs
   React.useEffect(() => {
-    if (user && walletAddress) {
+    if (authenticated && user?.wallet?.address) {
       router.replace('/tabs');
-    } else if (user && !walletAddress) {
-      // User is authenticated but doesn't have a wallet yet
-      handleCreateWallet();
     }
-  }, [user, walletAddress]);
+  }, [user, authenticated]);
   
   const handleGetStarted = async () => {
     try {
-      // Start with email login
-      await login('email', 'user@example.com');
+      await sendCode({ email: 'user@example.com' });
+      router.push('/auth/login');
     } catch (error) {
       console.error('Login error:', error);
       Alert.alert('Login Failed', 'Please try again later.');
-    }
-  };
-  
-  const handleCreateWallet = async () => {
-    try {
-      await createWallet();
-      router.replace('/tabs');
-    } catch (error) {
-      console.error('Wallet creation error:', error);
-      Alert.alert('Wallet Creation Failed', 'Could not create your embedded wallet. Please try again.');
     }
   };
   
@@ -55,7 +45,7 @@ export default function WelcomeScreen() {
     router.push('/auth/login');
   };
   
-  if (isLoading) {
+  if (status === 'sending-code' || status === 'submitting-code') {
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]}>
         <Text style={styles.loadingText}>Loading...</Text>

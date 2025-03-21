@@ -1,97 +1,93 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SafeAreaView, 
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
   TouchableOpacity,
   TextInput,
-  Alert
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import Button from '../../components/common/Button';
-import Colors from '../../constants/Colors';
-import { usePrivy } from '../../context/PrivyContext';
-import { useLoginWithEmail } from '@privy-io/expo';
+  Alert,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import Button from "../../components/common/Button";
+import Colors from "../../constants/Colors";
+import { usePrivy, useLoginWithEmail, useLoginWithOAuth } from "@privy-io/expo";
+import { UsePrivy, UseLoginWithOAuth } from "../../types/privy";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
-  const { login, isAuthenticated, isLoading, walletAddress, createWallet } = usePrivy();
-  const { sendCode, loginWithCode } = useLoginWithEmail();
-  
+
+  const privyHook = usePrivy();
+  const { user, authenticated } = privyHook as unknown as UsePrivy;
+  const {
+    sendCode,
+    loginWithCode,
+    state: { status },
+  } = useLoginWithEmail();
+  const { login } = useLoginWithOAuth();
+
   // If user is already authenticated, redirect to tabs
   React.useEffect(() => {
-    if (isAuthenticated && walletAddress) {
-      router.replace('/tabs');
-    } else if (isAuthenticated && !walletAddress) {
-      // User is authenticated but doesn't have a wallet yet
-      handleCreateWallet();
+    if (authenticated && user?.wallet?.address) {
+      router.replace("/tabs");
     }
-  }, [isAuthenticated, walletAddress]);
-  
+  }, [authenticated, user]);
+
   const handleSendCode = async () => {
     try {
       await sendCode({ email });
       setCodeSent(true);
     } catch (error) {
-      console.error('Failed to send code:', error);
-      Alert.alert('Error', 'Failed to send verification code. Please try again.');
+      console.error("Failed to send code:", error);
+      Alert.alert(
+        "Error",
+        "Failed to send verification code. Please try again."
+      );
     }
   };
-  
+
   const handleLogin = async () => {
     try {
       await loginWithCode({ code, email });
-      router.replace('/tabs');
     } catch (error) {
-      console.error('Failed to login:', error);
-      Alert.alert('Error', 'Failed to verify code. Please try again.');
+      console.error("Failed to login:", error);
+      Alert.alert("Error", "Failed to verify code. Please try again.");
     }
   };
-  
-  const handleCreateWallet = async () => {
-    try {
-      await createWallet();
-      router.replace('/tabs');
-    } catch (error) {
-      console.error('Wallet creation error:', error);
-      Alert.alert('Wallet Creation Failed', 'Could not create your embedded wallet. Please try again.');
-    }
-  };
-  
+
   const handleSignUp = () => {
-    router.push('/auth/welcome');
+    router.push("/auth/welcome");
   };
-  
-  if (isLoading) {
+
+  if (status === "sending-code" || status === "submitting-code") {
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]}>
         <Text style={styles.loadingText}>Loading...</Text>
       </SafeAreaView>
     );
   }
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
-      
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>Back</Text>
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.contentContainer}>
         <Text style={styles.title}>Welcome Back</Text>
-        
+
         <Text style={styles.subtitle}>
           Sign in to continue managing your savings
         </Text>
-        
+
         <View style={styles.formContainer}>
           <Text style={styles.inputLabel}>Email Address</Text>
           <TextInput
@@ -104,7 +100,7 @@ export default function LoginScreen() {
             onChangeText={setEmail}
             editable={!codeSent}
           />
-          
+
           {codeSent && (
             <TextInput
               style={styles.input}
@@ -114,10 +110,10 @@ export default function LoginScreen() {
               onChangeText={setCode}
             />
           )}
-          
+
           {!codeSent ? (
-            <Button 
-              title="Send Code" 
+            <Button
+              title="Send Code"
               onPress={handleSendCode}
               variant="primary"
               size="large"
@@ -125,8 +121,8 @@ export default function LoginScreen() {
               textStyle={styles.loginButtonText}
             />
           ) : (
-            <Button 
-              title="Verify Code" 
+            <Button
+              title="Verify Code"
               onPress={handleLogin}
               variant="primary"
               size="large"
@@ -134,20 +130,20 @@ export default function LoginScreen() {
               textStyle={styles.loginButtonText}
             />
           )}
-          
+
           <View style={styles.socialLoginContainer}>
-            <Button 
-              title="Continue with Google" 
-              onPress={() => login('google')}
+            <Button
+              title="Continue with Google"
+              onPress={() => login({ provider: "google" })}
               variant="outline"
               size="large"
               style={styles.socialButton}
               icon={<Text style={styles.socialIcon}>G</Text>}
             />
-            
-            <Button 
-              title="Continue with Apple" 
-              onPress={() => login('apple')}
+
+            <Button
+              title="Continue with Apple"
+              onPress={() => login({ provider: "apple" })}
               variant="outline"
               size="large"
               style={styles.socialButton}
@@ -155,7 +151,7 @@ export default function LoginScreen() {
             />
           </View>
         </View>
-        
+
         <View style={styles.signupContainer}>
           <Text style={styles.signupText}>Don't have an account?</Text>
           <TouchableOpacity onPress={handleSignUp}>
@@ -173,23 +169,23 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.secondary,
   },
   loadingContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingText: {
     fontSize: 18,
     color: Colors.light.primary,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "flex-start",
     padding: 16,
   },
   backButton: {
     fontSize: 16,
     color: Colors.light.primary,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   contentContainer: {
     flex: 1,
@@ -197,7 +193,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 36,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.light.primary,
     marginBottom: 16,
   },
@@ -212,7 +208,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.light.text,
     marginBottom: 8,
   },
@@ -229,8 +225,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   loginButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    color: "#FFFFFF",
+    fontWeight: "bold",
   },
   socialLoginContainer: {
     marginBottom: 24,
@@ -241,16 +237,16 @@ const styles = StyleSheet.create({
   },
   socialIcon: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     width: 24,
     height: 24,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 24,
   },
   signupContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   signupText: {
     fontSize: 14,
@@ -258,7 +254,7 @@ const styles = StyleSheet.create({
   },
   signupButton: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.light.primary,
     marginLeft: 4,
   },

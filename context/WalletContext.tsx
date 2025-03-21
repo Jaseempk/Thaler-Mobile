@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { ethers } from 'ethers';
 import { usePrivy } from '@privy-io/expo';
 import Config from '../constants/Config';
+import { UsePrivy, PrivyUser } from '../types/privy';
 
 interface WalletContextType {
   address: string | null;
@@ -35,27 +36,30 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
-  const { ready, user, wallet } = usePrivy();
+  const privyHook = usePrivy();
+  const { user, authenticated } = privyHook as unknown as UsePrivy;
 
   useEffect(() => {
     const initializeWallet = async () => {
-      if (!ready) return;
+      if (!authenticated) return;
 
       try {
-        if (user?.linkedAccounts?.length > 0) {
-          const walletAccount = user.linkedAccounts.find(
-            account => account.type === 'wallet'
-          );
+        if (user?.wallet?.address) {
+          setAddress(user.wallet.address);
+          setIsConnected(true);
           
-          if (walletAccount) {
-            setAddress(walletAccount.address);
-            setIsConnected(true);
-            
-            // Get initial balance
-            const provider = new ethers.providers.JsonRpcProvider(Config.BLOCKCHAIN.RPC_URL);
-            const balanceWei = await provider.getBalance(walletAccount.address);
-            setBalance(ethers.utils.formatEther(balanceWei));
-          }
+          // Get initial balance
+          const provider = new ethers.providers.JsonRpcProvider(Config.BLOCKCHAIN.RPC_URL);
+          const balanceWei = await provider.getBalance(user.wallet.address);
+          setBalance(ethers.utils.formatEther(balanceWei));
+        } else if (user?.smartWallet?.address) {
+          setAddress(user.smartWallet.address);
+          setIsConnected(true);
+          
+          // Get initial balance
+          const provider = new ethers.providers.JsonRpcProvider(Config.BLOCKCHAIN.RPC_URL);
+          const balanceWei = await provider.getBalance(user.smartWallet.address);
+          setBalance(ethers.utils.formatEther(balanceWei));
         }
       } catch (error) {
         console.error('Failed to initialize wallet:', error);
@@ -65,37 +69,33 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     };
 
     initializeWallet();
-  }, [ready, user]);
+  }, [authenticated, user]);
 
   const getProvider = async () => {
-    if (!wallet) return null;
-    return await wallet.getProvider();
+    if (!user?.wallet) return null;
+    const provider = new ethers.providers.JsonRpcProvider(Config.BLOCKCHAIN.RPC_URL);
+    return provider;
   };
 
   const getSigner = async () => {
     const provider = await getProvider();
-    if (!provider) return null;
-    return new ethers.providers.Web3Provider(provider).getSigner();
+    if (!provider || !address) return null;
+    return new ethers.providers.Web3Provider(provider as any).getSigner(address);
   };
 
   const sendTransaction = async (to: string, amount: string, data?: string) => {
-    if (!wallet) throw new Error('No wallet available');
+    if (!address) throw new Error('No wallet available');
     
     const provider = await getProvider();
     if (!provider) throw new Error('No provider available');
 
-    const accounts = await provider.request({
-      method: 'eth_requestAccounts'
-    });
+    const signer = await getSigner();
+    if (!signer) throw new Error('No signer available');
 
-    const tx = await provider.request({
-      method: 'eth_sendTransaction',
-      params: [{
-        from: accounts[0],
-        to,
-        value: ethers.utils.parseEther(amount).toHexString(),
-        data
-      }]
+    const tx = await signer.sendTransaction({
+      to,
+      value: ethers.utils.parseEther(amount),
+      data: data || '0x'
     });
 
     return tx;
