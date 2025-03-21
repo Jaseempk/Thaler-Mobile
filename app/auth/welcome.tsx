@@ -6,7 +6,8 @@ import {
   SafeAreaView, 
   TouchableOpacity,
   Image,
-  Alert
+  Alert,
+  Dimensions
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -14,19 +15,21 @@ import Button from '../../components/common/Button';
 import Colors from '../../constants/Colors';
 import { usePrivy } from '../../context/PrivyContext';
 
+const { width, height } = Dimensions.get('window');
+
 export default function WelcomeScreen() {
   const router = useRouter();
-  const { login, isAuthenticated, isLoading, walletAddress, createWallet } = usePrivy();
+  const { login, user, isLoading, walletAddress, createWallet } = usePrivy();
   
   // If user is already authenticated, redirect to tabs
   React.useEffect(() => {
-    if (isAuthenticated && walletAddress) {
+    if (user && walletAddress) {
       router.replace('/tabs');
-    } else if (isAuthenticated && !walletAddress) {
+    } else if (user && !walletAddress) {
       // User is authenticated but doesn't have a wallet yet
       handleCreateWallet();
     }
-  }, [isAuthenticated, walletAddress]);
+  }, [user, walletAddress]);
   
   const handleGetStarted = async () => {
     try {
@@ -62,7 +65,7 @@ export default function WelcomeScreen() {
   
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       
       <View style={styles.logoContainer}>
         <View style={styles.logo}>
@@ -71,40 +74,21 @@ export default function WelcomeScreen() {
       </View>
       
       <View style={styles.contentContainer}>
-        <Text style={styles.title}>Track Your Savings Effortlessly</Text>
+        <Text style={styles.title}>Track Your{'\n'}Spending{'\n'}Effortlessly</Text>
         
         <Text style={styles.subtitle}>
-          Manage your blockchain savings easily using our intuitive and user-friendly interface and set financial goals with Thaler's savings protocol
+          Manage your finances easily using our intuitive and user-friendly interface and set financial goals and monitor your progress
         </Text>
         
         <Button 
-          title="Get Started with Email" 
+          title="Get Started" 
           onPress={handleGetStarted}
           variant="primary"
           size="large"
           style={styles.getStartedButton}
           textStyle={styles.getStartedButtonText}
+          fullWidth={true}
         />
-        
-        <View style={styles.socialLoginContainer}>
-          <Button 
-            title="Continue with Google" 
-            onPress={() => login('google')}
-            variant="outline"
-            size="large"
-            style={styles.socialButton}
-            icon={<Text style={styles.socialIcon}>G</Text>}
-          />
-          
-          <Button 
-            title="Continue with Apple" 
-            onPress={() => login('apple')}
-            variant="outline"
-            size="large"
-            style={styles.socialButton}
-            icon={<Text style={styles.socialIcon}>A</Text>}
-          />
-        </View>
         
         <View style={styles.loginContainer}>
           <Text style={styles.loginText}>Already have an account?</Text>
@@ -120,7 +104,7 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.secondary,
+    backgroundColor: Colors.light.welcomeBackground,
   },
   loadingContainer: {
     justifyContent: 'center',
@@ -132,70 +116,63 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   logoContainer: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginTop: 60,
+    marginLeft: 30,
   },
   logo: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 8,
     backgroundColor: Colors.light.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logoText: {
-    fontSize: 36,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   contentContainer: {
     flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 32,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 30,
+    marginTop: 50,
   },
   title: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: Colors.light.primary,
-    marginBottom: 16,
+    color: '#000000',
+    marginBottom: 20,
+    lineHeight: 42,
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.light.text,
+    color: '#333333',
     marginBottom: 48,
     lineHeight: 24,
+    opacity: 0.8,
   },
   getStartedButton: {
-    backgroundColor: Colors.light.primary,
+    backgroundColor: '#000000',
     marginBottom: 24,
+    borderRadius: 30,
+    height: 56,
   },
   getStartedButtonText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
-  },
-  socialLoginContainer: {
-    marginBottom: 24,
-  },
-  socialButton: {
-    marginBottom: 12,
-    borderColor: Colors.light.border,
-  },
-  socialIcon: {
     fontSize: 16,
-    fontWeight: 'bold',
-    width: 24,
-    height: 24,
-    textAlign: 'center',
-    lineHeight: 24,
   },
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 30,
   },
   loginText: {
     fontSize: 14,
-    color: Colors.light.text,
+    color: '#333333',
   },
   loginButton: {
     fontSize: 14,

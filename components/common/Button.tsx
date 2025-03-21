@@ -6,7 +6,10 @@ import {
   ActivityIndicator, 
   ViewStyle, 
   TextStyle,
-  View
+  View,
+  Animated,
+  Easing,
+  Platform
 } from 'react-native';
 import Colors from '../../constants/Colors';
 
@@ -35,6 +38,27 @@ const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   icon,
 }) => {
+  // Animation value for press effect
+  const scaleAnim = React.useRef(new Animated.Value(1)).current;
+  
+  const handlePressIn = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 0.97,
+      duration: 100,
+      easing: Easing.inOut(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  };
+  
+  const handlePressOut = () => {
+    Animated.timing(scaleAnim, {
+      toValue: 1,
+      duration: 150,
+      easing: Easing.inOut(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  };
+  
   const getButtonStyle = () => {
     let buttonStyle: ViewStyle = {};
     
@@ -43,11 +67,33 @@ const Button: React.FC<ButtonProps> = ({
       case 'primary':
         buttonStyle = {
           backgroundColor: Colors.light.primary,
+          ...Platform.select({
+            ios: {
+              shadowColor: Colors.light.primary,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+            },
+            android: {
+              elevation: 5,
+            },
+          }),
         };
         break;
       case 'secondary':
         buttonStyle = {
           backgroundColor: Colors.light.secondary,
+          ...Platform.select({
+            ios: {
+              shadowColor: Colors.light.shadow,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 2,
+            },
+          }),
         };
         break;
       case 'outline':
@@ -100,7 +146,6 @@ const Button: React.FC<ButtonProps> = ({
       buttonStyle = {
         ...buttonStyle,
         width: '100%',
-        alignItems: 'center',
       };
     }
     
@@ -108,83 +153,86 @@ const Button: React.FC<ButtonProps> = ({
   };
   
   const getTextStyle = () => {
-    let style: TextStyle = {
+    let textStyleObj: TextStyle = {
+      fontSize: 16,
       fontWeight: '600',
     };
     
-    // Variant text color
     switch (variant) {
       case 'primary':
-      case 'secondary':
-        style = {
-          ...style,
+        textStyleObj = {
+          ...textStyleObj,
           color: '#FFFFFF',
         };
         break;
+      case 'secondary':
+        textStyleObj = {
+          ...textStyleObj,
+          color: Colors.light.text,
+        };
+        break;
       case 'outline':
-        style = {
-          ...style,
+        textStyleObj = {
+          ...textStyleObj,
           color: Colors.light.primary,
         };
         break;
     }
     
-    // Size text styles
     switch (size) {
       case 'small':
-        style = {
-          ...style,
+        textStyleObj = {
+          ...textStyleObj,
           fontSize: 14,
         };
         break;
       case 'medium':
-        style = {
-          ...style,
+        textStyleObj = {
+          ...textStyleObj,
           fontSize: 16,
         };
         break;
       case 'large':
-        style = {
-          ...style,
+        textStyleObj = {
+          ...textStyleObj,
           fontSize: 18,
         };
         break;
     }
     
-    return style;
+    return textStyleObj;
   };
   
   return (
-    <TouchableOpacity
-      style={[
-        styles.button,
-        getButtonStyle(),
-        fullWidth && styles.fullWidth,
-        disabled && styles.disabled,
-        style,
-      ]}
-      onPress={onPress}
-      disabled={disabled || loading}
+    <Animated.View
+      style={{
+        transform: [{ scale: scaleAnim }],
+        width: fullWidth ? '100%' : 'auto',
+      }}
     >
-      {loading ? (
-        <ActivityIndicator 
-          size="small" 
-          color={variant === 'outline' ? Colors.light.primary : '#FFFFFF'} 
-        />
-      ) : (
-        <>
-          {icon && <View style={styles.iconContainer}>{icon}</View>}
-          <Text style={[
-            styles.text,
-            getTextStyle(),
-            disabled && styles.textDisabled,
-            textStyle,
-          ]}>
-            {title}
-          </Text>
-        </>
-      )}
-    </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.button, getButtonStyle(), style]}
+        onPress={onPress}
+        disabled={disabled || loading}
+        activeOpacity={0.8}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+      >
+        {loading ? (
+          <ActivityIndicator 
+            size="small" 
+            color={variant === 'outline' ? Colors.light.primary : '#FFFFFF'} 
+          />
+        ) : (
+          <View style={styles.buttonContent}>
+            {icon && <View style={styles.iconContainer}>{icon}</View>}
+            <Text style={[styles.buttonText, getTextStyle(), textStyle]}>
+              {title}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
@@ -193,21 +241,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 16,
   },
-  text: {
-    fontSize: 16,
-    fontWeight: '600',
+  buttonContent: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  fullWidth: {
-    width: '100%',
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  textDisabled: {
-    opacity: 0.5,
+  buttonText: {
+    textAlign: 'center',
   },
   iconContainer: {
     marginRight: 8,

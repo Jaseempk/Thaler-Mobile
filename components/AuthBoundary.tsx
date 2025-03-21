@@ -8,7 +8,7 @@ interface AuthBoundaryProps {
 }
 
 export const AuthBoundary: React.FC<AuthBoundaryProps> = ({ children }) => {
-  const { ready, isAuthenticated } = usePrivy();
+  const { ready, user } = usePrivy();
 
   if (!ready) {
     return (
@@ -18,7 +18,7 @@ export const AuthBoundary: React.FC<AuthBoundaryProps> = ({ children }) => {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return <Redirect href="/auth/welcome" />;
   }
 

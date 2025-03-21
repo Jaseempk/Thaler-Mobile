@@ -6,7 +6,8 @@ import {
   ScrollView, 
   TouchableOpacity,
   Image,
-  SafeAreaView
+  SafeAreaView,
+  Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useWallet } from '../../context/WalletContext';
@@ -14,38 +15,44 @@ import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Colors from '../../constants/Colors';
 
+const { width } = Dimensions.get('window');
+
 // Mock data for recent activity
 const recentActivity = [
   {
     id: '1',
-    name: 'Deposit',
+    name: 'Dribbble',
     date: 'Today, 16:30',
-    amount: '+0.1 ETH',
-    type: 'deposit',
-    icon: 'arrow-down-circle-outline',
+    amount: '-$120',
+    type: 'transfer',
+    avatar: 'D',
+    avatarColor: '#ea4c89',
   },
   {
     id: '2',
-    name: 'Withdrawal',
-    date: 'Yesterday',
-    amount: '-0.05 ETH',
-    type: 'withdrawal',
-    icon: 'arrow-up-circle-outline',
+    name: 'Wilson Mango',
+    date: 'Today, 10:15',
+    amount: '-$240',
+    type: 'transfer',
+    avatar: 'WM',
+    avatarColor: '#4CAF50',
   },
   {
     id: '3',
-    name: 'Pool Created',
-    date: '3 days ago',
-    amount: '-0.2 ETH',
-    type: 'create',
-    icon: 'add-circle-outline',
+    name: 'Abram Botosh',
+    date: 'Yesterday',
+    amount: '+$450',
+    type: 'income',
+    avatar: null,
+    avatarColor: '#1E88E5',
+    image: 'https://randomuser.me/api/portraits/men/32.jpg',
   },
 ];
 
 export default function HomeScreen() {
-  const { address, balance, isConnected, connectWallet } = useWallet();
+  const { address, balance, isConnected } = useWallet();
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
-  const [userName, setUserName] = useState('User');
+  const [userName, setUserName] = useState('Jonathan');
   
   // Format the address for display
   const formatAddress = (address: string | null) => {
@@ -56,7 +63,7 @@ export default function HomeScreen() {
   // Format the balance for display
   const formatBalance = (balance: string) => {
     const balanceNum = parseFloat(balance);
-    return balanceNum.toFixed(4);
+    return balanceNum.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
   
   // Get greeting based on time of day
@@ -69,15 +76,15 @@ export default function HomeScreen() {
   
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>{getGreeting()}</Text>
-            <Text style={styles.userName}>{isConnected ? userName : 'Connect your wallet'}</Text>
+            <Text style={styles.greeting}>Hi, {userName}</Text>
+            <Text style={styles.welcomeBack}>Welcome Back!</Text>
           </View>
           <TouchableOpacity style={styles.notificationIcon}>
-            <Ionicons name="notifications-outline" size={24} color={Colors.light.primary} />
+            <Ionicons name="notifications-outline" size={24} color="#000" />
             <View style={styles.notificationBadge}>
               <Text style={styles.notificationBadgeText}>2</Text>
             </View>
@@ -85,135 +92,118 @@ export default function HomeScreen() {
         </View>
         
         {/* Wallet Balance Card */}
-        <Card variant="elevated" style={styles.balanceCard}>
-          <View style={styles.balanceHeader}>
-            <Text style={styles.balanceLabel}>Wallet Balance</Text>
+        <View style={styles.balanceContainer}>
+          <Text style={styles.balanceLabel}>Wallet Balance</Text>
+          <View style={styles.balanceRow}>
+            <Text style={styles.balanceAmount}>
+              ${isConnected 
+                ? (isBalanceVisible ? formatBalance("17298.92") : '••••••') 
+                : '---'}
+            </Text>
             <TouchableOpacity onPress={() => setIsBalanceVisible(!isBalanceVisible)}>
               <Ionicons 
                 name={isBalanceVisible ? "eye-outline" : "eye-off-outline"} 
-                size={20} 
-                color={Colors.light.text} 
+                size={24} 
+                color="#000" 
               />
             </TouchableOpacity>
           </View>
-          
-          <View style={styles.balanceContainer}>
-            <Text style={styles.balanceAmount}>
-              {isConnected 
-                ? (isBalanceVisible ? `${formatBalance(balance)} ETH` : '••••••') 
-                : '---'}
-            </Text>
+        </View>
+        
+        {/* Cards section */}
+        <View style={styles.cardsSection}>
+          <Text style={styles.sectionTitle}>Cards</Text>
+          <View style={styles.cardsRow}>
+            <View style={[styles.cardItem, { backgroundColor: '#4CAF50' }]}>
+              <Text style={styles.cardNumber}>•••• 4679</Text>
+            </View>
+            <View style={[styles.cardItem, { backgroundColor: '#212121' }]}>
+              <Text style={styles.cardNumber}>•••• 7391</Text>
+            </View>
           </View>
-          
-          {/* Connect wallet button if not connected */}
-          {!isConnected && (
-            <Button 
-              title="Connect Wallet" 
-              onPress={connectWallet}
-              variant="primary"
-              style={styles.connectButton}
-            />
-          )}
-          
-          {/* Cards section */}
-          {isConnected && (
-            <View style={styles.cardsSection}>
-              <Text style={styles.sectionTitle}>Savings Pools</Text>
-              <View style={styles.cardsRow}>
-                <View style={styles.savingsCard}>
-                  <View style={[styles.cardIcon, { backgroundColor: Colors.light.secondaryLight }]}>
-                    <Ionicons name="time-outline" size={24} color={Colors.light.primary} />
-                  </View>
-                  <Text style={styles.cardNumber}>3</Text>
-                  <Text style={styles.cardLabel}>Active</Text>
-                </View>
-                
-                <View style={styles.savingsCard}>
-                  <View style={[styles.cardIcon, { backgroundColor: Colors.light.secondaryLight }]}>
-                    <Ionicons name="checkmark-circle-outline" size={24} color={Colors.light.primary} />
-                  </View>
-                  <Text style={styles.cardNumber}>1</Text>
-                  <Text style={styles.cardLabel}>Completed</Text>
-                </View>
-              </View>
+        </View>
+        
+        {/* Action buttons */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.actionButton}>
+            <View style={styles.actionButtonIcon}>
+              <Ionicons name="send-outline" size={24} color="#fff" />
             </View>
-          )}
+            <Text style={styles.actionButtonText}>Send</Text>
+          </TouchableOpacity>
           
-          {/* Action buttons */}
-          {isConnected && (
-            <View style={styles.actionButtons}>
-              <Button 
-                title="Create Pool" 
-                onPress={() => {}}
-                variant="primary"
-                size="medium"
-                style={styles.actionButton}
-              />
-              <Button 
-                title="Deposit" 
-                onPress={() => {}}
-                variant="secondary"
-                size="medium"
-                style={styles.actionButton}
-              />
-              <TouchableOpacity style={styles.moreButton}>
-                <Ionicons name="grid-outline" size={24} color={Colors.light.primary} />
-              </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton}>
+            <View style={[styles.actionButtonIcon, { backgroundColor: Colors.light.accent }]}>
+              <Ionicons name="download-outline" size={24} color="#fff" />
             </View>
-          )}
-        </Card>
+            <Text style={styles.actionButtonText}>Request</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.actionButton}>
+            <View style={[styles.actionButtonIcon, { backgroundColor: '#9E9E9E' }]}>
+              <Ionicons name="grid-outline" size={24} color="#fff" />
+            </View>
+            <Text style={styles.actionButtonText}></Text>
+          </TouchableOpacity>
+        </View>
         
         {/* Recent Activity */}
-        {isConnected && (
-          <View style={styles.recentActivity}>
-            <View style={styles.activityHeader}>
-              <Text style={styles.sectionTitle}>Recent Activity</Text>
-              <TouchableOpacity>
-                <Text style={styles.seeDetailsText}>See Details</Text>
-              </TouchableOpacity>
-            </View>
-            
-            {recentActivity.map((activity) => (
-              <Card key={activity.id} variant="outlined" style={styles.activityCard}>
-                <View style={styles.activityItem}>
-                  <View style={styles.activityIconContainer}>
-                    <Ionicons 
-                      name={activity.icon as any} 
-                      size={24} 
-                      color={
-                        activity.type === 'deposit' 
-                          ? Colors.light.success 
-                          : activity.type === 'withdrawal' 
-                            ? Colors.light.error 
-                            : Colors.light.primary
-                      } 
-                    />
-                  </View>
-                  <View style={styles.activityDetails}>
-                    <Text style={styles.activityName}>{activity.name}</Text>
-                    <Text style={styles.activityDate}>{activity.date}</Text>
-                  </View>
-                  <Text 
-                    style={[
-                      styles.activityAmount,
-                      {
-                        color: 
-                          activity.type === 'deposit' 
-                            ? Colors.light.success 
-                            : activity.type === 'withdrawal' 
-                              ? Colors.light.error 
-                              : Colors.light.primary
-                      }
-                    ]}
-                  >
-                    {activity.amount}
-                  </Text>
-                </View>
-              </Card>
-            ))}
+        <View style={styles.recentActivity}>
+          <View style={styles.activityHeader}>
+            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeDetailsText}>See Details</Text>
+              <Ionicons name="chevron-forward" size={16} color={Colors.light.primary} />
+            </TouchableOpacity>
           </View>
-        )}
+          
+          {recentActivity.map((activity) => (
+            <View key={activity.id} style={styles.activityItem}>
+              <View style={styles.activityLeftSection}>
+                {activity.image ? (
+                  <Image source={{ uri: activity.image }} style={styles.activityAvatar} />
+                ) : (
+                  <View style={[styles.activityAvatar, { backgroundColor: activity.avatarColor }]}>
+                    <Text style={styles.activityAvatarText}>{activity.avatar}</Text>
+                  </View>
+                )}
+                <View style={styles.activityDetails}>
+                  <Text style={styles.activityName}>{activity.name}</Text>
+                  <Text style={styles.activityDate}>{activity.date}</Text>
+                </View>
+              </View>
+              <View style={styles.activityRightSection}>
+                <Text style={[
+                  styles.activityAmount,
+                  activity.type === 'income' ? styles.incomeAmount : styles.expenseAmount
+                ]}>
+                  {activity.amount}
+                </Text>
+                <Text style={styles.activityType}>Transfer</Text>
+              </View>
+            </View>
+          ))}
+        </View>
       </ScrollView>
+      
+      {/* Bottom Navigation */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="home" size={24} color={Colors.light.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="stats-chart-outline" size={24} color="#9E9E9E" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="wallet-outline" size={24} color="#9E9E9E" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="settings-outline" size={24} color="#9E9E9E" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="person-outline" size={24} color="#9E9E9E" />
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -221,11 +211,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#FFFFFF',
   },
   scrollView: {
     flex: 1,
-    padding: 16,
+    padding: 20,
   },
   header: {
     flexDirection: 'row',
@@ -234,32 +224,32 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   greeting: {
-    fontSize: 14,
-    color: Colors.light.text,
-    opacity: 0.7,
-  },
-  userName: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: '#000',
+    marginBottom: 4,
+  },
+  welcomeBack: {
+    fontSize: 16,
+    color: '#666',
   },
   notificationIcon: {
     position: 'relative',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.light.secondaryLight,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
   },
   notificationBadge: {
     position: 'absolute',
-    top: 5,
-    right: 5,
+    top: 8,
+    right: 8,
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: Colors.light.error,
+    backgroundColor: '#FF3B30',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -268,87 +258,71 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
   },
-  balanceCard: {
+  balanceContainer: {
     marginBottom: 24,
-  },
-  balanceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
   },
   balanceLabel: {
     fontSize: 14,
-    color: Colors.light.text,
-    opacity: 0.7,
+    color: '#666',
+    marginBottom: 8,
   },
-  balanceContainer: {
-    marginBottom: 16,
+  balanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   balanceAmount: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: Colors.light.text,
-  },
-  connectButton: {
-    marginTop: 16,
+    color: '#000',
   },
   cardsSection: {
-    marginTop: 24,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 12,
-    color: Colors.light.text,
+    marginBottom: 16,
+    color: '#000',
   },
   cardsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
-  savingsCard: {
-    width: '48%',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+  cardItem: {
+    width: 120,
+    height: 80,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
+    marginRight: 12,
+    padding: 16,
+    justifyContent: 'flex-end',
   },
-  cardIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  cardNumber: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginBottom: 32,
+  },
+  actionButton: {
+    alignItems: 'center',
+    marginRight: 32,
+  },
+  actionButtonIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.light.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
-  cardNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.light.text,
-  },
-  cardLabel: {
+  actionButtonText: {
     fontSize: 14,
-    color: Colors.light.text,
-    opacity: 0.7,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    marginTop: 24,
-    justifyContent: 'space-between',
-  },
-  actionButton: {
-    flex: 1,
-    marginRight: 8,
-  },
-  moreButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: Colors.light.secondaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+    color: '#000',
   },
   recentActivity: {
     marginBottom: 24,
@@ -357,43 +331,82 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   seeDetailsText: {
-    color: Colors.light.primary,
     fontSize: 14,
-  },
-  activityCard: {
-    marginBottom: 8,
+    color: Colors.light.primary,
   },
   activityItem: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  activityLeftSection: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  activityIconContainer: {
+  activityAvatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.light.secondaryLight,
+    backgroundColor: '#E0E0E0',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
+  activityAvatarText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
   activityDetails: {
-    flex: 1,
+    justifyContent: 'center',
   },
   activityName: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.light.text,
+    color: '#000',
+    marginBottom: 4,
   },
   activityDate: {
     fontSize: 12,
-    color: Colors.light.text,
-    opacity: 0.7,
+    color: '#666',
+  },
+  activityRightSection: {
+    alignItems: 'flex-end',
   },
   activityAmount: {
     fontSize: 16,
     fontWeight: '600',
+    marginBottom: 4,
+  },
+  incomeAmount: {
+    color: Colors.light.success,
+  },
+  expenseAmount: {
+    color: '#000',
+  },
+  activityType: {
+    fontSize: 12,
+    color: '#666',
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    height: 60,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    backgroundColor: '#FFFFFF',
+  },
+  navItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    height: '100%',
   },
 });
