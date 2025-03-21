@@ -1,13 +1,13 @@
-import { ethers } from 'ethers';
+import { ethers } from "ethers";
 
 export interface PrivyWallet {
   address: string;
-  type: 'wallet';
+  type: "wallet";
 }
 
 export interface PrivySmartWallet {
   address: string;
-  type: 'smartWallet';
+  type: "smartWallet";
 }
 
 export interface PrivyUser {
@@ -40,14 +40,14 @@ export interface PrivyUser {
 }
 
 export interface UsePrivy {
-  ready: boolean;
-  authenticated: boolean;
   user: PrivyUser | null;
+  authenticated: boolean;
+  ready: boolean;
   logout: () => Promise<void>;
-  createWallet: () => Promise<any>;
-  linkWallet: () => Promise<any>;
+  createWallet: () => Promise<PrivyWallet>;
+  linkWallet: () => Promise<PrivyWallet>;
   unlinkWallet: (address: string) => Promise<void>;
-  connectWallet: () => Promise<any>;
+  connectWallet: () => Promise<PrivyWallet>;
 }
 
 export interface PrivyContextType {
@@ -69,5 +69,34 @@ export interface PrivyContextType {
 }
 
 export interface UseLoginWithOAuth {
-  loginWithOAuth: (provider: 'google' | 'apple') => Promise<void>;
-} 
+  loginWithOAuth: (options: { provider: "google" | "apple" }) => Promise<void>;
+  state: {
+    status: "idle" | "loading" | "success" | "error";
+  };
+}
+
+export interface UseLoginWithEmail {
+  sendCode: (params: { email: string }) => Promise<void>;
+  loginWithCode: (params: { email: string; code: string }) => Promise<void>;
+  state: {
+    status:
+      | "initial"
+      | "sending-code"
+      | "awaiting-code-input"
+      | "submitting-code"
+      | "done";
+  };
+}
+
+export interface UseLinkWithEmail {
+  linkEmail: (params: { email: string }) => Promise<void>;
+  verifyCode: (params: { email: string; code: string }) => Promise<void>;
+  state: {
+    status:
+      | "initial"
+      | "sending-code"
+      | "awaiting-code-input"
+      | "submitting-code"
+      | "done";
+  };
+}

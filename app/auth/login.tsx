@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -20,26 +21,88 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
+  const pulseAnim = React.useRef(new Animated.Value(1)).current;
+  const [loadingDots, setLoadingDots] = useState('');
 
   const privyHook = usePrivy();
-  const { user, authenticated } = privyHook as unknown as UsePrivy;
-  const {
-    sendCode,
-    loginWithCode,
-    state: { status },
-  } = useLoginWithEmail();
-  const { login } = useLoginWithOAuth();
+  const { user, authenticated, ready } = privyHook as unknown as UsePrivy;
+
+  console.log("Login Screen - Initial render:", { ready, authenticated, user });
+
+  // Only initialize these hooks if Privy is ready
+  const loginHooks = React.useMemo(() => {
+    if (!ready) return null;
+
+    console.log("Login Screen - Initializing login hooks");
+    const {
+      sendCode,
+      loginWithCode,
+      state: { status },
+    } = useLoginWithEmail();
+    const oAuthHook = useLoginWithOAuth({
+      onSuccess: (user) => {
+        console.log("OAuth login successful", user);
+        router.replace("/tabs");
+      },
+      onError: (error) => {
+        console.error("OAuth login failed:", error);
+        Alert.alert(
+          "Error",
+          "Failed to login with social provider. Please try again."
+        );
+      },
+    });
+
+    return {
+      sendCode,
+      loginWithCode,
+      status,
+      loginWithOAuth: (oAuthHook as unknown as UseLoginWithOAuth)
+        .loginWithOAuth,
+    };
+  }, [ready]);
 
   // If user is already authenticated, redirect to tabs
   React.useEffect(() => {
     if (authenticated && user?.wallet?.address) {
+      console.log("Login Screen - User authenticated, redirecting to tabs");
       router.replace("/tabs");
     }
   }, [authenticated, user]);
 
+  // Pulse animation
+  useEffect(() => {
+    const pulse = Animated.sequence([
+      Animated.timing(pulseAnim, {
+        toValue: 1.2,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+    ]);
+
+    Animated.loop(pulse).start();
+  }, []);
+
+  // Loading dots animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLoadingDots(dots => (dots.length >= 3 ? '' : dots + '.'));
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const handleSendCode = async () => {
+    if (!loginHooks) return;
+
     try {
-      await sendCode({ email });
+      console.log("Login Screen - Sending code to:", email);
+      await loginHooks.sendCode({ email });
       setCodeSent(true);
     } catch (error) {
       console.error("Failed to send code:", error);
@@ -51,8 +114,12 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
+    if (!loginHooks) return;
+
     try {
-      await loginWithCode({ code, email });
+      console.log("Login Screen - Verifying code for:", email);
+      await loginHooks.loginWithCode({ code, email });
+      router.replace("/tabs");
     } catch (error) {
       console.error("Failed to login:", error);
       Alert.alert("Error", "Failed to verify code. Please try again.");
@@ -63,10 +130,33 @@ export default function LoginScreen() {
     router.push("/auth/welcome");
   };
 
-  if (status === "sending-code" || status === "submitting-code") {
+  if (!ready || !loginHooks) {
+    console.log("Login Screen - Waiting for Privy initialization");
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]}>
-        <Text style={styles.loadingText}>Loading...</Text>
+        <StatusBar style="dark" />
+        <View style={styles.loadingContent}>
+          <Animated.View 
+            style={[
+              styles.logoSquare,
+              { transform: [{ scale: pulseAnim }] }
+            ]} 
+          />
+          <Text style={styles.loadingText}>Initializing{loadingDots}</Text>
+          <Text style={styles.loadingSubtext}>Setting up your secure environment</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (
+    loginHooks.status === "sending-code" ||
+    loginHooks.status === "submitting-code"
+  ) {
+    console.log("Login Screen - Processing auth action:", loginHooks.status);
+    return (
+      <SafeAreaView style={[styles.container, styles.loadingContainer]}>
+        <Text style={styles.loadingText}>Processing...</Text>
       </SafeAreaView>
     );
   }
@@ -134,7 +224,7 @@ export default function LoginScreen() {
           <View style={styles.socialLoginContainer}>
             <Button
               title="Continue with Google"
-              onPress={() => login({ provider: "google" })}
+              onPress={() => loginHooks.loginWithOAuth({ provider: "google" })}
               variant="outline"
               size="large"
               style={styles.socialButton}
@@ -143,7 +233,7 @@ export default function LoginScreen() {
 
             <Button
               title="Continue with Apple"
-              onPress={() => login({ provider: "apple" })}
+              onPress={() => loginHooks.loginWithOAuth({ provider: "apple" })}
               variant="outline"
               size="large"
               style={styles.socialButton}
@@ -169,13 +259,32 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.secondary,
   },
   loadingContainer: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#CBFF9B", // Matching welcome screen theme
+  },
+  loadingContent: {
+    alignItems: 'center',
+  },
+  logoSquare: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#1B381F',
+    borderRadius: 12,
+    marginBottom: 24,
   },
   loadingText: {
-    fontSize: 18,
-    color: Colors.light.primary,
-    fontWeight: "bold",
+    fontSize: 24,
+    color: '#1B381F',
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  loadingSubtext: {
+    fontSize: 16,
+    color: '#2D5531',
+    textAlign: 'center',
+    maxWidth: '80%',
   },
   header: {
     flexDirection: "row",

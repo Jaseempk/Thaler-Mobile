@@ -1,15 +1,21 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { 
-  PrivyProvider as PrivySDKProvider, 
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import {
+  PrivyProvider as PrivySDKProvider,
   usePrivy,
   useLoginWithEmail,
-  useLoginWithOAuth
-} from '@privy-io/expo';
-import { ethers } from 'ethers';
-import Config from '../constants/Config';
-import { PrivyContextType, PrivyUser, UsePrivy } from '../types/privy';
-import 'react-native-get-random-values';
-import '@ethersproject/shims';
+  useLoginWithOAuth,
+} from "@privy-io/expo";
+import { ethers } from "ethers";
+import Config from "../constants/Config";
+import { PrivyContextType, PrivyUser, UsePrivy } from "../types/privy";
+import "react-native-get-random-values";
+import "@ethersproject/shims";
 
 // Create the context with the imported type
 const PrivyContext = createContext<PrivyContextType>({
@@ -17,13 +23,15 @@ const PrivyContext = createContext<PrivyContextType>({
   isLoading: true,
   user: null,
   walletAddress: null,
-  balance: '0',
+  balance: "0",
   loginWithEmail: async () => {},
   loginWithGoogle: async () => {},
   loginWithApple: async () => {},
   verifyCode: async () => {},
   logout: async () => {},
-  sendTransaction: async () => { throw new Error('Not implemented'); }
+  sendTransaction: async () => {
+    throw new Error("Not implemented");
+  },
 });
 
 // Hook to use the Privy context
@@ -37,20 +45,24 @@ interface PrivyProviderProps {
 export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [balance, setBalance] = useState('0');
+  const [balance, setBalance] = useState("0");
 
   // Use Privy hooks with proper typing
   const privyHook = usePrivy();
-  const { user, authenticated, logout: privyLogout } = privyHook as unknown as UsePrivy;
+  const {
+    user,
+    authenticated,
+    logout: privyLogout,
+  } = privyHook as unknown as UsePrivy;
   const { sendCode, loginWithCode } = useLoginWithEmail();
   const { login: oauthLogin } = useLoginWithOAuth({
     onSuccess: (user, isNewUser) => {
-      console.log('Logged in successfully', { user, isNewUser });
+      console.log("Logged in successfully", { user, isNewUser });
     },
     onError: (error) => {
-      console.error('Login failed', error);
+      console.error("Login failed", error);
       throw error;
-    }
+    },
   });
 
   // Update wallet address when user changes
@@ -63,7 +75,7 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
       fetchBalance(user.smartWallet.address);
     } else {
       setWalletAddress(null);
-      setBalance('0');
+      setBalance("0");
     }
     setIsLoading(false);
   }, [user]);
@@ -71,11 +83,13 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
   // Fetch wallet balance
   const fetchBalance = async (address: string) => {
     try {
-      const provider = new ethers.providers.JsonRpcProvider(Config.BLOCKCHAIN.RPC_URL);
+      const provider = new ethers.providers.JsonRpcProvider(
+        Config.BLOCKCHAIN.RPC_URL
+      );
       const balanceWei = await provider.getBalance(address);
       setBalance(ethers.utils.formatEther(balanceWei));
     } catch (error) {
-      console.error('Failed to fetch balance:', error);
+      console.error("Failed to fetch balance:", error);
     }
   };
 
@@ -85,7 +99,7 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
       setIsLoading(true);
       await sendCode({ email });
     } catch (error) {
-      console.error('Failed to send verification code:', error);
+      console.error("Failed to send verification code:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -97,7 +111,7 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
       setIsLoading(true);
       await loginWithCode({ email, code });
     } catch (error) {
-      console.error('Failed to verify code:', error);
+      console.error("Failed to verify code:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -107,9 +121,9 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
   const loginWithGoogle = async () => {
     try {
       setIsLoading(true);
-      await oauthLogin({ provider: 'google' });
+      await oauthLogin({ provider: "google" });
     } catch (error) {
-      console.error('Failed to login with Google:', error);
+      console.error("Failed to login with Google:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -119,9 +133,9 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
   const loginWithApple = async () => {
     try {
       setIsLoading(true);
-      await oauthLogin({ provider: 'apple' });
+      await oauthLogin({ provider: "apple" });
     } catch (error) {
-      console.error('Failed to login with Apple:', error);
+      console.error("Failed to login with Apple:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -134,9 +148,9 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
       setIsLoading(true);
       await privyLogout();
       setWalletAddress(null);
-      setBalance('0');
+      setBalance("0");
     } catch (error) {
-      console.error('Failed to logout:', error);
+      console.error("Failed to logout:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -154,15 +168,19 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
     }
 
     try {
-      const provider = new ethers.providers.JsonRpcProvider(Config.BLOCKCHAIN.RPC_URL);
+      const provider = new ethers.providers.JsonRpcProvider(
+        Config.BLOCKCHAIN.RPC_URL
+      );
       const valueWei = ethers.utils.parseEther(value);
 
-      const tx = await provider.send('eth_sendTransaction', [{
-        from: walletAddress,
-        to,
-        value: valueWei.toHexString(),
-        data: data || '0x'
-      }]);
+      const tx = await provider.send("eth_sendTransaction", [
+        {
+          from: walletAddress,
+          to,
+          value: valueWei.toHexString(),
+          data: data || "0x",
+        },
+      ]);
 
       return await provider.getTransaction(tx);
     } catch (error) {
@@ -195,7 +213,7 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
         loginWithApple,
         verifyCode,
         logout,
-        sendTransaction
+        sendTransaction,
       }}
     >
       {children}

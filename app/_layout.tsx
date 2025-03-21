@@ -1,25 +1,40 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useFonts } from 'expo-font';
-import { useColorScheme } from 'react-native';
+import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
+import { useColorScheme, View, Text } from 'react-native';
 import Colors from '../constants/Colors';
 import Config from '../constants/Config';
-import { RootPrivyProvider } from '../context/PrivyContext';
+import { PrivyProvider, PrivyElements } from '@privy-io/expo';
 
 export default function RootLayout() {
+  console.log('RootLayout - Mounting with config:', {
+    appId: Config.PRIVY.APP_ID,
+    clientId: Config.PRIVY.CLIENT_ID,
+  });
+
   const colorScheme = useColorScheme();
   
   const [fontsLoaded] = useFonts({
-    // We can add custom fonts here if needed
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold
   });
 
   if (!fontsLoaded) {
-    return null;
+    console.log('RootLayout - Waiting for fonts to load');
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading fonts...</Text>
+      </View>
+    );
   }
 
   return (
-    <RootPrivyProvider>
+    <PrivyProvider 
+      appId={Config.PRIVY.APP_ID} 
+      clientId={Config.PRIVY.CLIENT_ID}
+    >
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
@@ -33,6 +48,7 @@ export default function RootLayout() {
         <Stack.Screen name="auth/welcome" options={{ headerShown: false }} />
         <Stack.Screen name="tabs" options={{ headerShown: false }} />
       </Stack>
-    </RootPrivyProvider>
+      <PrivyElements />
+    </PrivyProvider>
   );
 }
