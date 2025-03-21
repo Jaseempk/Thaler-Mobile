@@ -1,11 +1,11 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { PrivyProvider } from '@privy-io/expo';
 import { useFonts } from 'expo-font';
 import { useColorScheme } from 'react-native';
 import Colors from '../constants/Colors';
 import Config from '../constants/Config';
+import { RootPrivyProvider } from '../context/PrivyContext';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -19,10 +19,7 @@ export default function RootLayout() {
   }
 
   return (
-    <PrivyProvider 
-      appId={Config.PRIVY.APP_ID}
-      clientId={Config.PRIVY.CLIENT_ID}
-    >
+    <RootPrivyProvider>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
@@ -36,6 +33,6 @@ export default function RootLayout() {
         <Stack.Screen name="auth/welcome" options={{ headerShown: false }} />
         <Stack.Screen name="tabs" options={{ headerShown: false }} />
       </Stack>
-    </PrivyProvider>
+    </RootPrivyProvider>
   );
 }

@@ -3,12 +3,12 @@ export default {
   API_URL: "https://api.thaler.example.com", // Replace with actual API URL when available
   BLOCKCHAIN: {
     NETWORK: "base-sepolia", // or 'mainnet', 'goerli', etc.
-    RPC_URL: process.env.EXPO_PUBLIC_RPC_URL || 'https://eth-mainnet.g.alchemy.com/v2/your-api-key',
+    RPC_URL: process.env.EXPO_PUBLIC_RPC_URL || 'https://base-sepolia.g.alchemy.com/v2/txntl9XYKWyIkkmj1p0JcecUKxqt9327',
     CHAIN_ID: 84532, // Sepolia chain ID
   },
   PRIVY: {
-    APP_ID: process.env.EXPO_PUBLIC_PRIVY_APP_ID || '',
-    CLIENT_ID: process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID || '',
+    APP_ID: process.env.EXPO_PUBLIC_PRIVY_APP_ID || 'cm8h7tx5000hjroolacpc3c6w',
+    CLIENT_ID: process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID || 'client-WY5i231aN8aEGBMrcw19QykJQ3ra4pGwANsYSFXQFevvx',
     LOGIN_METHODS: ["email", "google", "apple", "passkey"],
     EMBEDDED_WALLET_ENABLED: true,
   },

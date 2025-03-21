@@ -241,7 +241,7 @@ export class SavingsService {
           // Using Privy embedded wallet
           // For ERC20, we need to approve the token spending first
           await this.privyContext.sendERC20Approval(
-            pool.tokenToSave, // Use tokenToSave instead of tokenAddress
+            pool.tokenToSave, // Token address from the pool
             THALER_SAVINGS_POOL_ADDRESS,
             params.depositAmount
           );

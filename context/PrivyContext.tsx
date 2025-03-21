@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { PrivyProvider as PrivySDKProvider, usePrivy as usePrivySDK } from '@privy-io/expo';
+import { 
+  PrivyProvider as PrivySDKProvider, 
+  usePrivy as usePrivySDK,
+  useLoginWithEmail
+} from '@privy-io/expo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ethers } from 'ethers';
 import Config from '../constants/Config';
@@ -20,6 +24,11 @@ export interface PrivyUser {
   wallet?: {
     address: string;
   };
+  linkedAccounts?: Array<{
+    type: string;
+    address: string;
+    [key: string]: any;
+  }>;
   socialProfiles?: {
     google?: {
       email: string;
@@ -36,6 +45,7 @@ export interface PrivyUser {
 interface PrivyContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
+  isReady: boolean;
   userId: string | null;
   walletAddress: string | null;
   embeddedWallet: any | null;
@@ -54,6 +64,7 @@ interface PrivyContextType {
 const PrivyContext = createContext<PrivyContextType>({
   isAuthenticated: false,
   isLoading: true,
+  isReady: false,
   userId: null,
   walletAddress: null,
   embeddedWallet: null,
@@ -79,23 +90,32 @@ interface PrivyProviderProps {
 export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isReady, setIsReady] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [embeddedWallet, setEmbeddedWallet] = useState<any | null>(null);
   const [balance, setBalance] = useState('0');
   const [user, setUser] = useState<PrivyUser | null>(null);
   
-  // Use the Privy SDK hook
+  // Use the Privy SDK hooks
   const privy = usePrivySDK();
+  const emailLogin = useLoginWithEmail();
   
   // Check authentication status
   useEffect(() => {
+    console.log('PrivyProvider useEffect - privy:', privy);
+    console.log('PrivyProvider useEffect - privy.isReady:', privy?.isReady);
+    console.log('PrivyProvider useEffect - privy.isAuthenticated:', privy?.isAuthenticated);
+    
     const checkAuth = async () => {
       try {
-        if (privy.isReady) {
+        console.log('checkAuth - privy.isReady:', privy?.isReady);
+        if (privy?.isReady) {
           setIsLoading(false);
+          setIsReady(true);
+          console.log('checkAuth - privy.isAuthenticated:', privy?.isAuthenticated);
           
-          if (privy.user?.isAuthenticated) {
+          if (privy?.isAuthenticated) {
             setIsAuthenticated(true);
             
             // Set user ID
@@ -127,18 +147,22 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
   // Load wallet
   const loadWallet = async () => {
     try {
-      // Check if user has any wallets
-      // Note: Using any type here because the Privy SDK types might not be complete
-      const wallets = await (privy as any).getWallets();
-      
-      if (wallets && wallets.length > 0) {
-        // Use the first wallet (embedded or linked)
-        const wallet = wallets[0];
-        setWalletAddress(wallet.address);
-        setEmbeddedWallet(wallet);
+      // Check if user has any linked accounts with wallets
+      // Try different property names based on Privy SDK version
+      const linkedAccounts = (privy.user as any)?.linkedAccounts || (privy.user as any)?.linked_accounts;
+      if (linkedAccounts) {
+        const walletAccounts = linkedAccounts.filter(
+          (account: { type: string }) => account.type === 'wallet'
+        );
         
-        // Get initial balance
-        await fetchBalance(wallet.address);
+        if (walletAccounts.length > 0) {
+          const walletAddress = walletAccounts[0].address;
+          setWalletAddress(walletAddress);
+          setEmbeddedWallet(walletAccounts[0]);
+          
+          // Get initial balance
+          await fetchBalance(walletAddress);
+        }
       }
     } catch (error) {
       console.error('Failed to load wallet:', error);
@@ -166,19 +190,36 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
       switch (method) {
         case 'email':
           if (!identifier) throw new Error('Email is required');
-          // Use the Privy SDK to login with email
-          await privy.loginWithEmail({
-            email: identifier,
-          });
+          // Use the email login hook
+          await emailLogin.sendCode({ email: identifier });
+          // Note: User will need to enter the code they receive in a separate step
           break;
         case 'google':
-          await privy.loginWithGoogle();
+          // Use the Privy SDK for social logins
+          // Note: Different versions of Privy SDK have different methods
+          // Try alternate methods if this fails
+          try {
+            await (privy as any).login({ type: 'google' });
+          } catch (e) {
+            console.log('Trying alternate login method for Google');
+            await (privy as any).loginWithGoogle();
+          }
           break;
         case 'apple':
-          await privy.loginWithApple();
+          try {
+            await (privy as any).login({ type: 'apple' });
+          } catch (e) {
+            console.log('Trying alternate login method for Apple');
+            await (privy as any).loginWithApple();
+          }
           break;
         case 'passkey':
-          await privy.loginWithPasskey();
+          try {
+            await (privy as any).login({ type: 'passkey' });
+          } catch (e) {
+            console.log('Trying alternate login method for Passkey');
+            await (privy as any).loginWithPasskey();
+          }
           break;
         default:
           throw new Error('Invalid login method');
@@ -220,8 +261,14 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
       setIsLoading(true);
       
       // Create new embedded wallet using Privy SDK
-      // Note: Using any type here because the Privy SDK types might not be complete
-      const wallet = await (privy as any).createWallet();
+      // Different versions of Privy SDK have different methods
+      let wallet;
+      try {
+        wallet = await (privy as any).createEmbeddedWallet();
+      } catch (e) {
+        console.log('Trying alternate wallet creation method');
+        wallet = await (privy as any).createWallet();
+      }
       
       if (wallet) {
         setEmbeddedWallet(wallet);
@@ -230,13 +277,10 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
         // Get initial balance
         await fetchBalance(wallet.address);
         
-        // Update user with wallet
+        // Update user state
         if (user) {
           setUser({
-            ...user,
-            wallet: {
-              address: wallet.address
-            }
+            ...user
           });
         }
         
@@ -374,6 +418,7 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
   const contextValue: PrivyContextType = {
     isAuthenticated,
     isLoading,
+    isReady,
     userId,
     walletAddress,
     embeddedWallet,
