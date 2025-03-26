@@ -4,18 +4,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
 
+interface TokenData {
+  id: string;
+  symbol: string;
+  name: string;
+  balance: string;
+  value: string;
+  change: string;
+  isPositive: boolean;
+  logo: any;
+  gradientColors: string[] | [string, string, ...string[]]; // Accept both types for backward compatibility
+}
+
 interface TokenBalanceCardProps {
-  token: {
-    id: string;
-    symbol: string;
-    name: string;
-    balance: string;
-    value: string;
-    change: string;
-    isPositive: boolean;
-    logo: any;
-    gradientColors: string[];
-  };
+  token: TokenData;
   theme: 'light' | 'dark';
   onPress?: () => void;
 }
@@ -28,7 +30,12 @@ const TokenBalanceCard: React.FC<TokenBalanceCardProps> = ({ token, theme, onPre
       activeOpacity={0.8}
     >
       <LinearGradient
-        colors={token.gradientColors}
+        colors={
+          // Ensure we have at least two colors for the gradient and proper type casting
+          (token.gradientColors.length >= 2 
+            ? [token.gradientColors[0], token.gradientColors[1]] as [string, string]
+            : ["#3F51B5", "#5C6BC0"]) as readonly [string, string, ...string[]]
+        }
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradientBackground}

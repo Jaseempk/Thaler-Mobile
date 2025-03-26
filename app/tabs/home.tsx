@@ -41,7 +41,7 @@ const tokenData = [
     change: "2.4",
     isPositive: true,
     logo: require("../../assets/images/ethereum.png"),
-    gradientColors: ["#627EEA", "#3C5BE0"],
+    gradientColors: ["#627EEA", "#3C5BE0"] as [string, string],
   },
   {
     id: "2",
@@ -52,7 +52,7 @@ const tokenData = [
     change: "0.01",
     isPositive: true,
     logo: require("../../assets/images/usdc.png"),
-    gradientColors: ["#2775CA", "#2775CA"],
+    gradientColors: ["#2775CA", "#2775CA"] as [string, string],
   },
   {
     id: "3",
@@ -63,7 +63,7 @@ const tokenData = [
     change: "0.00",
     isPositive: true,
     logo: require("../../assets/images/usdt.png"),
-    gradientColors: ["#26A17B", "#1A9270"],
+    gradientColors: ["#26A17B", "#1A9270"] as [string, string],
   },
   {
     id: "4",
@@ -74,7 +74,7 @@ const tokenData = [
     change: "1.2",
     isPositive: false,
     logo: require("../../assets/images/matic.png"),
-    gradientColors: ["#8247E5", "#6F3CD0"],
+    gradientColors: ["#8247E5", "#6F3CD0"] as [string, string],
   },
 ];
 
@@ -766,7 +766,7 @@ const styles = StyleSheet.create({
   },
   balanceContainer: {
     marginBottom: 16,
-    height: 160, // Fixed height instead of max-height
+    minHeight: 180, // Increased minimum height to fit all content
   },
   balanceGradient: {
     width: "100%",
@@ -847,8 +847,8 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: "rgba(255, 255, 255, 0.2)",
-    height: 70, // Fixed height instead of max-height
-    overflow: "hidden", // Hide overflow content
+    minHeight: 80, // Increased minimum height to fit content
+    overflow: "visible", // Show all content
   },
   walletHeaderRow: {
     flexDirection: "row",
@@ -874,8 +874,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.2)",
     borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     marginBottom: 8,
   },
   addressText: {
@@ -883,6 +883,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#FFFFFF",
+    marginRight: 8, // Add margin to prevent text from touching copy button
   },
   copyButton: {
     width: 28,

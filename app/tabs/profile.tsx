@@ -35,7 +35,7 @@ import { useWallet } from "../../context/WalletContext";
 import { UsePrivy } from "../../types/privy";
 
 const { width, height } = Dimensions.get("window");
-const HEADER_HEIGHT = 200; // Define header height as a constant
+const HEADER_HEIGHT = 80; // Further reduced header height
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -204,19 +204,19 @@ export default function ProfileScreen() {
   // Calculate header animations
   const headerTranslate = scrollY.interpolate({
     inputRange: [0, HEADER_HEIGHT],
-    outputRange: [0, -HEADER_HEIGHT / 2],
+    outputRange: [0, -HEADER_HEIGHT / 1.5], // Adjusted to keep more of the header visible when scrolling
     extrapolate: "clamp",
   });
 
   const imageScale = scrollY.interpolate({
     inputRange: [-100, 0, HEADER_HEIGHT],
-    outputRange: [1.2, 1, 0.8],
+    outputRange: [1.2, 1, 0.9],
     extrapolate: "clamp",
   });
 
   const imageTranslateY = scrollY.interpolate({
     inputRange: [0, HEADER_HEIGHT],
-    outputRange: [0, -30],
+    outputRange: [0, 30], // Increased to move image down more when scrolling
     extrapolate: "clamp",
   });
 
@@ -270,8 +270,8 @@ export default function ProfileScreen() {
           { useNativeDriver: true }
         )}
       >
-        {/* Profile Header Spacer */}
-        <View style={{ height: HEADER_HEIGHT }} />
+        {/* Profile Header Spacer - adjusted to give more space for profile pic */}
+        <View style={{ height: HEADER_HEIGHT - 20 }} />
 
         {/* Profile Image and Info */}
         <View style={styles.profileImageContainer}>
@@ -342,10 +342,7 @@ export default function ProfileScreen() {
                   ]}
                 >
                   {walletAddress
-                    ? `${walletAddress.substring(
-                        0,
-                        6
-                      )}...${walletAddress.substring(walletAddress.length - 4)}`
+                    ? `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`
                     : "No Wallet Connected"}
                 </Text>
                 {walletAddress && (
@@ -879,9 +876,10 @@ const styles = StyleSheet.create({
   // Profile Image and Info
   profileImageContainer: {
     alignItems: "center",
-    marginTop: -50,
+    marginTop: -50, // Adjusted to position profile pic properly
     marginBottom: 24,
     paddingHorizontal: 16,
+    zIndex: 20, // Ensure profile image stays on top when scrolling
   },
   profileImageWrapper: {
     width: 100,
@@ -923,6 +921,7 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
     marginBottom: 16,
+    paddingHorizontal: 10, // Added padding to ensure wallet card has room
   },
   walletButton: {
     flexDirection: "row",
@@ -931,7 +930,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
-    width: "90%",
+    width: "100%", // Increased width to show full content
+    minHeight: 60, // Added minimum height
   },
   walletIcon: {
     marginRight: 8,
@@ -939,6 +939,7 @@ const styles = StyleSheet.create({
   walletButtonText: {
     fontSize: 16,
     flex: 1,
+    marginRight: 8, // Added margin to prevent text from touching copy button
   },
   copyButton: {
     padding: 8,
