@@ -7,11 +7,12 @@ import {
   Inter_500Medium,
   Inter_600SemiBold,
 } from "@expo-google-fonts/inter";
-import { useColorScheme, View, Text } from "react-native";
+import { View, Text } from "react-native";
 import Colors from "../constants/Colors";
 import Config from "../constants/Config";
 import { PrivyProvider, PrivyElements, usePrivy } from "@privy-io/expo";
 import { UsePrivy } from "../types/privy";
+import { ThemeProvider } from "../contexts/ThemeContext";
 // import { Slot } from "expo-router";
 
 // Wrapper component to log Privy state
@@ -47,7 +48,7 @@ export default function RootLayout() {
     timestamp: new Date().toISOString(),
   });
 
-  const colorScheme = useColorScheme();
+  // colorScheme is now managed by ThemeContext
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -82,25 +83,21 @@ export default function RootLayout() {
       appId={Config.PRIVY.APP_ID}
       clientId={Config.PRIVY.CLIENT_ID}
     >
-      <PrivyLogger>
-        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: {
-              backgroundColor:
-                colorScheme === "dark"
-                  ? Colors.dark.background
-                  : Colors.light.background,
-            },
-          }}
-        >
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="auth/welcome" options={{ headerShown: false }} />
-          <Stack.Screen name="tabs" options={{ headerShown: false }} />
-        </Stack>
-        <PrivyElements />
-      </PrivyLogger>
+      <ThemeProvider>
+        <PrivyLogger>
+          <StatusBar style="auto" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+            }}
+          >
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/welcome" options={{ headerShown: false }} />
+            <Stack.Screen name="tabs" options={{ headerShown: false }} />
+          </Stack>
+          <PrivyElements />
+        </PrivyLogger>
+      </ThemeProvider>
     </PrivyProvider>
   );
 }

@@ -3,6 +3,7 @@ import {
   View, 
   Text, 
   StyleSheet, 
+  Switch,
   ScrollView, 
   TouchableOpacity,
   Image,
@@ -14,6 +15,7 @@ import { useWallet } from '../../context/WalletContext';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Colors from '../../constants/Colors';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -50,9 +52,11 @@ const recentActivity = [
 ];
 
 export default function HomeScreen() {
+  const { activeTheme, toggleTheme } = useTheme();
   const { address, balance, isConnected } = useWallet();
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [userName, setUserName] = useState('Jonathan');
+  const [isDarkMode, setIsDarkMode] = useState(activeTheme === 'dark');
   
   // Format the address for display
   const formatAddress = (address: string | null) => {
@@ -74,28 +78,53 @@ export default function HomeScreen() {
     return 'Good Evening';
   };
   
+  // Update the switch state when theme changes
+  useEffect(() => {
+    setIsDarkMode(activeTheme === 'dark');
+  }, [activeTheme]);
+
+  // Handle theme toggle
+  const handleThemeToggle = () => {
+    toggleTheme();
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={[styles.container, { backgroundColor: Colors[activeTheme].background }]}>
+      <ScrollView style={[styles.scrollView, { backgroundColor: Colors[activeTheme].background }]} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Hi, {userName}</Text>
-            <Text style={styles.welcomeBack}>Welcome Back!</Text>
+            <Text style={[styles.greeting, { color: Colors[activeTheme].text }]}>Hi, {userName}</Text>
+            <Text style={[styles.welcomeBack, { color: Colors[activeTheme].textSecondary }]}>Welcome Back!</Text>
           </View>
-          <TouchableOpacity style={styles.notificationIcon}>
-            <Ionicons name="notifications-outline" size={24} color="#000" />
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationBadgeText}>2</Text>
-            </View>
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            {/* Theme Toggle Icon */}
+            <TouchableOpacity 
+              style={styles.themeToggleButton} 
+              onPress={handleThemeToggle}
+              activeOpacity={0.7}
+            >
+              {isDarkMode ? (
+                <Ionicons name="moon" size={22} color="#9BA4B5" />
+              ) : (
+                <Ionicons name="sunny" size={22} color="#FFC107" />
+              )}
+            </TouchableOpacity>
+            {/* Notification Icon */}
+            <TouchableOpacity style={[styles.notificationIcon, { backgroundColor: Colors[activeTheme].secondaryLight }]}>
+              <Ionicons name="notifications-outline" size={24} color={Colors[activeTheme].text} />
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>2</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
         
         {/* Wallet Balance Card */}
         <View style={styles.balanceContainer}>
-          <Text style={styles.balanceLabel}>Wallet Balance</Text>
+          <Text style={[styles.balanceLabel, { color: Colors[activeTheme].textSecondary }]}>Wallet Balance</Text>
           <View style={styles.balanceRow}>
-            <Text style={styles.balanceAmount}>
+            <Text style={[styles.balanceAmount, { color: Colors[activeTheme].text }]}>
               ${isConnected 
                 ? (isBalanceVisible ? formatBalance("17298.92") : '••••••') 
                 : '---'}
@@ -104,7 +133,7 @@ export default function HomeScreen() {
               <Ionicons 
                 name={isBalanceVisible ? "eye-outline" : "eye-off-outline"} 
                 size={24} 
-                color="#000" 
+                color={Colors[activeTheme].text} 
               />
             </TouchableOpacity>
           </View>
@@ -112,7 +141,7 @@ export default function HomeScreen() {
         
         {/* Cards section */}
         <View style={styles.cardsSection}>
-          <Text style={styles.sectionTitle}>Cards</Text>
+          <Text style={[styles.sectionTitle, { color: Colors[activeTheme].text }]}>Cards</Text>
           <View style={styles.cardsRow}>
             <View style={[styles.cardItem, { backgroundColor: '#4CAF50' }]}>
               <Text style={styles.cardNumber}>•••• 4679</Text>
@@ -129,14 +158,14 @@ export default function HomeScreen() {
             <View style={styles.actionButtonIcon}>
               <Ionicons name="send-outline" size={24} color="#fff" />
             </View>
-            <Text style={styles.actionButtonText}>Send</Text>
+            <Text style={[styles.actionButtonText, { color: Colors[activeTheme].text }]}>Send</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.actionButton}>
             <View style={[styles.actionButtonIcon, { backgroundColor: Colors.light.accent }]}>
               <Ionicons name="download-outline" size={24} color="#fff" />
             </View>
-            <Text style={styles.actionButtonText}>Request</Text>
+            <Text style={[styles.actionButtonText, { color: Colors[activeTheme].text }]}>Request</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.actionButton}>
@@ -150,7 +179,7 @@ export default function HomeScreen() {
         {/* Recent Activity */}
         <View style={styles.recentActivity}>
           <View style={styles.activityHeader}>
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            <Text style={[styles.sectionTitle, { color: Colors[activeTheme].text }]}>Recent Activity</Text>
             <TouchableOpacity>
               <Text style={styles.seeDetailsText}>See Details</Text>
               <Ionicons name="chevron-forward" size={16} color={Colors.light.primary} />
@@ -168,8 +197,8 @@ export default function HomeScreen() {
                   </View>
                 )}
                 <View style={styles.activityDetails}>
-                  <Text style={styles.activityName}>{activity.name}</Text>
-                  <Text style={styles.activityDate}>{activity.date}</Text>
+                  <Text style={[styles.activityName, { color: Colors[activeTheme].text }]}>{activity.name}</Text>
+                  <Text style={[styles.activityDate, { color: Colors[activeTheme].textSecondary }]}>{activity.date}</Text>
                 </View>
               </View>
               <View style={styles.activityRightSection}>
@@ -213,6 +242,19 @@ const styles = StyleSheet.create({
   welcomeBack: {
     fontSize: 16,
     color: '#666',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  themeToggleButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   notificationIcon: {
     position: 'relative',

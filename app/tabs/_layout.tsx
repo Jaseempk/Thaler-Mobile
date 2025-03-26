@@ -1,17 +1,22 @@
 import { Tabs } from 'expo-router';
-import { useColorScheme } from 'react-native';
 import Colors from '../../constants/Colors';
 import { AuthBoundary } from '../../components/AuthBoundary';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { activeTheme } = useTheme();
 
   return (
     <AuthBoundary>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+          tabBarActiveTintColor: Colors[activeTheme].tint,
+          tabBarStyle: {
+            backgroundColor: Colors[activeTheme].background,
+            borderTopColor: Colors[activeTheme].border,
+          },
+          tabBarInactiveTintColor: Colors[activeTheme].tabIconDefault,
           headerShown: false,
         }}
       >
