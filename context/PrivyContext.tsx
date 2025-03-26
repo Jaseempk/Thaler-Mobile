@@ -19,7 +19,6 @@ import "@ethersproject/shims";
 
 // Create the context with the imported type
 const PrivyContext = createContext<PrivyContextType>({
-  isAuthenticated: false,
   isLoading: true,
   user: null,
   walletAddress: null,
@@ -49,11 +48,7 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
 
   // Use Privy hooks with proper typing
   const privyHook = usePrivy();
-  const {
-    user,
-    authenticated,
-    logout: privyLogout,
-  } = privyHook as unknown as UsePrivy;
+  const { user, logout: privyLogout } = privyHook as unknown as UsePrivy;
   const { sendCode, loginWithCode } = useLoginWithEmail();
   const { login: oauthLogin } = useLoginWithOAuth({
     onSuccess: (user, isNewUser) => {
@@ -203,7 +198,6 @@ export const PrivyProvider: React.FC<PrivyProviderProps> = ({ children }) => {
   return (
     <PrivyContext.Provider
       value={{
-        isAuthenticated: authenticated,
         isLoading,
         user: user as PrivyUser | null,
         walletAddress,

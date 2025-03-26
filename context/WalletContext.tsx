@@ -1,8 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { ethers } from 'ethers';
-import { usePrivy } from '@privy-io/expo';
-import Config from '../constants/Config';
-import { UsePrivy, PrivyUser } from '../types/privy';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { ethers } from "ethers";
+import { usePrivy, useEmbeddedEthereumWallet } from "@privy-io/expo";
+import Config from "../constants/Config";
+import { UsePrivy, PrivyUser } from "../types/privy";
 
 interface WalletContextType {
   address: string | null;
@@ -11,17 +17,23 @@ interface WalletContextType {
   isLoading: boolean;
   getProvider: () => Promise<ethers.providers.Provider | null>;
   getSigner: () => Promise<ethers.Signer | null>;
-  sendTransaction: (to: string, amount: string, data?: string) => Promise<ethers.providers.TransactionResponse>;
+  sendTransaction: (
+    to: string,
+    amount: string,
+    data?: string
+  ) => Promise<ethers.providers.TransactionResponse>;
 }
 
 const WalletContext = createContext<WalletContextType>({
   address: null,
-  balance: '0',
+  balance: "0",
   isConnected: false,
   isLoading: false,
   getProvider: async () => null,
   getSigner: async () => null,
-  sendTransaction: async () => { throw new Error('Not implemented'); },
+  sendTransaction: async () => {
+    throw new Error("Not implemented");
+  },
 });
 
 export const useWallet = () => useContext(WalletContext);
@@ -32,70 +44,134 @@ interface WalletProviderProps {
 
 export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   const [address, setAddress] = useState<string | null>(null);
-  const [balance, setBalance] = useState<string>('0');
+  const [balance, setBalance] = useState<string>("0");
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  
+
   const privyHook = usePrivy();
-  const { user, authenticated } = privyHook as unknown as UsePrivy;
+  const { user, isReady } = privyHook as unknown as UsePrivy;
+  const { wallets } = useEmbeddedEthereumWallet();
 
   useEffect(() => {
     const initializeWallet = async () => {
-      if (!authenticated) return;
-
+      if (!isReady) return;
+      console.log("Waalaleteshshds:", wallets);
       try {
-        if (user?.wallet?.address) {
+        // Check for embedded wallet first
+        if (wallets && wallets.length > 0) {
+          const embeddedWallet = wallets[0];
+          console.log("Found embedded wallet:", embeddedWallet);
+          setAddress(embeddedWallet.address);
+          setIsConnected(true);
+
+          // Get initial balance
+          const provider = new ethers.providers.JsonRpcProvider(
+            Config.BLOCKCHAIN.RPC_URL
+          );
+          const balanceWei = await provider.getBalance(embeddedWallet.address);
+          setBalance(ethers.utils.formatEther(balanceWei));
+        }
+        // Fallback to other wallet types if embedded wallet is not available
+        else if (user?.wallet?.address) {
+          console.log("Using user wallet:", user.wallet.address);
           setAddress(user.wallet.address);
           setIsConnected(true);
-          
+
           // Get initial balance
-          const provider = new ethers.providers.JsonRpcProvider(Config.BLOCKCHAIN.RPC_URL);
+          const provider = new ethers.providers.JsonRpcProvider(
+            Config.BLOCKCHAIN.RPC_URL
+          );
           const balanceWei = await provider.getBalance(user.wallet.address);
           setBalance(ethers.utils.formatEther(balanceWei));
         } else if (user?.smartWallet?.address) {
+          console.log("Using smart wallet:", user.smartWallet.address);
           setAddress(user.smartWallet.address);
           setIsConnected(true);
-          
+
           // Get initial balance
-          const provider = new ethers.providers.JsonRpcProvider(Config.BLOCKCHAIN.RPC_URL);
-          const balanceWei = await provider.getBalance(user.smartWallet.address);
+          const provider = new ethers.providers.JsonRpcProvider(
+            Config.BLOCKCHAIN.RPC_URL
+          );
+          const balanceWei = await provider.getBalance(
+            user.smartWallet.address
+          );
           setBalance(ethers.utils.formatEther(balanceWei));
+        } else {
+          console.log("No wallet found for user");
         }
       } catch (error) {
-        console.error('Failed to initialize wallet:', error);
+        console.error("Failed to initialize wallet:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
     initializeWallet();
-  }, [authenticated, user]);
+  }, [isReady, user, wallets]);
 
   const getProvider = async () => {
-    if (!user?.wallet) return null;
-    const provider = new ethers.providers.JsonRpcProvider(Config.BLOCKCHAIN.RPC_URL);
+    // Create a JSON RPC provider regardless of wallet type
+    const provider = new ethers.providers.JsonRpcProvider(
+      Config.BLOCKCHAIN.RPC_URL
+    );
     return provider;
   };
 
   const getSigner = async () => {
+    // Check for embedded wallet first
+    if (wallets && wallets.length > 0) {
+      try {
+        const embeddedWallet = wallets[0];
+        console.log("Getting signer from embedded wallet:", embeddedWallet);
+
+        // In Privy's API, we can use the embedded wallet directly with ethers.js
+        // The wallet should be compatible with ethers.js Wallet interface
+        if (embeddedWallet.address) {
+          // Use the provider with the wallet address
+          const provider = await getProvider();
+          if (provider) {
+            return provider.getSigner(embeddedWallet.address);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to get signer from embedded wallet:", error);
+      }
+    }
+
+    // Fallback to traditional provider/signer pattern
     const provider = await getProvider();
     if (!provider || !address) return null;
-    return new ethers.providers.Web3Provider(provider as any).getSigner(address);
+    return new ethers.providers.Web3Provider(provider as any).getSigner(
+      address
+    );
   };
 
   const sendTransaction = async (to: string, amount: string, data?: string) => {
-    if (!address) throw new Error('No wallet available');
-    
+    if (!address) throw new Error("No wallet available");
+    console.log("Sending transaction from address:", address);
+
+    // Check if we have an embedded wallet first
+    if (wallets && wallets.length > 0) {
+      console.log("Using embedded wallet for transaction");
+    }
+
     const provider = await getProvider();
-    if (!provider) throw new Error('No provider available');
+    if (!provider) throw new Error("No provider available");
 
     const signer = await getSigner();
-    if (!signer) throw new Error('No signer available');
+    if (!signer) throw new Error("No signer available");
+
+    console.log("Transaction details:", {
+      to,
+      amount,
+      amountWei: ethers.utils.parseEther(amount).toString(),
+      data: data || "0x",
+    });
 
     const tx = await signer.sendTransaction({
       to,
       value: ethers.utils.parseEther(amount),
-      data: data || '0x'
+      data: data || "0x",
     });
 
     return tx;

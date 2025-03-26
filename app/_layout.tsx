@@ -13,6 +13,16 @@ import Config from "../constants/Config";
 import { PrivyProvider, PrivyElements, usePrivy } from "@privy-io/expo";
 import { UsePrivy } from "../types/privy";
 import { ThemeProvider } from "../contexts/ThemeContext";
+import { WalletProvider } from "../context/WalletContext";
+import {
+  base,
+  baseSepolia,
+  mainnet,
+  sepolia,
+  polygon,
+  polygonMumbai,
+} from "viem/chains";
+
 // import { Slot } from "expo-router";
 
 // Wrapper component to log Privy state
@@ -82,21 +92,41 @@ export default function RootLayout() {
     <PrivyProvider
       appId={Config.PRIVY.APP_ID}
       clientId={Config.PRIVY.CLIENT_ID}
+      config={{
+        embedded: {
+          ethereum: {
+            createOnLogin: "users-without-wallets",
+          },
+        },
+      }}
+      supportedChains={[
+        base,
+        baseSepolia,
+        mainnet,
+        sepolia,
+        polygon,
+        polygonMumbai,
+      ]}
     >
       <ThemeProvider>
-        <PrivyLogger>
-          <StatusBar style="auto" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-            }}
-          >
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="auth/welcome" options={{ headerShown: false }} />
-            <Stack.Screen name="tabs" options={{ headerShown: false }} />
-          </Stack>
-          <PrivyElements />
-        </PrivyLogger>
+        <WalletProvider>
+          <PrivyLogger>
+            <StatusBar style="auto" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+              }}
+            >
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="auth/welcome"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="tabs" options={{ headerShown: false }} />
+            </Stack>
+            <PrivyElements />
+          </PrivyLogger>
+        </WalletProvider>
       </ThemeProvider>
     </PrivyProvider>
   );

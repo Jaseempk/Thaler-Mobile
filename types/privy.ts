@@ -47,10 +47,10 @@ export interface UsePrivy {
   linkWallet: () => Promise<PrivyWallet>;
   unlinkWallet: (address: string) => Promise<void>;
   connectWallet: () => Promise<PrivyWallet>;
+  exportWallet: () => void;
 }
 
 export interface PrivyContextType {
-  isAuthenticated: boolean;
   isLoading: boolean;
   user: PrivyUser | null;
   walletAddress: string | null;

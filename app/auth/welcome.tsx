@@ -49,10 +49,11 @@ export default function WelcomeScreen() {
       user: user ? user.id : null,
       timestamp: new Date().toISOString(),
     });
-    
+
     if (isReady && user !== null) {
       console.log("Welcome Screen - User authenticated, redirecting to tabs");
-      
+      console.log("Userrrr:", user);
+
       try {
         // Use immediate navigation with push instead of replace
         router.push("/tabs");
