@@ -9,46 +9,45 @@ import { UsePrivy } from "../../types/privy";
 import Config from "../../constants/Config";
 import * as Updates from "expo-updates";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const privyHook = usePrivy() as unknown as UsePrivy;
-  const { ready, authenticated, user } = privyHook;
+  // const privyHook = usePrivy() as unknown as UsePrivy;
+  const { isReady, user } = usePrivy();
   const [initTimeout, setInitTimeout] = React.useState(false);
 
   // Log state for debugging
   React.useEffect(() => {
     console.log("Welcome Screen - State Update:", {
-      ready,
-      authenticated,
+      isReady,
       hasUser: !!user,
-      hasWallet: !!user?.wallet?.address,
+      hasWallet: user !== null,
       config: {
         appId: Config.PRIVY.APP_ID,
         clientId: Config.PRIVY.CLIENT_ID,
       },
     });
-  }, [ready, authenticated, user]);
+  }, [isReady, user]);
 
   // Handle initialization timeout
   React.useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (!ready) {
+      if (!isReady) {
         setInitTimeout(true);
       }
     }, 10000); // 10 seconds timeout
 
     return () => clearTimeout(timeoutId);
-  }, [ready]);
+  }, [isReady]);
 
   // Handle authenticated users
   React.useEffect(() => {
-    if (ready && authenticated && user?.wallet?.address) {
+    if (isReady && user !== null) {
       console.log("Welcome Screen - User authenticated, redirecting to tabs");
       router.replace("/tabs");
     }
-  }, [ready, authenticated, user, router]);
+  }, [isReady, user, router]);
 
   // Handle retry
   const handleRetry = async () => {
@@ -67,7 +66,7 @@ export default function WelcomeScreen() {
   };
 
   // Show loading during initial SDK initialization
-  // if (!ready) {
+  // if (!isReady) {
   //   return (
   //     <SafeAreaView style={[styles.container, styles.loadingContainer]}>
   //       {initTimeout ? (
@@ -92,7 +91,7 @@ export default function WelcomeScreen() {
   //   );
   // }
 
-  // Once ready, show welcome screen for non-authenticated users
+  // Once isReady, show welcome screen for non-authenticated users
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
@@ -100,11 +99,14 @@ export default function WelcomeScreen() {
         <View style={styles.logoContainer}>
           <View style={styles.logoSquare} />
         </View>
-        
+
         <View style={styles.textContainer}>
-          <Text style={styles.title}>Secure{'\n'}Wallet{'\n'}Management</Text>
+          <Text style={styles.title}>
+            Secure{"\n"}Wallet{"\n"}Management
+          </Text>
           <Text style={styles.subtitle}>
-            Experience secure and private crypto wallet management with seamless transactions and real-time balance tracking
+            Experience secure and private crypto wallet management with seamless
+            transactions and real-time balance tracking
           </Text>
         </View>
 
@@ -119,7 +121,10 @@ export default function WelcomeScreen() {
           />
           <View style={styles.loginContainer}>
             <Text style={styles.loginText}>Already have a wallet? </Text>
-            <Text style={styles.loginLink} onPress={() => router.push("/auth/login")}>
+            <Text
+              style={styles.loginLink}
+              onPress={() => router.push("/auth/login")}
+            >
               Connect
             </Text>
           </View>
@@ -142,31 +147,31 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   logoContainer: {
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
     marginBottom: 48,
   },
   logoSquare: {
     width: 40,
     height: 40,
-    backgroundColor: '#1B381F', // Dark green for the square logo
+    backgroundColor: "#1B381F", // Dark green for the square logo
     borderRadius: 8,
   },
   textContainer: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   title: {
     fontSize: width * 0.12, // Responsive font size
     fontWeight: "700",
-    color: '#1B381F', // Dark green
+    color: "#1B381F", // Dark green
     lineHeight: width * 0.13, // Slightly larger than fontSize for good spacing
     marginBottom: 16,
   },
   subtitle: {
     fontSize: 16,
-    color: '#2D5531', // Slightly lighter green for subtitle
+    color: "#2D5531", // Slightly lighter green for subtitle
     lineHeight: 24,
-    maxWidth: '90%',
+    maxWidth: "90%",
   },
   buttonContainer: {
     marginTop: 48,
@@ -174,28 +179,28 @@ const styles = StyleSheet.create({
   getStartedButton: {
     width: "100%",
     height: 56,
-    backgroundColor: '#1B381F', // Dark green button
+    backgroundColor: "#1B381F", // Dark green button
     borderRadius: 12,
   },
   getStartedButtonText: {
     fontSize: 18,
     fontWeight: "600",
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 16,
   },
   loginText: {
     fontSize: 16,
-    color: '#2D5531',
+    color: "#2D5531",
   },
   loginLink: {
     fontSize: 16,
-    color: '#1B381F',
-    fontWeight: '600',
+    color: "#1B381F",
+    fontWeight: "600",
   },
   loadingContainer: {
     justifyContent: "center",

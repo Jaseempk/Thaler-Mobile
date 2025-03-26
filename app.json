@@ -26,7 +26,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
-    ]
+      "expo-font",
+      "expo-secure-store"
+    ],
+    "extra": {
+      "privyAppId": "cm8h7tx5000hjroolacpc3c6w",
+      "privyClientId": "client-WY5i231aN8aEGBMrcw19QykJQ3ra4pGwANsYSFXQFevvx",
+      "passkeyAssociatedDomain": "https://<your-associated-domain>"
+    }
   }
 }

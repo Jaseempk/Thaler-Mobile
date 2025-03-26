@@ -22,54 +22,63 @@ export default function LoginScreen() {
   const [code, setCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
-  const [loadingDots, setLoadingDots] = useState('');
+  const [loadingDots, setLoadingDots] = useState("");
 
-  const privyHook = usePrivy();
-  const { user, authenticated, ready } = privyHook as unknown as UsePrivy;
+  // const privyHook = usePrivy();
+  const { user, isReady } = usePrivy();
 
-  console.log("Login Screen - Initial render:", { ready, authenticated, user });
+  console.log("Login Screen - Initial render:", {
+    isReady,
+    user,
+  });
 
-  // Only initialize these hooks if Privy is ready
+  // **Move hooks to the top level**
+  const emailHook = useLoginWithEmail();
+  const oAuthHook = useLoginWithOAuth({
+    onSuccess: (user) => {
+      console.log("OAuth login successful", user);
+      router.replace("/tabs");
+    },
+    onError: (error) => {
+      console.error("OAuth login failed:", error);
+      Alert.alert(
+        "Error",
+        "Failed to login with social provider. Please try again."
+      );
+    },
+  });
+
+  // Only initialize these hooks if Privy is isReady
   const loginHooks = React.useMemo(() => {
-    if (!ready) return null;
+    if (!isReady) return null;
 
     console.log("Login Screen - Initializing login hooks");
-    const {
-      sendCode,
-      loginWithCode,
-      state: { status },
-    } = useLoginWithEmail();
-    const oAuthHook = useLoginWithOAuth({
-      onSuccess: (user) => {
-        console.log("OAuth login successful", user);
-        router.replace("/tabs");
-      },
-      onError: (error) => {
-        console.error("OAuth login failed:", error);
-        Alert.alert(
-          "Error",
-          "Failed to login with social provider. Please try again."
-        );
-      },
-    });
 
     return {
-      sendCode,
-      loginWithCode,
-      status,
+      sendCode: emailHook.sendCode,
+      loginWithCode: emailHook.loginWithCode,
+      status: emailHook.state.status,
       loginWithOAuth: (oAuthHook as unknown as UseLoginWithOAuth)
         .loginWithOAuth,
     };
-  }, [ready]);
+  }, [isReady]);
 
   // If user is already authenticated, redirect to tabs
   React.useEffect(() => {
-    if (authenticated && user?.wallet?.address) {
-      console.log("Login Screen - User authenticated, redirecting to tabs");
-      router.replace("/tabs");
-    }
-  }, [authenticated, user]);
+    if (isReady && user) {
+      console.log("Login Screen - User authenticated, redirecting to tabs", {
+        isReady,
+        user,
+        userExists: !!user,
+        userType: typeof user,
+      });
 
+      // Add a null check before accessing any properties
+      if (user && Object.keys(user).length > 0) {
+        router.replace("/tabs");
+      }
+    }
+  }, [isReady, user, router]);
   // Pulse animation
   useEffect(() => {
     const pulse = Animated.sequence([
@@ -91,7 +100,7 @@ export default function LoginScreen() {
   // Loading dots animation
   useEffect(() => {
     const interval = setInterval(() => {
-      setLoadingDots(dots => (dots.length >= 3 ? '' : dots + '.'));
+      setLoadingDots((dots) => (dots.length >= 3 ? "" : dots + "."));
     }, 500);
 
     return () => clearInterval(interval);
@@ -130,20 +139,19 @@ export default function LoginScreen() {
     router.push("/auth/welcome");
   };
 
-  if (!ready || !loginHooks) {
+  if (!isReady || !loginHooks) {
     console.log("Login Screen - Waiting for Privy initialization");
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]}>
         <StatusBar style="dark" />
         <View style={styles.loadingContent}>
-          <Animated.View 
-            style={[
-              styles.logoSquare,
-              { transform: [{ scale: pulseAnim }] }
-            ]} 
+          <Animated.View
+            style={[styles.logoSquare, { transform: [{ scale: pulseAnim }] }]}
           />
           <Text style={styles.loadingText}>Initializing{loadingDots}</Text>
-          <Text style={styles.loadingSubtext}>Setting up your secure environment</Text>
+          <Text style={styles.loadingSubtext}>
+            Setting up your secure environment
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -265,26 +273,26 @@ const styles = StyleSheet.create({
     backgroundColor: "#CBFF9B", // Matching welcome screen theme
   },
   loadingContent: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   logoSquare: {
     width: 60,
     height: 60,
-    backgroundColor: '#1B381F',
+    backgroundColor: "#1B381F",
     borderRadius: 12,
     marginBottom: 24,
   },
   loadingText: {
     fontSize: 24,
-    color: '#1B381F',
+    color: "#1B381F",
     fontWeight: "700",
     marginBottom: 8,
   },
   loadingSubtext: {
     fontSize: 16,
-    color: '#2D5531',
-    textAlign: 'center',
-    maxWidth: '80%',
+    color: "#2D5531",
+    textAlign: "center",
+    maxWidth: "80%",
   },
   header: {
     flexDirection: "row",
