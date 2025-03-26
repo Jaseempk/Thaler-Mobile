@@ -27,6 +27,8 @@ import Colors from "../../constants/Colors";
 import { useTheme } from "../../contexts/ThemeContext";
 import TokenBalanceCard from "../../components/wallet/TokenBalanceCard";
 import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../../navigation/types";
 
 const { width } = Dimensions.get("window");
 
@@ -110,6 +112,7 @@ const recentActivity = [
 ];
 
 export default function HomeScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { activeTheme, toggleTheme } = useTheme();
   const { address, balance, isConnected, connectWallet } = useWallet();
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
@@ -454,7 +457,7 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => alert("View savings options")}
+            onPress={() => navigation.navigate('Savings')}
           >
             <View
               style={[

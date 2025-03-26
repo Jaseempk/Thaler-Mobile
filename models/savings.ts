@@ -11,11 +11,11 @@ export interface SavingsPool {
   initialDeposit: string; // Initial deposit amount
   nextDepositDate: number; // Timestamp for the next scheduled deposit
   numberOfDeposits: number; // Number of deposits remaining
-  lastDepositedTimestamp: number; // Timestamp of the last deposit
+  lastDepositedTimestamp?: number; // Timestamp of the last deposit (optional for compatibility)
   isEth: boolean; // Whether this is an ETH or ERC20 pool
   progress: number; // Calculated progress (0-100%)
-  tokenSymbol?: string; // Symbol of the token (for ERC20 pools)
-  tokenDecimals?: number; // Decimals of the token (for ERC20 pools)
+  tokenSymbol: string; // Symbol of the token (ETH for ETH pools, token symbol for ERC20 pools)
+  tokenDecimals?: number; // Decimals of the token (optional)
 }
 
 export interface SavingsPoolCreationParams {

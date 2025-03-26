@@ -13,6 +13,7 @@ import { PrivyProvider, PrivyElements, usePrivy } from "@privy-io/expo";
 import { UsePrivy } from "../types/privy";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import { WalletProvider } from "../context/WalletContext";
+import { SavingsPoolProvider } from "../context/SavingsPoolContext";
 import ThemedStatusBar from "../components/ui/ThemedStatusBar";
 import {
   base,
@@ -110,13 +111,14 @@ export default function RootLayout() {
     >
       <ThemeProvider>
         <WalletProvider>
-          <PrivyLogger>
-            <ThemedStatusBar />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-              }}
-            >
+          <SavingsPoolProvider>
+            <PrivyLogger>
+              <ThemedStatusBar />
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                }}
+              >
               <Stack.Screen name="index" options={{ headerShown: false }} />
               <Stack.Screen
                 name="auth/welcome"
@@ -124,8 +126,9 @@ export default function RootLayout() {
               />
               <Stack.Screen name="tabs" options={{ headerShown: false }} />
             </Stack>
-            <PrivyElements />
-          </PrivyLogger>
+              <PrivyElements />
+            </PrivyLogger>
+          </SavingsPoolProvider>
         </WalletProvider>
       </ThemeProvider>
     </PrivyProvider>

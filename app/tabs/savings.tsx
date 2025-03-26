@@ -19,104 +19,25 @@ import { usePrivy } from "@privy-io/expo";
 import { useWallet } from "../../context/WalletContext";
 import { SavingsPool } from "../../models/savings";
 import SavingsPoolCard from "../../components/savings/SavingsPoolCard";
-import { SavingsService } from "../../services/SavingsService";
 import { ethers } from "ethers";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useSavingsPool } from "../../context/SavingsPoolContext";
 
 export default function SavingsScreen() {
   const router = useRouter();
   const { user } = usePrivy();
   const { address: walletAddress, isConnected } = useWallet();
-  const [pools, setPools] = useState<SavingsPool[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { pools, isLoading, error, refreshPools } = useSavingsPool();
   const { activeTheme } = useTheme();
   const isDarkMode = activeTheme === 'dark';
 
-  // Initialize savings service with provider
-  const provider = new ethers.providers.JsonRpcProvider(
-    "https://base-sepolia.g.alchemy.com/v2/txntl9XYKWyIkkmj1p0JcecUKxqt9327" // Goerli testnet for demo
-  );
-  const savingsService = new SavingsService(provider);
-
-  // Set wallet in savings service
+  // Refresh pools when wallet is connected
   useEffect(() => {
-    if (walletAddress) {
-      console.log('Setting wallet address in savings service:', walletAddress);
-      savingsService.setPrivyWallet(walletAddress);
-    }
-  }, [walletAddress]);
-
-  // Load user's savings pools
-  useEffect(() => {
-    const loadPools = async () => {
-      if (!isConnected || !walletAddress) {
-        console.log('No wallet connected, cannot load savings pools');
-        setIsLoading(false);
-        return;
-      }
-      
+    if (isConnected && walletAddress) {
       console.log('Loading savings pools for wallet:', walletAddress);
-
-      try {
-        setIsLoading(true);
-
-        // In a real app, this would fetch the user's pools from the blockchain
-        // For this demo, we'll use mock data
-        const mockPools: SavingsPool[] = [
-          {
-            id: "1",
-            user: walletAddress,
-            endDate: Date.now() + 90 * 24 * 60 * 60 * 1000, // 90 days from now
-            duration: 90 * 24 * 60 * 60, // 90 days in seconds
-            startDate: Date.now(),
-            totalSaved: "0.5",
-            tokenToSave: "0x0000000000000000000000000000000000000000", // ETH
-            amountToSave: "3",
-            totalIntervals: 3,
-            initialDeposit: "0.5",
-            nextDepositDate: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
-            numberOfDeposits: 1,
-            lastDepositedTimestamp: Date.now(),
-            isEth: true,
-            progress: 17, // (0.5 / 3) * 100
-            tokenSymbol: "ETH",
-            tokenDecimals: 18,
-          },
-          {
-            id: "2",
-            user: walletAddress,
-            endDate: Date.now() - 30 * 24 * 60 * 60 * 1000, // 30 days ago (completed)
-            duration: 180 * 24 * 60 * 60, // 180 days in seconds
-            startDate: Date.now() - 210 * 24 * 60 * 60 * 1000, // 210 days ago
-            totalSaved: "1000",
-            tokenToSave: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", // UNI token
-            amountToSave: "1000",
-            totalIntervals: 6,
-            initialDeposit: "200",
-            nextDepositDate: Date.now() - 30 * 24 * 60 * 60 * 1000,
-            numberOfDeposits: 6,
-            lastDepositedTimestamp: Date.now() - 60 * 24 * 60 * 60 * 1000,
-            isEth: false,
-            progress: 100,
-            tokenSymbol: "UNI",
-            tokenDecimals: 18,
-          },
-        ];
-
-        setPools(mockPools);
-      } catch (error) {
-        console.error("Error loading savings pools:", error);
-        Alert.alert(
-          "Error",
-          "Failed to load your savings pools. Please try again later."
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadPools();
-  }, [user, walletAddress]);
+      refreshPools();
+    }
+  }, [isConnected, walletAddress]);
 
   const handleCreateSavingsPool = () => {
     router.push("/savings/create");
@@ -131,11 +52,41 @@ export default function SavingsScreen() {
   };
 
   const handleDeposit = (pool: SavingsPool) => {
-    // Navigate to deposit screen
-    router.push({
-      pathname: "/savings/deposit",
-      params: { id: pool.id },
-    });
+    // Show deposit modal
+    Alert.prompt(
+      `Deposit to ${pool.isEth ? 'ETH' : 'ERC20'} Savings Pool`,
+      `Enter amount to deposit (${pool.tokenSymbol})`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Deposit',
+          onPress: (amount) => {
+            if (!amount) return;
+            
+            try {
+              if (pool.isEth) {
+                router.push({
+                  pathname: "/savings/deposit",
+                  params: { id: pool.id, amount, token: 'ETH' },
+                });
+              } else {
+                router.push({
+                  pathname: "/savings/deposit",
+                  params: { id: pool.id, amount, token: pool.tokenSymbol },
+                });
+              }
+            } catch (error) {
+              console.error('Error initiating deposit:', error);
+              Alert.alert('Error', 'Failed to initiate deposit. Please try again.');
+            }
+          }
+        }
+      ],
+      'plain-text'
+    );
   };
 
   const handleWithdraw = (pool: SavingsPool) => {
@@ -144,7 +95,7 @@ export default function SavingsScreen() {
     if (now < pool.endDate && pool.progress < 100) {
       Alert.alert(
         "Early Withdrawal",
-        "This pool has not ended yet. Early withdrawals require a donation verification. Do you want to proceed?",
+        "This pool has not ended yet. Early withdrawals require a zero-knowledge proof. Do you want to proceed?",
         [
           {
             text: "Cancel",
@@ -153,6 +104,8 @@ export default function SavingsScreen() {
           {
             text: "Proceed",
             onPress: () => {
+              // In a real app, we would generate the zero-knowledge proof here
+              // For now, we'll just navigate to the withdraw screen
               router.push({
                 pathname: "/savings/withdraw",
                 params: { id: pool.id, early: "true" },
