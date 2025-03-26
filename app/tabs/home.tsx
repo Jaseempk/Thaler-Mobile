@@ -354,6 +354,45 @@ export default function HomeScreen() {
                       {isConnected ? "Connected" : "Disconnected"}
                     </Text>
                   </View>
+                  
+                  {/* Wallet Action Buttons */}
+                  <View style={styles.walletActionButtonsContainer}>
+                    <TouchableOpacity
+                      style={styles.walletActionButton}
+                      onPress={() => alert("Send tokens")}
+                    >
+                      <View style={styles.walletActionButtonIcon}>
+                        <FontAwesome5 name="paper-plane" size={16} color="#fff" />
+                      </View>
+                      <Text style={styles.walletActionButtonText}>
+                        Send
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.walletActionButton}
+                      onPress={() => alert("Receive tokens")}
+                    >
+                      <View style={styles.walletActionButtonIcon}>
+                        <FontAwesome5 name="qrcode" size={16} color="#fff" />
+                      </View>
+                      <Text style={styles.walletActionButtonText}>
+                        Deposit
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.walletActionButton}
+                      onPress={() => navigation.navigate('Savings')}
+                    >
+                      <View style={styles.walletActionButtonIcon}>
+                        <MaterialCommunityIcons name="piggy-bank" size={18} color="#fff" />
+                      </View>
+                      <Text style={styles.walletActionButtonText}>
+                        Savings
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
             </View>
@@ -393,100 +432,6 @@ export default function HomeScreen() {
               theme={activeTheme}
             />
           ))}
-        </View>
-
-        {/* Action buttons */}
-        <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => alert("Send tokens")}
-          >
-            <View
-              style={[
-                styles.actionButtonIcon,
-                { backgroundColor: Colors[activeTheme].primary },
-              ]}
-            >
-              <LinearGradient
-                colors={
-                  isDarkMode ? ["#1E88E5", "#1565C0"] : ["#2196F3", "#1976D2"]
-                }
-                style={styles.actionButtonGradient}
-              >
-                <FontAwesome5 name="paper-plane" size={18} color="#fff" />
-              </LinearGradient>
-            </View>
-            <Text
-              style={[
-                styles.actionButtonText,
-                { color: Colors[activeTheme].text },
-              ]}
-            >
-              Send
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => alert("Receive tokens")}
-          >
-            <View
-              style={[
-                styles.actionButtonIcon,
-                { backgroundColor: Colors[activeTheme].accent },
-              ]}
-            >
-              <LinearGradient
-                colors={
-                  isDarkMode ? ["#43A047", "#2E7D32"] : ["#4CAF50", "#388E3C"]
-                }
-                style={styles.actionButtonGradient}
-              >
-                <FontAwesome5 name="qrcode" size={18} color="#fff" />
-              </LinearGradient>
-            </View>
-            <Text
-              style={[
-                styles.actionButtonText,
-                { color: Colors[activeTheme].text },
-              ]}
-            >
-              Receive
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Savings')}
-          >
-            <View
-              style={[
-                styles.actionButtonIcon,
-                { backgroundColor: isDarkMode ? "#303F9F" : "#3F51B5" },
-              ]}
-            >
-              <LinearGradient
-                colors={
-                  isDarkMode ? ["#7B1FA2", "#6A1B9A"] : ["#9C27B0", "#7B1FA2"]
-                }
-                style={styles.actionButtonGradient}
-              >
-                <MaterialCommunityIcons
-                  name="piggy-bank"
-                  size={22}
-                  color="#fff"
-                />
-              </LinearGradient>
-            </View>
-            <Text
-              style={[
-                styles.actionButtonText,
-                { color: Colors[activeTheme].text },
-              ]}
-            >
-              Savings
-            </Text>
-          </TouchableOpacity>
         </View>
 
         {/* Recent Activity */}
@@ -909,6 +854,32 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     color: "rgba(255, 255, 255, 0.8)",
+  },
+  walletActionButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.2)",
+  },
+  walletActionButton: {
+    alignItems: "center",
+    flex: 1,
+  },
+  walletActionButtonIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  walletActionButtonText: {
+    fontSize: 12,
+    color: "#FFFFFF",
+    fontWeight: "500",
   },
   tokensSection: {
     marginBottom: 24,
