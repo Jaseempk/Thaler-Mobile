@@ -43,9 +43,22 @@ export default function WelcomeScreen() {
 
   // Handle authenticated users
   React.useEffect(() => {
+    console.log("Welcome Screen - Auth Check:", {
+      isReady,
+      hasUser: !!user,
+      user: user ? user.id : null,
+      timestamp: new Date().toISOString(),
+    });
+    
     if (isReady && user !== null) {
       console.log("Welcome Screen - User authenticated, redirecting to tabs");
-      router.replace("/tabs");
+      
+      try {
+        // Use immediate navigation with push instead of replace
+        router.push("/tabs");
+      } catch (error) {
+        console.error("Navigation error:", error);
+      }
     }
   }, [isReady, user, router]);
 
@@ -66,30 +79,36 @@ export default function WelcomeScreen() {
   };
 
   // Show loading during initial SDK initialization
-  // if (!isReady) {
-  //   return (
-  //     <SafeAreaView style={[styles.container, styles.loadingContainer]}>
-  //       {initTimeout ? (
-  //         <>
-  //           <Text style={styles.loadingText}>Taking longer than expected...</Text>
-  //           <Text style={styles.loadingDetail}>Please check your internet connection</Text>
-  //           <Button
-  //             title="Retry"
-  //             onPress={handleRetry}
-  //             variant="secondary"
-  //             size="medium"
-  //             style={styles.retryButton}
-  //           />
-  //         </>
-  //       ) : (
-  //         <>
-  //           <Text style={styles.loadingText}>Initializing Privy...</Text>
-  //           <Text style={styles.loadingDetail}>This may take a few moments</Text>
-  //         </>
-  //       )}
-  //     </SafeAreaView>
-  //   );
-  // }
+  if (!isReady) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loadingContainer]}>
+        {initTimeout ? (
+          <>
+            <Text style={styles.loadingText}>
+              Taking longer than expected...
+            </Text>
+            <Text style={styles.loadingDetail}>
+              Please check your internet connection
+            </Text>
+            <Button
+              title="Retry"
+              onPress={handleRetry}
+              variant="secondary"
+              size="medium"
+              style={styles.retryButton}
+            />
+          </>
+        ) : (
+          <>
+            <Text style={styles.loadingText}>Initializing Privy...</Text>
+            <Text style={styles.loadingDetail}>
+              This may take a few moments
+            </Text>
+          </>
+        )}
+      </SafeAreaView>
+    );
+  }
 
   // Once isReady, show welcome screen for non-authenticated users
   return (

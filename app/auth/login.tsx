@@ -13,7 +13,13 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import Button from "../../components/common/Button";
 import Colors from "../../constants/Colors";
-import { usePrivy, useLoginWithEmail, useLoginWithOAuth } from "@privy-io/expo";
+import {
+  usePrivy,
+  useLoginWithEmail,
+  useLoginWithOAuth,
+  LoginWithOAuthInput,
+  useLogin,
+} from "@privy-io/expo";
 import { UsePrivy, UseLoginWithOAuth } from "../../types/privy";
 
 export default function LoginScreen() {
@@ -31,22 +37,25 @@ export default function LoginScreen() {
     isReady,
     user,
   });
-
+  const { login } = useLogin();
   // **Move hooks to the top level**
   const emailHook = useLoginWithEmail();
-  const oAuthHook = useLoginWithOAuth({
+
+  const oauth = useLoginWithOAuth({
     onSuccess: (user) => {
       console.log("OAuth login successful", user);
       router.replace("/tabs");
     },
-    onError: (error) => {
-      console.error("OAuth login failed:", error);
+    onError: (err) => {
+      console.log(err);
       Alert.alert(
         "Error",
         "Failed to login with social provider. Please try again."
       );
     },
   });
+  /**
+   */
 
   // Only initialize these hooks if Privy is isReady
   const loginHooks = React.useMemo(() => {
@@ -58,8 +67,7 @@ export default function LoginScreen() {
       sendCode: emailHook.sendCode,
       loginWithCode: emailHook.loginWithCode,
       status: emailHook.state.status,
-      loginWithOAuth: (oAuthHook as unknown as UseLoginWithOAuth)
-        .loginWithOAuth,
+      loginWithOAuth: oauth as unknown as LoginWithOAuthInput,
     };
   }, [isReady]);
 
@@ -232,7 +240,7 @@ export default function LoginScreen() {
           <View style={styles.socialLoginContainer}>
             <Button
               title="Continue with Google"
-              onPress={() => loginHooks.loginWithOAuth({ provider: "google" })}
+              onPress={() => loginHooks.loginWithOAuth}
               variant="outline"
               size="large"
               style={styles.socialButton}
@@ -241,7 +249,9 @@ export default function LoginScreen() {
 
             <Button
               title="Continue with Apple"
-              onPress={() => loginHooks.loginWithOAuth({ provider: "apple" })}
+              onPress={() =>
+                oauth.login({ provider: "apple" } as LoginWithOAuthInput)
+              }
               variant="outline"
               size="large"
               style={styles.socialButton}

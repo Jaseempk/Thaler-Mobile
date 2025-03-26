@@ -41,8 +41,7 @@ export interface PrivyUser {
 
 export interface UsePrivy {
   user: PrivyUser | null;
-  authenticated: boolean;
-  ready: boolean;
+  isReady: boolean;
   logout: () => Promise<void>;
   createWallet: () => Promise<PrivyWallet>;
   linkWallet: () => Promise<PrivyWallet>;

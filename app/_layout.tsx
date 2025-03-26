@@ -12,7 +12,7 @@ import Colors from "../constants/Colors";
 import Config from "../constants/Config";
 import { PrivyProvider, PrivyElements, usePrivy } from "@privy-io/expo";
 import { UsePrivy } from "../types/privy";
-import { Slot } from "expo-router";
+// import { Slot } from "expo-router";
 
 // Wrapper component to log Privy state
 function PrivyLogger({ children }: { children: ReactNode }) {
@@ -21,8 +21,8 @@ function PrivyLogger({ children }: { children: ReactNode }) {
   useEffect(() => {
     console.log("PrivyLogger - Initial Mount:", {
       privyStateKeys: Object.keys(privyState),
-      ready: privyState.ready,
-      authenticated: privyState.authenticated,
+      ready: privyState.isReady,
+
       hasUser: !!privyState.user,
       rawPrivyState: privyState,
       timestamp: new Date().toISOString(),
@@ -31,13 +31,13 @@ function PrivyLogger({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     console.log("PrivyLogger - State Update:", {
-      ready: privyState.ready,
-      authenticated: privyState.authenticated,
+      ready: privyState.isReady,
+
       hasUser: !!privyState.user,
       rawPrivyState: privyState,
       timestamp: new Date().toISOString(),
     });
-  }, [privyState.ready, privyState.authenticated, privyState.user]);
+  }, [privyState.isReady, privyState.user]);
 
   return <>{children}</>;
 }
@@ -83,9 +83,8 @@ export default function RootLayout() {
       clientId={Config.PRIVY.CLIENT_ID}
     >
       <PrivyLogger>
-        <Slot />
         <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-        {/* <Stack
+        <Stack
           screenOptions={{
             headerShown: false,
             contentStyle: {
@@ -99,7 +98,7 @@ export default function RootLayout() {
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="auth/welcome" options={{ headerShown: false }} />
           <Stack.Screen name="tabs" options={{ headerShown: false }} />
-        </Stack> */}
+        </Stack>
         <PrivyElements />
       </PrivyLogger>
     </PrivyProvider>
