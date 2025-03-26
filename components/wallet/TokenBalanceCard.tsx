@@ -44,9 +44,17 @@ const TokenBalanceCard: React.FC<TokenBalanceCardProps> = ({ token, theme, onPre
           <View style={styles.leftSection}>
             <View style={styles.logoContainer}>
               {typeof token.logo === 'string' ? (
-                <Image source={{ uri: token.logo }} style={styles.tokenLogo} />
+                <Image 
+                  source={{ uri: token.logo }} 
+                  style={styles.tokenLogo} 
+                  resizeMode="contain"
+                />
               ) : (
-                <Image source={token.logo} style={styles.tokenLogo} />
+                <Image 
+                  source={token.logo} 
+                  style={styles.tokenLogo} 
+                  resizeMode="contain"
+                />
               )}
             </View>
             <View style={styles.nameContainer}>
@@ -126,6 +134,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    padding: 8, // Added padding to contain the logo better
+    overflow: 'hidden', // Ensure the logo doesn't overflow
     ...Platform.select({
       ios: {
         shadowColor: 'rgba(0, 0, 0, 0.2)',
@@ -139,9 +149,9 @@ const styles = StyleSheet.create({
     }),
   },
   tokenLogo: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    resizeMode: 'contain', // Ensure the logo maintains its aspect ratio
   },
   nameContainer: {
     justifyContent: 'center',
