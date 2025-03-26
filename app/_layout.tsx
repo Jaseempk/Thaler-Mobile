@@ -1,19 +1,19 @@
 import React, { useEffect, ReactNode } from "react";
 import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import {
   useFonts,
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
 } from "@expo-google-fonts/inter";
-import { View, Text } from "react-native";
+import { View, Text, useColorScheme } from "react-native";
 import Colors from "../constants/Colors";
 import Config from "../constants/Config";
 import { PrivyProvider, PrivyElements, usePrivy } from "@privy-io/expo";
 import { UsePrivy } from "../types/privy";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import { WalletProvider } from "../context/WalletContext";
+import ThemedStatusBar from "../components/ui/ThemedStatusBar";
 import {
   base,
   baseSepolia,
@@ -111,7 +111,7 @@ export default function RootLayout() {
       <ThemeProvider>
         <WalletProvider>
           <PrivyLogger>
-            <StatusBar style="auto" />
+            <ThemedStatusBar />
             <Stack
               screenOptions={{
                 headerShown: false,

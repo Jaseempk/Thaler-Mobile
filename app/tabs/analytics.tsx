@@ -10,9 +10,12 @@ import {
   Animated,
   Platform
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import Card from '../../components/common/Card';
 import Colors from '../../constants/Colors';
+import { useTheme } from '../../contexts/ThemeContext';
+import ThemedStatusBar from '../../components/ui/ThemedStatusBar';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // Mock data for savings analytics
 const savingsData = {
@@ -33,6 +36,7 @@ const { width } = Dimensions.get('window');
 const chartWidth = width - 64; // Accounting for padding
 
 export default function AnalyticsScreen() {
+  const { activeTheme, theme: isDarkMode } = useTheme();
   const [selectedMonth, setSelectedMonth] = useState('Jul 2024');
   const [selectedTimeframe, setSelectedTimeframe] = useState('month');
   
@@ -44,9 +48,9 @@ export default function AnalyticsScreen() {
     return (
       <View style={styles.chartContainer}>
         <View style={styles.chartYAxis}>
-          <Text style={styles.chartYLabel}>$2.5k</Text>
-          <Text style={styles.chartYLabel}>$1.5k</Text>
-          <Text style={styles.chartYLabel}>$0.5k</Text>
+          <Text style={[styles.chartYLabel, { color: Colors[activeTheme].textSecondary }]}>$2.5k</Text>
+          <Text style={[styles.chartYLabel, { color: Colors[activeTheme].textSecondary }]}>$1.5k</Text>
+          <Text style={[styles.chartYLabel, { color: Colors[activeTheme].textSecondary }]}>$0.5k</Text>
         </View>
         <View style={styles.chart}>
           {savingsData.savingsHistory.map((value, index) => {
@@ -59,12 +63,12 @@ export default function AnalyticsScreen() {
                     { 
                       height: barHeight,
                       backgroundColor: index === savingsData.savingsHistory.length - 1 
-                        ? Colors.light.primary 
-                        : Colors.light.primaryLight
+                        ? Colors[activeTheme].primary 
+                        : Colors[activeTheme].primaryLight
                     }
                   ]} 
                 />
-                <Text style={styles.barLabel}>{savingsData.months[index]}</Text>
+                <Text style={[styles.barLabel, { color: Colors[activeTheme].textSecondary }]}>{savingsData.months[index]}</Text>
               </View>
             );
           })}
@@ -101,7 +105,7 @@ export default function AnalyticsScreen() {
         </View>
         <View style={styles.xAxis}>
           {savingsData.months.map((month, index) => (
-            <Text key={index} style={styles.xAxisLabel}>{month}</Text>
+            <Text key={index} style={[styles.xAxisLabel, { color: Colors[activeTheme].textSecondary }]}>{month}</Text>
           ))}
         </View>
       </View>
@@ -135,55 +139,76 @@ export default function AnalyticsScreen() {
   };
   
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: Colors[activeTheme].background }]}>
+      <ThemedStatusBar />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Analytics</Text>
-          <TouchableOpacity style={styles.headerIconButton}>
-            <Ionicons name="options-outline" size={24} color={Colors.light.text} />
+          <Text style={[styles.headerTitle, { color: Colors[activeTheme].text }]}>Analytics</Text>
+          <TouchableOpacity style={[styles.headerIconButton, { backgroundColor: Colors[activeTheme].secondaryLight }]}>
+            <Ionicons name="options-outline" size={24} color={Colors[activeTheme].text} />
           </TouchableOpacity>
         </View>
         
         {/* Savings Summary */}
-        <Card variant="glass" style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
-            <Text style={styles.summaryTitle}>My Savings</Text>
-            <TouchableOpacity style={styles.monthSelector}>
-              <Text style={styles.monthText}>{selectedMonth}</Text>
-              <Ionicons name="chevron-down" size={16} color={Colors.light.text} />
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.amountContainer}>
-            <Text style={styles.amountValue}>${savingsData.currentMonth}</Text>
-            <View style={styles.rateContainer}>
-              <Ionicons 
-                name="arrow-up" 
-                size={16} 
-                color={Colors.light.success} 
-              />
-              <Text style={styles.rateText}>{savingsData.savingsRate}% from last month</Text>
+        <Card variant="glass" style={{ ...styles.summaryCard, backgroundColor: Colors[activeTheme].card }}>
+          <LinearGradient
+            colors={isDarkMode ? ['#1A1A1A', '#2D2D2D'] : ['#FFFFFF', '#F5F5F5']}
+            style={styles.cardGradient}
+          >
+            <View style={styles.summaryHeader}>
+              <Text style={[styles.summaryTitle, { color: Colors[activeTheme].text }]}>My Savings</Text>
+              <TouchableOpacity style={[styles.monthSelector, { backgroundColor: Colors[activeTheme].secondaryLight }]}>
+                <Text style={[styles.monthText, { color: Colors[activeTheme].text }]}>{selectedMonth}</Text>
+                <Ionicons name="chevron-down" size={16} color={Colors[activeTheme].text} />
+              </TouchableOpacity>
             </View>
-          </View>
+            
+            <View style={styles.amountContainer}>
+              <Text style={[styles.amountValue, { color: Colors[activeTheme].text }]}>${savingsData.currentMonth}</Text>
+              <View style={styles.rateContainer}>
+                <Ionicons 
+                  name="arrow-up" 
+                  size={16} 
+                  color={Colors[activeTheme].success} 
+                />
+                <Text style={[styles.rateText, { color: Colors[activeTheme].success }]}>{savingsData.savingsRate}% from last month</Text>
+              </View>
+            </View>
+          </LinearGradient>
           
           {renderTimeframeSelector()}
           
           {/* Bar chart */}
           {renderBarChart()}
+          
+          <View style={styles.totalSavingsContainer}>
+            <View style={styles.totalSavingsItem}>
+              <Text style={[styles.totalSavingsLabel, { color: Colors[activeTheme].textSecondary }]}>Total Saved</Text>
+              <Text style={[styles.totalSavingsValue, { color: Colors[activeTheme].text }]}>${savingsData.totalSaved}</Text>
+            </View>
+            <View style={styles.totalSavingsItem}>
+              <Text style={[styles.totalSavingsLabel, { color: Colors[activeTheme].textSecondary }]}>Average Monthly</Text>
+              <Text style={[styles.totalSavingsValue, { color: Colors[activeTheme].text }]}>$1,625.00</Text>
+            </View>
+          </View>
         </Card>
         
         {/* Savings Breakdown */}
-        <Card variant="elevated" style={styles.breakdownCard}>
+        <Card variant="elevated" style={{ ...styles.breakdownCard, backgroundColor: Colors[activeTheme].card }}>
           <View style={styles.breakdownHeader}>
-            <Text style={styles.breakdownTitle}>Savings Breakdown</Text>
-            <Text style={styles.breakdownSubtitle}>{selectedMonth}</Text>
+            <Text style={[styles.breakdownTitle, { color: Colors[activeTheme].text }]}>Savings Breakdown</Text>
+            <Text style={[styles.breakdownSubtitle, { color: Colors[activeTheme].textSecondary }]}>{selectedMonth}</Text>
           </View>
           
           <View style={styles.pieChartContainer}>
             <View style={styles.pieChart}>
               {/* This is a placeholder for a pie chart */}
               <View style={styles.pieChartInner} />
+              <View style={styles.pieChartCenter}>
+                <Text style={[styles.pieChartTotal, { color: Colors[activeTheme].text }]}>$1,125</Text>
+                <Text style={[styles.pieChartLabel, { color: Colors[activeTheme].textSecondary }]}>Total</Text>
+              </View>
             </View>
             <View style={styles.legendContainer}>
               {savingsData.breakdown.map((item, index) => (
@@ -194,7 +219,10 @@ export default function AnalyticsScreen() {
                       { backgroundColor: item.color }
                     ]} 
                   />
-                  <Text style={styles.legendText}>{item.category}</Text>
+                  <View style={styles.legendTextContainer}>
+                    <Text style={[styles.legendText, { color: Colors[activeTheme].text }]}>{item.category}</Text>
+                    <Text style={[styles.legendAmount, { color: Colors[activeTheme].textSecondary }]}>${item.amount}</Text>
+                  </View>
                 </View>
               ))}
             </View>
@@ -276,6 +304,47 @@ export default function AnalyticsScreen() {
 }
 
 const styles = StyleSheet.create({
+  cardGradient: {
+    borderRadius: 16,
+    padding: 16,
+  },
+  totalSavingsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  totalSavingsItem: {
+    flex: 1,
+  },
+  totalSavingsLabel: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  totalSavingsValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  pieChartCenter: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pieChartTotal: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  pieChartLabel: {
+    fontSize: 12,
+  },
+  legendTextContainer: {
+    flex: 1,
+  },
+  legendAmount: {
+    fontSize: 12,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.light.secondaryLight,

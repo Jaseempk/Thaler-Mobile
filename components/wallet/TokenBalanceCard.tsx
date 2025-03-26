@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
 
 interface TokenBalanceCardProps {
   token: {
+    id: string;
     symbol: string;
     name: string;
     balance: string;
@@ -33,7 +34,7 @@ const TokenBalanceCard: React.FC<TokenBalanceCardProps> = ({ token, theme, onPre
         style={styles.gradientBackground}
       >
         <View style={styles.contentContainer}>
-          <View style={styles.tokenInfo}>
+          <View style={styles.leftSection}>
             <View style={styles.logoContainer}>
               {typeof token.logo === 'string' ? (
                 <Image source={{ uri: token.logo }} style={styles.tokenLogo} />
@@ -47,7 +48,7 @@ const TokenBalanceCard: React.FC<TokenBalanceCardProps> = ({ token, theme, onPre
             </View>
           </View>
           
-          <View style={styles.balanceContainer}>
+          <View style={styles.rightSection}>
             <Text style={styles.tokenBalance}>{token.balance}</Text>
             <View style={styles.valueContainer}>
               <Text style={styles.tokenValue}>${token.value}</Text>
@@ -57,7 +58,7 @@ const TokenBalanceCard: React.FC<TokenBalanceCardProps> = ({ token, theme, onPre
               ]}>
                 <Ionicons 
                   name={token.isPositive ? 'arrow-up' : 'arrow-down'} 
-                  size={12} 
+                  size={10} 
                   color={token.isPositive ? Colors[theme].success : Colors[theme].error} 
                 />
                 <Text style={[
@@ -70,8 +71,8 @@ const TokenBalanceCard: React.FC<TokenBalanceCardProps> = ({ token, theme, onPre
             </View>
           </View>
         </View>
-      </LinearGradient>
-    </TouchableOpacity>
+        </LinearGradient>
+      </TouchableOpacity>
   );
 };
 
@@ -80,11 +81,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 16,
     overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   gradientBackground: {
     borderRadius: 16,
@@ -95,52 +102,67 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  tokenInfo: {
+  leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+  },
+  rightSection: {
+    alignItems: 'flex-end',
+    flex: 1,
   },
   logoContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: 'rgba(0, 0, 0, 0.2)',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.3,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   tokenLogo: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
   },
   nameContainer: {
     justifyContent: 'center',
   },
   tokenSymbol: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 2,
   },
   tokenName: {
-    fontSize: 12,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
   },
-  balanceContainer: {
-    alignItems: 'flex-end',
-  },
   tokenBalance: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 4,
+    textAlign: 'right',
   },
   valueContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
   },
   tokenValue: {
-    fontSize: 12,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
     marginRight: 8,
   },

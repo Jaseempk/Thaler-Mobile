@@ -8,10 +8,12 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { Ionicons } from "@expo/vector-icons";
+import ThemedStatusBar from "../../components/ui/ThemedStatusBar";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
 import { usePrivy } from "@privy-io/expo";
 import { useWallet } from "../../context/WalletContext";
@@ -19,6 +21,7 @@ import { SavingsPool } from "../../models/savings";
 import SavingsPoolCard from "../../components/savings/SavingsPoolCard";
 import { SavingsService } from "../../services/SavingsService";
 import { ethers } from "ethers";
+import { useTheme } from "../../contexts/ThemeContext";
 
 export default function SavingsScreen() {
   const router = useRouter();
@@ -26,6 +29,8 @@ export default function SavingsScreen() {
   const { address: walletAddress, isConnected } = useWallet();
   const [pools, setPools] = useState<SavingsPool[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { activeTheme } = useTheme();
+  const isDarkMode = activeTheme === 'dark';
 
   // Initialize savings service with provider
   const provider = new ethers.providers.JsonRpcProvider(
@@ -168,7 +173,7 @@ export default function SavingsScreen() {
   if (!user) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar style="light" />
+        <ThemedStatusBar />
         <View style={styles.authContainer}>
           <Text style={styles.authTitle}>Authentication Required</Text>
           <Text style={styles.authSubtitle}>
@@ -187,7 +192,7 @@ export default function SavingsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
+      <ThemedStatusBar />
 
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Savings Pools</Text>

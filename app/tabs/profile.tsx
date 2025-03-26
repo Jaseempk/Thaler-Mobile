@@ -9,16 +9,22 @@ import {
   Switch,
   Alert,
   Clipboard,
+  Image,
+  Platform,
+  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, FontAwesome5, MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import ThemedStatusBar from "../../components/ui/ThemedStatusBar";
 import Colors from "../../constants/Colors";
 import { usePrivy } from "@privy-io/expo";
 import { useTheme } from "../../contexts/ThemeContext";
 import { usePrivyContext } from "../../context/PrivyContext";
 import { useWallet } from "../../context/WalletContext";
 import { UsePrivy } from "../../types/privy";
+
+const { width } = Dimensions.get('window');
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -187,16 +193,16 @@ export default function ProfileScreen() {
         { backgroundColor: Colors[activeTheme].background },
       ]}
     >
-      <StatusBar style={activeTheme === "dark" ? "light" : "dark"} />
+      <ThemedStatusBar />
 
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: Colors[activeTheme].primary },
-        ]}
+      <LinearGradient
+        colors={activeTheme === "dark" ? ['#1A237E', '#303F9F'] : ['#3F51B5', '#5C6BC0']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
       >
         <Text style={styles.headerTitle}>Profile</Text>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={[
@@ -306,9 +312,9 @@ export default function ProfileScreen() {
               <Ionicons
                 name="finger-print-outline"
                 size={24}
-                color={Colors.light.text}
+                color={Colors[activeTheme].text}
               />
-              <Text style={styles.settingText}>Biometric Authentication</Text>
+              <Text style={[styles.settingText, { color: Colors[activeTheme].text }]}>Biometric Authentication</Text>
             </View>
             <Switch
               value={biometricEnabled}
@@ -369,14 +375,14 @@ export default function ProfileScreen() {
               <Ionicons
                 name="wallet-outline"
                 size={24}
-                color={Colors.light.text}
+                color={Colors[activeTheme].text}
               />
-              <Text style={styles.menuItemText}>Wallet Details</Text>
+              <Text style={[styles.menuItemText, { color: Colors[activeTheme].text }]}>Wallet Details</Text>
             </View>
             <Ionicons
               name="chevron-forward"
               size={20}
-              color={Colors.light.textSecondary}
+              color={Colors[activeTheme].textSecondary}
             />
           </TouchableOpacity>
 
@@ -388,14 +394,14 @@ export default function ProfileScreen() {
               <Ionicons
                 name="key-outline"
                 size={24}
-                color={Colors.light.text}
+                color={Colors[activeTheme].text}
               />
-              <Text style={styles.menuItemText}>Export Private Key</Text>
+              <Text style={[styles.menuItemText, { color: Colors[activeTheme].text }]}>Export Private Key</Text>
             </View>
             <Ionicons
               name="chevron-forward"
               size={20}
-              color={Colors.light.textSecondary}
+              color={Colors[activeTheme].textSecondary}
             />
           </TouchableOpacity>
 
@@ -407,14 +413,14 @@ export default function ProfileScreen() {
               <Ionicons
                 name="lock-closed-outline"
                 size={24}
-                color={Colors.light.text}
+                color={Colors[activeTheme].text}
               />
-              <Text style={styles.menuItemText}>Change Password</Text>
+              <Text style={[styles.menuItemText, { color: Colors[activeTheme].text }]}>Change Password</Text>
             </View>
             <Ionicons
               name="chevron-forward"
               size={20}
-              color={Colors.light.textSecondary}
+              color={Colors[activeTheme].textSecondary}
             />
           </TouchableOpacity>
         </View>
@@ -436,14 +442,14 @@ export default function ProfileScreen() {
               <Ionicons
                 name="information-circle-outline"
                 size={24}
-                color={Colors.light.text}
+                color={Colors[activeTheme].text}
               />
-              <Text style={styles.menuItemText}>About Thaler</Text>
+              <Text style={[styles.menuItemText, { color: Colors[activeTheme].text }]}>About Thaler</Text>
             </View>
             <Ionicons
               name="chevron-forward"
               size={20}
-              color={Colors.light.textSecondary}
+              color={Colors[activeTheme].textSecondary}
             />
           </TouchableOpacity>
 
@@ -452,14 +458,14 @@ export default function ProfileScreen() {
               <Ionicons
                 name="document-text-outline"
                 size={24}
-                color={Colors.light.text}
+                color={Colors[activeTheme].text}
               />
-              <Text style={styles.menuItemText}>Terms of Service</Text>
+              <Text style={[styles.menuItemText, { color: Colors[activeTheme].text }]}>Terms of Service</Text>
             </View>
             <Ionicons
               name="chevron-forward"
               size={20}
-              color={Colors.light.textSecondary}
+              color={Colors[activeTheme].textSecondary}
             />
           </TouchableOpacity>
 
@@ -468,14 +474,14 @@ export default function ProfileScreen() {
               <Ionicons
                 name="shield-outline"
                 size={24}
-                color={Colors.light.text}
+                color={Colors[activeTheme].text}
               />
-              <Text style={styles.menuItemText}>Privacy Policy</Text>
+              <Text style={[styles.menuItemText, { color: Colors[activeTheme].text }]}>Privacy Policy</Text>
             </View>
             <Ionicons
               name="chevron-forward"
               size={20}
-              color={Colors.light.textSecondary}
+              color={Colors[activeTheme].textSecondary}
             />
           </TouchableOpacity>
         </View>
@@ -597,7 +603,6 @@ const styles = StyleSheet.create({
   },
   settingText: {
     fontSize: 16,
-    color: Colors.light.text,
     marginLeft: 12,
   },
   menuItem: {
@@ -615,7 +620,6 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     fontSize: 16,
-    color: Colors.light.text,
     marginLeft: 12,
   },
   actionSection: {
