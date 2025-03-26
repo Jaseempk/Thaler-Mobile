@@ -3,60 +3,112 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  Switch,
   ScrollView, 
   TouchableOpacity,
   Image,
   SafeAreaView,
-  Dimensions
+  Dimensions,
+  Alert,
+  RefreshControl,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useWallet } from '../../context/WalletContext';
-import Card from '../../components/common/Card';
-import Button from '../../components/common/Button';
 import Colors from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
+import WalletAddressCard from '../../components/wallet/WalletAddressCard';
+import TokenBalanceCard from '../../components/wallet/TokenBalanceCard';
 
 const { width } = Dimensions.get('window');
 
-// Mock data for recent activity
-const recentActivity = [
+// Mock token data
+const tokenData = [
   {
     id: '1',
-    name: 'Dribbble',
-    date: 'Today, 16:30',
-    amount: '-$120',
-    type: 'transfer',
-    avatar: 'D',
-    avatarColor: '#ea4c89',
+    symbol: 'ETH',
+    name: 'Ethereum',
+    balance: '0.42',
+    value: '1,285.60',
+    change: '2.4',
+    isPositive: true,
+    logo: require('../../assets/images/ethereum.png'),
+    gradientColors: ['#627EEA', '#3C5BE0']
   },
   {
     id: '2',
-    name: 'Wilson Mango',
-    date: 'Today, 10:15',
-    amount: '-$240',
-    type: 'transfer',
-    avatar: 'WM',
-    avatarColor: '#4CAF50',
+    symbol: 'USDC',
+    name: 'USD Coin',
+    balance: '325.75',
+    value: '325.75',
+    change: '0.01',
+    isPositive: true,
+    logo: require('../../assets/images/usdc.png'),
+    gradientColors: ['#2775CA', '#2775CA']
   },
   {
     id: '3',
-    name: 'Abram Botosh',
+    symbol: 'USDT',
+    name: 'Tether',
+    balance: '150.00',
+    value: '150.00',
+    change: '0.00',
+    isPositive: true,
+    logo: require('../../assets/images/usdt.png'),
+    gradientColors: ['#26A17B', '#1A9270']
+  },
+  {
+    id: '4',
+    symbol: 'MATIC',
+    name: 'Polygon',
+    balance: '45.32',
+    value: '38.52',
+    change: '1.2',
+    isPositive: false,
+    logo: require('../../assets/images/matic.png'),
+    gradientColors: ['#8247E5', '#6F3CD0']
+  }
+];
+
+// Mock transaction data
+const recentActivity = [
+  {
+    id: '1',
+    name: 'Swap ETH to USDC',
+    date: 'Today, 16:30',
+    amount: '-0.05 ETH',
+    type: 'swap',
+    avatar: 'S',
+    avatarColor: '#627EEA',
+  },
+  {
+    id: '2',
+    name: 'Received USDC',
+    date: 'Today, 10:15',
+    amount: '+25 USDC',
+    type: 'receive',
+    avatar: 'R',
+    avatarColor: '#2775CA',
+  },
+  {
+    id: '3',
+    name: 'Sent MATIC',
     date: 'Yesterday',
-    amount: '+$450',
-    type: 'income',
-    avatar: null,
-    avatarColor: '#1E88E5',
-    image: 'https://randomuser.me/api/portraits/men/32.jpg',
+    amount: '-10 MATIC',
+    type: 'send',
+    avatar: 'S',
+    avatarColor: '#8247E5',
   },
 ];
 
 export default function HomeScreen() {
   const { activeTheme, toggleTheme } = useTheme();
-  const { address, balance, isConnected } = useWallet();
+  const { address, balance, isConnected, connectWallet } = useWallet();
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [userName, setUserName] = useState('Jonathan');
   const [isDarkMode, setIsDarkMode] = useState(activeTheme === 'dark');
+  const [refreshing, setRefreshing] = useState(false);
+  const [totalBalance, setTotalBalance] = useState('1,800.87');
   
   // Format the address for display
   const formatAddress = (address: string | null) => {
@@ -87,10 +139,38 @@ export default function HomeScreen() {
   const handleThemeToggle = () => {
     toggleTheme();
   };
+  
+  // Handle refresh
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    // Simulate fetching updated balances
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1500);
+  }, []);
+  
+  // Handle wallet connection
+  const handleConnectWallet = async () => {
+    try {
+      await connectWallet();
+    } catch (error) {
+      Alert.alert('Connection Error', 'Failed to connect wallet');
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: Colors[activeTheme].background }]}>
-      <ScrollView style={[styles.scrollView, { backgroundColor: Colors[activeTheme].background }]} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={[styles.scrollView, { backgroundColor: Colors[activeTheme].background }]} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor={Colors[activeTheme].primary}
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -122,80 +202,136 @@ export default function HomeScreen() {
         
         {/* Wallet Balance Card */}
         <View style={styles.balanceContainer}>
-          <Text style={[styles.balanceLabel, { color: Colors[activeTheme].textSecondary }]}>Wallet Balance</Text>
-          <View style={styles.balanceRow}>
-            <Text style={[styles.balanceAmount, { color: Colors[activeTheme].text }]}>
-              ${isConnected 
-                ? (isBalanceVisible ? formatBalance("17298.92") : '••••••') 
-                : '---'}
-            </Text>
-            <TouchableOpacity onPress={() => setIsBalanceVisible(!isBalanceVisible)}>
-              <Ionicons 
-                name={isBalanceVisible ? "eye-outline" : "eye-off-outline"} 
-                size={24} 
-                color={Colors[activeTheme].text} 
-              />
-            </TouchableOpacity>
-          </View>
+          <LinearGradient
+            colors={isDarkMode ? ['#2E7D32', '#1A237E'] : ['#4CAF50', '#1E88E5']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.balanceGradient}
+          >
+            <View style={styles.balanceContent}>
+              <Text style={styles.balanceLabelLight}>Total Balance</Text>
+              <View style={styles.balanceRow}>
+                <Text style={styles.balanceAmountLight}>
+                  ${isConnected 
+                    ? (isBalanceVisible ? formatBalance(totalBalance) : '••••••') 
+                    : '---'}
+                </Text>
+                <TouchableOpacity 
+                  style={styles.eyeButton}
+                  onPress={() => setIsBalanceVisible(!isBalanceVisible)}
+                >
+                  <Ionicons 
+                    name={isBalanceVisible ? "eye-outline" : "eye-off-outline"} 
+                    size={24} 
+                    color="#FFFFFF" 
+                  />
+                </TouchableOpacity>
+              </View>
+              
+              {isConnected ? (
+                <TouchableOpacity 
+                  style={styles.refreshButton}
+                  onPress={onRefresh}
+                  disabled={refreshing}
+                >
+                  {refreshing ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Ionicons name="refresh-outline" size={18} color="#FFFFFF" />
+                  )}
+                  <Text style={styles.refreshText}>Refresh</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity 
+                  style={styles.connectButton}
+                  onPress={handleConnectWallet}
+                >
+                  <Ionicons name="wallet-outline" size={18} color="#FFFFFF" />
+                  <Text style={styles.connectText}>Connect Wallet</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </LinearGradient>
         </View>
         
-        {/* Cards section */}
-        <View style={styles.cardsSection}>
-          <Text style={[styles.sectionTitle, { color: Colors[activeTheme].text }]}>Cards</Text>
-          <View style={styles.cardsRow}>
-            <View style={[styles.cardItem, { backgroundColor: '#4CAF50' }]}>
-              <Text style={styles.cardNumber}>•••• 4679</Text>
-            </View>
-            <View style={[styles.cardItem, { backgroundColor: '#212121' }]}>
-              <Text style={styles.cardNumber}>•••• 7391</Text>
-            </View>
+        {/* Wallet Address Card - Only show if connected */}
+        {isConnected && address && (
+          <WalletAddressCard 
+            address={address} 
+            isConnected={isConnected} 
+            theme={activeTheme}
+          />
+        )}
+        
+        {/* Token Balances */}
+        <View style={styles.tokensSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: Colors[activeTheme].text }]}>Token Balances</Text>
+            <TouchableOpacity style={styles.seeAllButton}>
+              <Text style={[styles.seeAllText, { color: Colors[activeTheme].primary }]}>See All</Text>
+              <Ionicons name="chevron-forward" size={16} color={Colors[activeTheme].primary} />
+            </TouchableOpacity>
           </View>
+          
+          {tokenData.map((token) => (
+            <TokenBalanceCard 
+              key={token.id}
+              token={token}
+              theme={activeTheme}
+            />
+          ))}
         </View>
         
         {/* Action buttons */}
         <View style={styles.actionButtons}>
           <TouchableOpacity style={styles.actionButton}>
-            <View style={styles.actionButtonIcon}>
+            <View style={[styles.actionButtonIcon, { backgroundColor: Colors[activeTheme].primary }]}>
               <Ionicons name="send-outline" size={24} color="#fff" />
             </View>
             <Text style={[styles.actionButtonText, { color: Colors[activeTheme].text }]}>Send</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.actionButton}>
-            <View style={[styles.actionButtonIcon, { backgroundColor: Colors.light.accent }]}>
+            <View style={[styles.actionButtonIcon, { backgroundColor: Colors[activeTheme].accent }]}>
               <Ionicons name="download-outline" size={24} color="#fff" />
             </View>
-            <Text style={[styles.actionButtonText, { color: Colors[activeTheme].text }]}>Request</Text>
+            <Text style={[styles.actionButtonText, { color: Colors[activeTheme].text }]}>Receive</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.actionButton}>
-            <View style={[styles.actionButtonIcon, { backgroundColor: '#9E9E9E' }]}>
+            <View style={[styles.actionButtonIcon, { backgroundColor: isDarkMode ? '#424242' : '#9E9E9E' }]}>
+              <Ionicons name="swap-horizontal-outline" size={24} color="#fff" />
+            </View>
+            <Text style={[styles.actionButtonText, { color: Colors[activeTheme].text }]}>Swap</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionButton}>
+            <View style={[styles.actionButtonIcon, { backgroundColor: isDarkMode ? '#303F9F' : '#3F51B5' }]}>
               <Ionicons name="grid-outline" size={24} color="#fff" />
             </View>
-            <Text style={styles.actionButtonText}></Text>
+            <Text style={[styles.actionButtonText, { color: Colors[activeTheme].text }]}>More</Text>
           </TouchableOpacity>
         </View>
         
         {/* Recent Activity */}
         <View style={styles.recentActivity}>
-          <View style={styles.activityHeader}>
+          <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: Colors[activeTheme].text }]}>Recent Activity</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeDetailsText}>See Details</Text>
-              <Ionicons name="chevron-forward" size={16} color={Colors.light.primary} />
+            <TouchableOpacity style={styles.seeAllButton}>
+              <Text style={[styles.seeAllText, { color: Colors[activeTheme].primary }]}>See All</Text>
+              <Ionicons name="chevron-forward" size={16} color={Colors[activeTheme].primary} />
             </TouchableOpacity>
           </View>
           
           {recentActivity.map((activity) => (
-            <View key={activity.id} style={styles.activityItem}>
+            <View 
+              key={activity.id} 
+              style={[styles.activityItem, { backgroundColor: Colors[activeTheme].secondaryLight }]}
+            >
               <View style={styles.activityLeftSection}>
-                {activity.image ? (
-                  <Image source={{ uri: activity.image }} style={styles.activityAvatar} />
-                ) : (
-                  <View style={[styles.activityAvatar, { backgroundColor: activity.avatarColor }]}>
-                    <Text style={styles.activityAvatarText}>{activity.avatar}</Text>
-                  </View>
-                )}
+                <View style={[styles.activityAvatar, { backgroundColor: activity.avatarColor }]}>
+                  <Text style={styles.activityAvatarText}>{activity.avatar}</Text>
+                </View>
                 <View style={styles.activityDetails}>
                   <Text style={[styles.activityName, { color: Colors[activeTheme].text }]}>{activity.name}</Text>
                   <Text style={[styles.activityDate, { color: Colors[activeTheme].textSecondary }]}>{activity.date}</Text>
@@ -204,11 +340,11 @@ export default function HomeScreen() {
               <View style={styles.activityRightSection}>
                 <Text style={[
                   styles.activityAmount,
-                  activity.type === 'income' ? styles.incomeAmount : styles.expenseAmount
+                  activity.type === 'receive' ? styles.incomeAmount : styles.expenseAmount
                 ]}>
                   {activity.amount}
                 </Text>
-                <Text style={styles.activityType}>Transfer</Text>
+                <Text style={[styles.activityType, { color: Colors[activeTheme].textSecondary }]}>{activity.type}</Text>
               </View>
             </View>
           ))}
@@ -284,7 +420,7 @@ const styles = StyleSheet.create({
   balanceContainer: {
     marginBottom: 24,
   },
-  balanceLabel: {
+  balanceLabelDark: {
     fontSize: 14,
     color: '#666',
     marginBottom: 8,
@@ -294,7 +430,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  balanceAmount: {
+  balanceAmountDark: {
     fontSize: 36,
     fontWeight: 'bold',
     color: '#000',
@@ -417,5 +553,76 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
-
+  balanceGradient: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  balanceContent: {
+    padding: 20,
+  },
+  balanceLabelLight: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 8,
+  },
+  balanceAmountLight: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  eyeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginTop: 16,
+    alignSelf: 'flex-start',
+  },
+  refreshText: {
+    color: '#FFFFFF',
+    marginLeft: 6,
+    fontSize: 14,
+  },
+  connectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginTop: 16,
+    alignSelf: 'flex-start',
+  },
+  connectText: {
+    color: '#FFFFFF',
+    marginLeft: 6,
+    fontSize: 14,
+  },
+  tokensSection: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  seeAllText: {
+    fontSize: 14,
+    marginRight: 4,
+  },
 });

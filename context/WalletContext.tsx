@@ -15,6 +15,8 @@ interface WalletContextType {
   balance: string;
   isConnected: boolean;
   isLoading: boolean;
+  connectWallet: () => Promise<void>;
+  disconnectWallet: () => Promise<void>;
   getProvider: () => Promise<ethers.providers.Provider | null>;
   getSigner: () => Promise<ethers.Signer | null>;
   sendTransaction: (
@@ -29,6 +31,12 @@ const WalletContext = createContext<WalletContextType>({
   balance: "0",
   isConnected: false,
   isLoading: false,
+  connectWallet: async () => {
+    throw new Error("Not implemented");
+  },
+  disconnectWallet: async () => {
+    throw new Error("Not implemented");
+  },
   getProvider: async () => null,
   getSigner: async () => null,
   sendTransaction: async () => {
@@ -177,6 +185,68 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     return tx;
   };
 
+  const connectWallet = async () => {
+    try {
+      setIsLoading(true);
+      
+      // If we have Privy, use it to connect
+      if (privyHook && (privyHook as any).login) {
+        await (privyHook as any).login();
+      }
+      
+      // Check for embedded wallet
+      if (wallets && wallets.length > 0) {
+        const embeddedWallet = wallets[0];
+        setAddress(embeddedWallet.address);
+        setIsConnected(true);
+        
+        // Get balance
+        const provider = await getProvider();
+        if (provider && embeddedWallet.address) {
+          const balanceWei = await provider.getBalance(embeddedWallet.address);
+          setBalance(ethers.utils.formatEther(balanceWei));
+        }
+      }
+      
+      // If no wallet is connected yet, check user wallet
+      if (!isConnected && user?.wallet?.address) {
+        setAddress(user.wallet.address);
+        setIsConnected(true);
+        
+        // Get balance
+        const provider = await getProvider();
+        if (provider && user.wallet.address) {
+          const balanceWei = await provider.getBalance(user.wallet.address);
+          setBalance(ethers.utils.formatEther(balanceWei));
+        }
+      }
+    } catch (error) {
+      console.error("Error connecting wallet:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const disconnectWallet = async () => {
+    try {
+      setIsLoading(true);
+      
+      // If we have Privy, use it to logout
+      if (privyHook && (privyHook as any).logout) {
+        await (privyHook as any).logout();
+      }
+      
+      // Reset state
+      setAddress(null);
+      setBalance("0");
+      setIsConnected(false);
+    } catch (error) {
+      console.error("Error disconnecting wallet:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <WalletContext.Provider
       value={{
@@ -184,6 +254,8 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
         balance,
         isConnected,
         isLoading,
+        connectWallet,
+        disconnectWallet,
         getProvider,
         getSigner,
         sendTransaction,
