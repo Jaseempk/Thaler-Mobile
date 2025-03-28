@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,33 +14,33 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import Colors from '../constants/Colors';
-import { useTheme } from '../contexts/ThemeContext';
-import { useWallet } from '../context/WalletContext';
-import { ethers } from 'ethers';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useColorScheme } from 'react-native';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import Colors from "../constants/Colors";
+import { useTheme } from "../contexts/ThemeContext";
+import { useWallet } from "../context/WalletContext";
+import { ethers } from "ethers";
+import { LinearGradient } from "expo-linear-gradient";
+import { useColorScheme } from "react-native";
 
 // Import token logos
-const ethLogo = require('../assets/images/ethereum.png');
-const usdcLogo = require('../assets/images/usdc.png');
+const ethLogo = require("../assets/images/ethereum.png");
+const usdcLogo = require("../assets/images/usdc.png");
 
 // USDC contract ABI (minimal for balanceOf)
 const USDC_ABI = [
-  'function balanceOf(address owner) view returns (uint256)',
-  'function decimals() view returns (uint8)',
+  "function balanceOf(address owner) view returns (uint256)",
+  "function decimals() view returns (uint8)",
 ];
 
 // Base Sepolia USDC address
-const USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+const USDC_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_PADDING = 16;
-const CARD_WIDTH = SCREEN_WIDTH - (CARD_PADDING * 4);
+const CARD_WIDTH = SCREEN_WIDTH - CARD_PADDING * 4;
 
 type ColorScheme = {
   text: string;
@@ -72,18 +72,18 @@ export default function WithdrawScreen() {
   const router = useRouter();
   const { activeTheme } = useTheme();
   const { address, getProvider, getSigner, isConnected } = useWallet();
-  const isDarkMode = activeTheme === 'dark';
+  const isDarkMode = activeTheme === "dark";
   const [isLoading, setIsLoading] = useState(false);
-  const [ethBalance, setEthBalance] = useState('0');
-  const [usdcBalance, setUsdcBalance] = useState('0');
+  const [ethBalance, setEthBalance] = useState("0");
+  const [usdcBalance, setUsdcBalance] = useState("0");
   const [ethPrice, setEthPrice] = useState(0);
-  const [ethValue, setEthValue] = useState('0.00');
-  const [usdcValue, setUsdcValue] = useState('0.00');
-  const [ethChange, setEthChange] = useState('0.00');
-  const [totalBalanceUSD, setTotalBalanceUSD] = useState('0.00');
+  const [ethValue, setEthValue] = useState("0.00");
+  const [usdcValue, setUsdcValue] = useState("0.00");
+  const [ethChange, setEthChange] = useState("0.00");
+  const [totalBalanceUSD, setTotalBalanceUSD] = useState("0.00");
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme() ?? "light";
 
   // Animation values for each token
   const animationValues = useRef({
@@ -94,18 +94,18 @@ export default function WithdrawScreen() {
   // Format the balance for display with proper decimal places
   const formatBalance = (balance: string) => {
     const balanceNum = parseFloat(balance);
-    return balanceNum.toLocaleString('en-US', {
+    return balanceNum.toLocaleString("en-US", {
       minimumFractionDigits: 2,
-      maximumFractionDigits: 6
+      maximumFractionDigits: 6,
     });
   };
 
   // Format USD value for display
   const formatUSD = (value: string) => {
     const valueNum = parseFloat(value);
-    return valueNum.toLocaleString('en-US', {
+    return valueNum.toLocaleString("en-US", {
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     });
   };
 
@@ -113,12 +113,12 @@ export default function WithdrawScreen() {
   const fetchEthPrice = async () => {
     try {
       const response = await fetch(
-        'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd'
+        "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
       );
       const data = await response.json();
       setEthPrice(data.ethereum.usd);
     } catch (error) {
-      console.error('Error fetching ETH price:', error);
+      console.error("Error fetching ETH price:", error);
     }
   };
 
@@ -134,10 +134,17 @@ export default function WithdrawScreen() {
       setEthBalance(formattedEthBalance);
 
       // Fetch USDC balance
-      const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, provider);
+      const usdcContract = new ethers.Contract(
+        USDC_ADDRESS,
+        USDC_ABI,
+        provider
+      );
       const usdcBalanceWei = await usdcContract.balanceOf(address);
       const usdcDecimals = await usdcContract.decimals();
-      const formattedUsdcBalance = ethers.utils.formatUnits(usdcBalanceWei, usdcDecimals);
+      const formattedUsdcBalance = ethers.utils.formatUnits(
+        usdcBalanceWei,
+        usdcDecimals
+      );
       setUsdcBalance(formattedUsdcBalance);
 
       // Calculate total balance in USD
@@ -145,9 +152,8 @@ export default function WithdrawScreen() {
       const usdcBalanceUSD = parseFloat(formattedUsdcBalance); // USDC is pegged to USD
       const total = ethBalanceUSD + usdcBalanceUSD;
       setTotalBalanceUSD(total.toFixed(2));
-
     } catch (error) {
-      console.error('Error fetching balances:', error);
+      console.error("Error fetching balances:", error);
     }
   };
 
@@ -176,44 +182,50 @@ export default function WithdrawScreen() {
 
   // Available tokens with real balances
   const tokens: Token[] = [
-    { 
-      symbol: 'ETH', 
-      name: 'Ethereum', 
-      logo: ethLogo, 
+    {
+      symbol: "ETH",
+      name: "Ethereum",
+      logo: ethLogo,
       balance: formatBalance(ethBalance),
-      decimals: 18
+      decimals: 18,
     },
-    { 
-      symbol: 'USDC', 
-      name: 'USD Coin', 
-      logo: usdcLogo, 
+    {
+      symbol: "USDC",
+      name: "USD Coin",
+      logo: usdcLogo,
       balance: formatBalance(usdcBalance),
       address: USDC_ADDRESS,
-      decimals: 6
+      decimals: 6,
     },
   ];
 
   const [selectedToken, setSelectedToken] = useState<Token>(tokens[0]);
-  const [amount, setAmount] = useState('');
-  const [recipientAddress, setRecipientAddress] = useState('');
+  const [amount, setAmount] = useState("");
+  const [recipientAddress, setRecipientAddress] = useState("");
   const [isAddressValid, setIsAddressValid] = useState(true);
 
   const animateSelection = (token: Token) => {
     // Animate previous selection out
-    Animated.spring(animationValues[selectedToken.symbol as keyof typeof animationValues], {
-      toValue: 0,
-      tension: 40,
-      friction: 7,
-      useNativeDriver: false,
-    }).start();
+    Animated.spring(
+      animationValues[selectedToken.symbol as keyof typeof animationValues],
+      {
+        toValue: 0,
+        tension: 40,
+        friction: 7,
+        useNativeDriver: false,
+      }
+    ).start();
 
     // Animate new selection in
-    Animated.spring(animationValues[token.symbol as keyof typeof animationValues], {
-      toValue: 1,
-      tension: 40,
-      friction: 7,
-      useNativeDriver: false,
-    }).start();
+    Animated.spring(
+      animationValues[token.symbol as keyof typeof animationValues],
+      {
+        toValue: 1,
+        tension: 40,
+        friction: 7,
+        useNativeDriver: false,
+      }
+    ).start();
 
     setSelectedToken(token);
   };
@@ -235,7 +247,7 @@ export default function WithdrawScreen() {
 
   const handleWithdraw = async () => {
     if (!address) {
-      Alert.alert('Error', 'Please connect your wallet first');
+      Alert.alert("Error", "Please connect your wallet first");
       return;
     }
 
@@ -243,9 +255,9 @@ export default function WithdrawScreen() {
       setIsLoading(true);
       const provider = await getProvider();
       const signer = await getSigner();
-      
+
       if (!provider || !signer) {
-        throw new Error('Failed to get provider or signer');
+        throw new Error("Failed to get provider or signer");
       }
 
       const amountInWei = ethers.utils.parseUnits(
@@ -253,36 +265,36 @@ export default function WithdrawScreen() {
         selectedToken.decimals
       );
 
-      if (selectedToken.symbol === 'ETH') {
+      if (selectedToken.symbol === "ETH") {
         // Handle ETH withdrawal
         const tx = await signer.sendTransaction({
           to: recipientAddress,
           value: amountInWei,
         });
         await tx.wait();
-        Alert.alert('Success', 'ETH withdrawal successful!');
+        Alert.alert("Success", "ETH withdrawal successful!");
       } else {
         // Handle ERC20 withdrawal
         const contract = new ethers.Contract(
           selectedToken.address!,
-          ['function transfer(address to, uint256 amount) returns (bool)'],
+          ["function transfer(address to, uint256 amount) returns (bool)"],
           signer
         );
 
         const tx = await contract.transfer(recipientAddress, amountInWei);
         await tx.wait();
-        Alert.alert('Success', 'USDC withdrawal successful!');
+        Alert.alert("Success", "USDC withdrawal successful!");
       }
 
       // Clear form and go back
-      setAmount('');
-      setRecipientAddress('');
+      setAmount("");
+      setRecipientAddress("");
       router.back();
     } catch (error: any) {
-      console.error('Withdrawal error:', error);
+      console.error("Withdrawal error:", error);
       Alert.alert(
-        'Error',
-        error.message || 'Failed to process withdrawal. Please try again.'
+        "Error",
+        error.message || "Failed to process withdrawal. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -296,7 +308,7 @@ export default function WithdrawScreen() {
       parseFloat(amount) > 0 &&
       recipientAddress &&
       isAddressValid &&
-      parseFloat(amount) <= parseFloat(selectedToken.balance.replace(',', ''))
+      parseFloat(amount) <= parseFloat(selectedToken.balance.replace(",", ""))
     );
   };
 
@@ -310,21 +322,21 @@ export default function WithdrawScreen() {
       paddingHorizontal: 16,
     },
     header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       paddingHorizontal: 16,
       paddingVertical: 12,
     },
     backButton: {
       width: 40,
       height: 40,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
     },
     headerTitle: {
       fontSize: 18,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     content: {
       flex: 1,
@@ -332,33 +344,33 @@ export default function WithdrawScreen() {
     },
     sectionTitle: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: "600",
       marginBottom: 12,
     },
     tokenList: {
       borderRadius: 16,
-      overflow: 'hidden',
+      overflow: "hidden",
     },
     tokenItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       padding: 16,
       borderRadius: 12,
       marginHorizontal: 4,
       marginVertical: 2,
     },
     tokenInfo: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
     },
     tokenIconContainer: {
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: '#FFFFFF',
-      justifyContent: 'center',
-      alignItems: 'center',
+      backgroundColor: "#FFFFFF",
+      justifyContent: "center",
+      alignItems: "center",
       marginRight: 12,
       padding: 6,
       ...Platform.select({
@@ -374,13 +386,13 @@ export default function WithdrawScreen() {
       }),
     },
     tokenIcon: {
-      width: '100%',
-      height: '100%',
-      resizeMode: 'contain',
+      width: "100%",
+      height: "100%",
+      resizeMode: "contain",
     },
     tokenSymbol: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     tokenName: {
       fontSize: 14,
@@ -388,13 +400,13 @@ export default function WithdrawScreen() {
     },
     tokenBalance: {
       fontSize: 16,
-      fontWeight: '600',
-      textAlign: 'right',
+      fontWeight: "600",
+      textAlign: "right",
     },
     tokenBalanceLabel: {
       fontSize: 12,
       marginTop: 2,
-      textAlign: 'right',
+      textAlign: "right",
     },
     divider: {
       height: 1,
@@ -403,13 +415,13 @@ export default function WithdrawScreen() {
     amountContainer: {
       borderRadius: 16,
       padding: 16,
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
     },
     amountInput: {
       flex: 1,
       fontSize: 24,
-      fontWeight: '600',
+      fontWeight: "600",
       padding: 0,
     },
     maxButton: {
@@ -422,7 +434,7 @@ export default function WithdrawScreen() {
     },
     maxButtonText: {
       fontSize: 12,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     addressContainer: {
       borderRadius: 16,
@@ -442,23 +454,23 @@ export default function WithdrawScreen() {
       marginBottom: 24,
       height: 56,
       borderRadius: 28,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
     },
     withdrawButtonText: {
-      color: '#FFFFFF',
+      color: "#FFFFFF",
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     tokenItemContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      width: '100%',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      width: "100%",
     },
     totalBalanceContainer: {
       marginBottom: 24,
-      alignItems: 'center',
+      alignItems: "center",
     },
     totalBalanceLabel: {
       fontSize: 14,
@@ -466,7 +478,7 @@ export default function WithdrawScreen() {
     },
     totalBalanceAmount: {
       fontSize: 28,
-      fontWeight: '700',
+      fontWeight: "700",
     },
     balanceContainer: {
       paddingHorizontal: 16,
@@ -486,13 +498,13 @@ export default function WithdrawScreen() {
       marginBottom: 8,
     },
     balanceRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
     },
     balanceAmount: {
       fontSize: 24,
-      fontWeight: 'bold',
+      fontWeight: "bold",
       color: Colors[activeTheme].text,
     },
     eyeButton: {
@@ -501,16 +513,32 @@ export default function WithdrawScreen() {
   });
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: Colors[activeTheme].background }]}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: Colors[activeTheme].background },
+      ]}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={Colors[activeTheme].text} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={24}
+              color={Colors[activeTheme].text}
+            />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: Colors[activeTheme].text }]}>Withdraw</Text>
+          <Text
+            style={[styles.headerTitle, { color: Colors[activeTheme].text }]}
+          >
+            Withdraw
+          </Text>
           <View style={styles.backButton} />
         </View>
 
@@ -521,15 +549,31 @@ export default function WithdrawScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <View style={[styles.balanceContainer, { backgroundColor: Colors[activeTheme].card }]}>
-            <Text style={[styles.balanceLabel, { color: Colors[activeTheme].textSecondary }]}>
+          <View
+            style={[
+              styles.balanceContainer,
+              { backgroundColor: Colors[activeTheme].card },
+            ]}
+          >
+            <Text
+              style={[
+                styles.balanceLabel,
+                { color: Colors[activeTheme].textSecondary },
+              ]}
+            >
               Total Balance
             </Text>
             <View style={styles.balanceRow}>
-              <Text style={[styles.balanceAmount, { color: Colors[activeTheme].text }]}>
-                ${isConnected
+              <Text
+                style={[
+                  styles.balanceAmount,
+                  { color: Colors[activeTheme].text },
+                ]}
+              >
+                $
+                {isConnected
                   ? isBalanceVisible
-                    ? formatUSD(totalBalanceUSD)
+                    ? totalBalanceUSD
                     : "••••••"
                   : "---"}
               </Text>
@@ -546,12 +590,22 @@ export default function WithdrawScreen() {
             </View>
           </View>
 
-          <Text style={[styles.sectionTitle, { color: Colors[activeTheme].text }]}>Select Token</Text>
-          <View style={[styles.tokenList, { backgroundColor: Colors[activeTheme].card }]}>
+          <Text
+            style={[styles.sectionTitle, { color: Colors[activeTheme].text }]}
+          >
+            Select Token
+          </Text>
+          <View
+            style={[
+              styles.tokenList,
+              { backgroundColor: Colors[activeTheme].card },
+            ]}
+          >
             {tokens.map((token, index) => {
               const isSelected = selectedToken.symbol === token.symbol;
-              const animValue = animationValues[token.symbol as keyof typeof animationValues];
-              
+              const animValue =
+                animationValues[token.symbol as keyof typeof animationValues];
+
               return (
                 <React.Fragment key={token.symbol}>
                   <Animated.View
@@ -561,20 +615,20 @@ export default function WithdrawScreen() {
                         backgroundColor: animValue.interpolate({
                           inputRange: [0, 1],
                           outputRange: [
-                            'transparent',
-                            isDarkMode 
-                              ? 'rgba(46, 125, 50, 0.35)'
-                              : 'rgba(76, 175, 80, 0.1)',
+                            "transparent",
+                            isDarkMode
+                              ? "rgba(46, 125, 50, 0.35)"
+                              : "rgba(76, 175, 80, 0.1)",
                           ],
                         }),
                         borderWidth: 1,
                         borderColor: animValue.interpolate({
                           inputRange: [0, 1],
                           outputRange: [
-                            'transparent',
-                            isDarkMode 
-                              ? 'rgba(76, 175, 80, 0.5)'
-                              : 'rgba(46, 125, 50, 0.2)',
+                            "transparent",
+                            isDarkMode
+                              ? "rgba(76, 175, 80, 0.5)"
+                              : "rgba(46, 125, 50, 0.2)",
                           ],
                         }),
                       },
@@ -586,33 +640,75 @@ export default function WithdrawScreen() {
                       style={styles.tokenItemContent}
                     >
                       <View style={styles.tokenInfo}>
-                        <Animated.View style={[
-                          styles.tokenIconContainer,
-                          {
-                            backgroundColor: animValue.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: ['#FFFFFF', isDarkMode ? 'rgba(46, 125, 50, 0.25)' : '#FFFFFF'],
-                            }),
-                          },
-                        ]}>
+                        <Animated.View
+                          style={[
+                            styles.tokenIconContainer,
+                            {
+                              backgroundColor: animValue.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [
+                                  "#FFFFFF",
+                                  isDarkMode
+                                    ? "rgba(46, 125, 50, 0.25)"
+                                    : "#FFFFFF",
+                                ],
+                              }),
+                            },
+                          ]}
+                        >
                           <Image source={token.logo} style={styles.tokenIcon} />
                         </Animated.View>
                         <View>
-                          <Animated.Text style={[
-                            styles.tokenSymbol,
+                          <Animated.Text
+                            style={[
+                              styles.tokenSymbol,
+                              {
+                                color: Colors[activeTheme].text,
+                                fontWeight: isSelected ? "700" : "600",
+                                fontSize: animValue.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: [16, 18],
+                                }),
+                              },
+                            ]}
+                          >
+                            {token.symbol}
+                          </Animated.Text>
+                          <Animated.Text
+                            style={[
+                              styles.tokenName,
+                              {
+                                color: Colors[activeTheme].textSecondary,
+                                opacity: animValue.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: [0.7, 1],
+                                }),
+                              },
+                            ]}
+                          >
+                            {token.name}
+                          </Animated.Text>
+                        </View>
+                      </View>
+                      <View>
+                        <Animated.Text
+                          style={[
+                            styles.tokenBalance,
                             {
                               color: Colors[activeTheme].text,
-                              fontWeight: isSelected ? '700' : '600',
+                              fontWeight: isSelected ? "700" : "600",
                               fontSize: animValue.interpolate({
                                 inputRange: [0, 1],
                                 outputRange: [16, 18],
                               }),
                             },
-                          ]}>
-                            {token.symbol}
-                          </Animated.Text>
-                          <Animated.Text style={[
-                            styles.tokenName,
+                          ]}
+                        >
+                          {token.balance}
+                        </Animated.Text>
+                        <Animated.Text
+                          style={[
+                            styles.tokenBalanceLabel,
                             {
                               color: Colors[activeTheme].textSecondary,
                               opacity: animValue.interpolate({
@@ -620,42 +716,20 @@ export default function WithdrawScreen() {
                                 outputRange: [0.7, 1],
                               }),
                             },
-                          ]}>
-                            {token.name}
-                          </Animated.Text>
-                        </View>
-                      </View>
-                      <View>
-                        <Animated.Text style={[
-                          styles.tokenBalance,
-                          {
-                            color: Colors[activeTheme].text,
-                            fontWeight: isSelected ? '700' : '600',
-                            fontSize: animValue.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [16, 18],
-                            }),
-                          },
-                        ]}>
-                          {token.balance}
-                        </Animated.Text>
-                        <Animated.Text style={[
-                          styles.tokenBalanceLabel,
-                          {
-                            color: Colors[activeTheme].textSecondary,
-                            opacity: animValue.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [0.7, 1],
-                            }),
-                          },
-                        ]}>
+                          ]}
+                        >
                           Available
                         </Animated.Text>
                       </View>
                     </TouchableOpacity>
                   </Animated.View>
                   {index < tokens.length - 1 && (
-                    <View style={[styles.divider, { backgroundColor: Colors[activeTheme].secondaryLight }]} />
+                    <View
+                      style={[
+                        styles.divider,
+                        { backgroundColor: Colors[activeTheme].secondaryLight },
+                      ]}
+                    />
                   )}
                 </React.Fragment>
               );
@@ -663,10 +737,20 @@ export default function WithdrawScreen() {
           </View>
 
           {/* Amount Input */}
-          <Text style={[styles.sectionTitle, { color: Colors[activeTheme].text, marginTop: 24 }]}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: Colors[activeTheme].text, marginTop: 24 },
+            ]}
+          >
             Amount
           </Text>
-          <View style={[styles.amountContainer, { backgroundColor: Colors[activeTheme].card }]}>
+          <View
+            style={[
+              styles.amountContainer,
+              { backgroundColor: Colors[activeTheme].card },
+            ]}
+          >
             <TextInput
               style={[styles.amountInput, { color: Colors[activeTheme].text }]}
               placeholder="0.00"
@@ -677,19 +761,39 @@ export default function WithdrawScreen() {
             />
             <View style={styles.maxButton}>
               <TouchableOpacity
-                style={[styles.maxButtonInner, { backgroundColor: Colors[activeTheme].secondaryLight }]}
+                style={[
+                  styles.maxButtonInner,
+                  { backgroundColor: Colors[activeTheme].secondaryLight },
+                ]}
                 onPress={() => setAmount(selectedToken.balance)}
               >
-                <Text style={[styles.maxButtonText, { color: Colors[activeTheme].primary }]}>MAX</Text>
+                <Text
+                  style={[
+                    styles.maxButtonText,
+                    { color: Colors[activeTheme].primary },
+                  ]}
+                >
+                  MAX
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Recipient Address */}
-          <Text style={[styles.sectionTitle, { color: Colors[activeTheme].text, marginTop: 24 }]}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: Colors[activeTheme].text, marginTop: 24 },
+            ]}
+          >
             Recipient Address
           </Text>
-          <View style={[styles.addressContainer, { backgroundColor: Colors[activeTheme].card }]}>
+          <View
+            style={[
+              styles.addressContainer,
+              { backgroundColor: Colors[activeTheme].card },
+            ]}
+          >
             <TextInput
               style={[
                 styles.addressInput,
@@ -704,7 +808,9 @@ export default function WithdrawScreen() {
             />
           </View>
           {!isAddressValid && recipientAddress.length > 0 && (
-            <Text style={[styles.errorText, { color: Colors[activeTheme].error }]}>
+            <Text
+              style={[styles.errorText, { color: Colors[activeTheme].error }]}
+            >
               Please enter a valid Ethereum address
             </Text>
           )}
@@ -725,7 +831,9 @@ export default function WithdrawScreen() {
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.withdrawButtonText}>Withdraw {selectedToken.symbol}</Text>
+              <Text style={styles.withdrawButtonText}>
+                Withdraw {selectedToken.symbol}
+              </Text>
             )}
           </TouchableOpacity>
         </ScrollView>

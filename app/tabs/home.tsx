@@ -30,16 +30,7 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../navigation/types";
 import { useRouter } from "expo-router";
-import { ethers } from "ethers";
-
-// USDC contract ABI (minimal for balanceOf)
-const USDC_ABI = [
-  'function balanceOf(address owner) view returns (uint256)',
-  'function decimals() view returns (uint8)',
-];
-
-// Base Sepolia USDC address
-const USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+import { useTokenBalances } from "../../hooks/useTokenBalances";
 
 const { width } = Dimensions.get("window");
 
@@ -75,24 +66,18 @@ const recentActivity = [
 ];
 
 export default function HomeScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const router = useRouter();
   const { activeTheme, toggleTheme } = useTheme();
-  const { address, balance, isConnected, connectWallet, getProvider } = useWallet();
+  const { address, isConnected, connectWallet } = useWallet();
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [userName, setUserName] = useState("Jonathan");
   const [isDarkMode, setIsDarkMode] = useState(activeTheme === "dark");
-  const [refreshing, setRefreshing] = useState(false);
-  const [totalBalance, setTotalBalance] = useState("0.00");
+  const { balances, totalBalanceUSD, isLoading, refreshBalances } =
+    useTokenBalances();
 
-  // Token states
-  const [ethBalance, setEthBalance] = useState('0');
-  const [usdcBalance, setUsdcBalance] = useState('0');
-  const [ethPrice, setEthPrice] = useState(0);
-  const [ethValue, setEthValue] = useState('0.00');
-  const [usdcValue, setUsdcValue] = useState('0.00');
-  const [ethChange, setEthChange] = useState('0.00');
-  const [usdcChange, setUsdcChange] = useState('0.00');
+  console.log("totalBalances:", totalBalanceUSD);
 
   // Format the address for display
   const formatAddress = (address: string | null) => {
@@ -100,24 +85,6 @@ export default function HomeScreen() {
     return `${address.substring(0, 6)}...${address.substring(
       address.length - 4
     )}`;
-  };
-
-  // Format the balance for display with proper decimal places
-  const formatBalance = (balance: string) => {
-    const balanceNum = parseFloat(balance);
-    return balanceNum.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 6
-    });
-  };
-
-  // Format USD value for display
-  const formatUSD = (value: string) => {
-    const valueNum = parseFloat(value);
-    return valueNum.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
   };
 
   // Get greeting based on time of day
@@ -138,104 +105,6 @@ export default function HomeScreen() {
     toggleTheme();
   };
 
-  // Fetch ETH price and 24h change from CoinGecko
-  const fetchEthPrice = async () => {
-    try {
-      const response = await fetch(
-        'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd&include_24hr_change=true'
-      );
-      const data = await response.json();
-      setEthPrice(data.ethereum.usd);
-      setEthChange(data.ethereum.usd_24h_change.toFixed(2));
-    } catch (error) {
-      console.error('Error fetching ETH price:', error);
-    }
-  };
-
-  // Fetch balances and calculate values
-  const fetchBalances = async () => {
-    try {
-      const provider = await getProvider();
-      if (!provider || !address) return;
-
-      // Fetch ETH balance
-      const ethBalanceWei = await provider.getBalance(address);
-      const formattedEthBalance = ethers.utils.formatEther(ethBalanceWei);
-      setEthBalance(formattedEthBalance);
-
-      // Calculate ETH value
-      const ethValueUSD = parseFloat(formattedEthBalance) * ethPrice;
-      setEthValue(ethValueUSD.toFixed(2));
-
-      // Fetch USDC balance
-      const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, provider);
-      const usdcBalanceWei = await usdcContract.balanceOf(address);
-      const usdcDecimals = await usdcContract.decimals();
-      const formattedUsdcBalance = ethers.utils.formatUnits(usdcBalanceWei, usdcDecimals);
-      setUsdcBalance(formattedUsdcBalance);
-
-      // USDC value is 1:1 with USD
-      const usdcValueUSD = parseFloat(formattedUsdcBalance);
-      setUsdcValue(usdcValueUSD.toFixed(2));
-
-      // Calculate total balance
-      const total = ethValueUSD + usdcValueUSD;
-      setTotalBalance(total.toFixed(2));
-
-    } catch (error) {
-      console.error('Error fetching balances:', error);
-    }
-  };
-
-  // Update balances and prices
-  useEffect(() => {
-    if (isConnected) {
-      fetchEthPrice();
-      fetchBalances();
-
-      // Refresh every 30 seconds
-      const interval = setInterval(() => {
-        fetchEthPrice();
-        fetchBalances();
-      }, 30000);
-
-      return () => clearInterval(interval);
-    }
-  }, [isConnected, address]);
-
-  // Handle refresh
-  const onRefresh = React.useCallback(async () => {
-    setRefreshing(true);
-    await Promise.all([fetchEthPrice(), fetchBalances()]);
-    setRefreshing(false);
-  }, []);
-
-  // Real-time token data
-  const tokenData = [
-    {
-      id: "1",
-      symbol: "ETH",
-      name: "Ethereum",
-      balance: formatBalance(ethBalance),
-      value: formatUSD(ethValue),
-      change: ethChange,
-      isPositive: parseFloat(ethChange) >= 0,
-      logo: require("../../assets/images/ethereum.png"),
-      gradientColors: ["#627EEA", "#3C5BE0"] as [string, string],
-    },
-    {
-      id: "2",
-      symbol: "USDC",
-      name: "USD Coin",
-      balance: formatBalance(usdcBalance),
-      value: formatUSD(usdcValue),
-      change: "0.00", // USDC is pegged to USD
-      isPositive: true,
-      logo: require("../../assets/images/usdc.png"),
-      gradientColors: ["#2775CA", "#2775CA"] as [string, string],
-    },
-  ];
-
   // Handle wallet connection
   const handleConnectWallet = async () => {
     try {
@@ -244,6 +113,25 @@ export default function HomeScreen() {
       Alert.alert("Connection Error", "Failed to connect wallet");
     }
   };
+
+  // Real-time token data
+  const tokenData = balances.map((token, index) => ({
+    id: String(index + 1),
+    symbol: token.symbol,
+    name: token.name,
+    balance: token.balance,
+    value: token.symbol === 'ETH' 
+      ? (parseFloat(token.balance) * (token.price || 0)).toFixed(2)
+      : token.balance,
+    change: token.priceChange24h || '0.00',
+    isPositive: parseFloat(token.priceChange24h || '0.00') >= 0,
+    logo: token.symbol === 'ETH' 
+      ? require("../../assets/images/ethereum.png")
+      : require("../../assets/images/usdc.png"),
+    gradientColors: token.symbol === 'ETH' 
+      ? ["#627EEA", "#3C5BE0"] as [string, string]
+      : ["#2775CA", "#2775CA"] as [string, string],
+  }));
 
   return (
     <SafeAreaView
@@ -260,8 +148,8 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
+            refreshing={isLoading}
+            onRefresh={refreshBalances}
             tintColor={Colors[activeTheme].primary}
           />
         }
@@ -331,9 +219,10 @@ export default function HomeScreen() {
                   <Text style={styles.balanceLabelLight}>Total Balance</Text>
                   <View style={styles.balanceRow}>
                     <Text style={styles.balanceAmountLight}>
-                      ${isConnected
+                      $
+                      {isConnected
                         ? isBalanceVisible
-                          ? formatUSD(totalBalance)
+                          ? totalBalanceUSD
                           : "••••••"
                         : "---"}
                     </Text>
@@ -355,10 +244,10 @@ export default function HomeScreen() {
                 {isConnected ? (
                   <TouchableOpacity
                     style={styles.refreshButton}
-                    onPress={onRefresh}
-                    disabled={refreshing}
+                    onPress={refreshBalances}
+                    disabled={isLoading}
                   >
-                    {refreshing ? (
+                    {isLoading ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
                       <Ionicons
@@ -427,7 +316,7 @@ export default function HomeScreen() {
                       {isConnected ? "Connected" : "Disconnected"}
                     </Text>
                   </View>
-                  
+
                   {/* Wallet Action Buttons */}
                   <View style={styles.walletActionButtonsContainer}>
                     <TouchableOpacity
@@ -435,19 +324,28 @@ export default function HomeScreen() {
                       onPress={() => router.push("/deposit")}
                     >
                       <View style={styles.walletActionButtonIcon}>
-                        <MaterialCommunityIcons name="arrow-down" size={20} color="#fff" />
+                        <MaterialCommunityIcons
+                          name="arrow-down"
+                          size={20}
+                          color="#fff"
+                        />
                       </View>
-                      <Text style={styles.walletActionButtonText}>
-                        Deposit
-                      </Text>
+                      <Text style={styles.walletActionButtonText}>Deposit</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={[styles.walletActionButton, styles.createPoolButton]}
+                      style={[
+                        styles.walletActionButton,
+                        styles.createPoolButton,
+                      ]}
                       onPress={() => router.push("/savings/create")}
                     >
                       <View style={styles.walletActionButtonIcon}>
-                        <MaterialCommunityIcons name="piggy-bank" size={24} color="#fff" />
+                        <MaterialCommunityIcons
+                          name="piggy-bank"
+                          size={24}
+                          color="#fff"
+                        />
                       </View>
                       <Text style={styles.walletActionButtonText}>
                         Create Pool
@@ -459,7 +357,11 @@ export default function HomeScreen() {
                       onPress={() => router.push("/withdraw")}
                     >
                       <View style={styles.walletActionButtonIcon}>
-                        <MaterialCommunityIcons name="arrow-up" size={20} color="#fff" />
+                        <MaterialCommunityIcons
+                          name="arrow-up"
+                          size={20}
+                          color="#fff"
+                        />
                       </View>
                       <Text style={styles.walletActionButtonText}>
                         Withdraw
@@ -651,43 +553,12 @@ export default function HomeScreen() {
                         >
                           {activity.amount}
                         </Text>
-                        <View
-                          style={[
-                            styles.activityTypeTag,
-                            {
-                              backgroundColor:
-                                activity.type === "receive"
-                                  ? "rgba(76, 217, 100, 0.15)"
-                                  : activity.type === "send"
-                                  ? "rgba(255, 59, 48, 0.15)"
-                                  : "rgba(90, 200, 250, 0.15)",
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.activityTypeText,
-                              {
-                                color:
-                                  activity.type === "receive"
-                                    ? Colors[activeTheme].success
-                                    : activity.type === "send"
-                                    ? Colors[activeTheme].error
-                                    : Colors[activeTheme].primary,
-                              },
-                            ]}
-                          >
-                            {activity.type.charAt(0).toUpperCase() +
-                              activity.type.slice(1)}
-                          </Text>
-                        </View>
                       </View>
                     </TouchableOpacity>
                   </Animated.View>
                 );
               };
 
-              // Return the animated card component with a key
               return <AnimatedCard key={activity.id} />;
             })}
           </View>
@@ -927,16 +798,16 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.8)",
   },
   walletActionButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: "rgba(255, 255, 255, 0.2)",
   },
   walletActionButton: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingHorizontal: 16,
   },
   walletActionButtonIcon: {
