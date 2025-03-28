@@ -30,56 +30,18 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../navigation/types";
 import { useRouter } from "expo-router";
+import { ethers } from "ethers";
+
+// USDC contract ABI (minimal for balanceOf)
+const USDC_ABI = [
+  'function balanceOf(address owner) view returns (uint256)',
+  'function decimals() view returns (uint8)',
+];
+
+// Base Sepolia USDC address
+const USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 
 const { width } = Dimensions.get("window");
-
-// Mock token data
-const tokenData = [
-  {
-    id: "1",
-    symbol: "ETH",
-    name: "Ethereum",
-    balance: "0.42",
-    value: "1,285.60",
-    change: "2.4",
-    isPositive: true,
-    logo: require("../../assets/images/ethereum.png"),
-    gradientColors: ["#627EEA", "#3C5BE0"] as [string, string],
-  },
-  {
-    id: "2",
-    symbol: "USDC",
-    name: "USD Coin",
-    balance: "325.75",
-    value: "325.75",
-    change: "0.01",
-    isPositive: true,
-    logo: require("../../assets/images/usdc.png"),
-    gradientColors: ["#2775CA", "#2775CA"] as [string, string],
-  },
-  {
-    id: "3",
-    symbol: "USDT",
-    name: "Tether",
-    balance: "150.00",
-    value: "150.00",
-    change: "0.00",
-    isPositive: true,
-    logo: require("../../assets/images/usdt.png"),
-    gradientColors: ["#26A17B", "#1A9270"] as [string, string],
-  },
-  {
-    id: "4",
-    symbol: "MATIC",
-    name: "Polygon",
-    balance: "45.32",
-    value: "38.52",
-    change: "1.2",
-    isPositive: false,
-    logo: require("../../assets/images/matic.png"),
-    gradientColors: ["#8247E5", "#6F3CD0"] as [string, string],
-  },
-];
 
 // Mock transaction data
 const recentActivity = [
@@ -116,12 +78,21 @@ export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const router = useRouter();
   const { activeTheme, toggleTheme } = useTheme();
-  const { address, balance, isConnected, connectWallet } = useWallet();
+  const { address, balance, isConnected, connectWallet, getProvider } = useWallet();
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [userName, setUserName] = useState("Jonathan");
   const [isDarkMode, setIsDarkMode] = useState(activeTheme === "dark");
   const [refreshing, setRefreshing] = useState(false);
-  const [totalBalance, setTotalBalance] = useState("1,800.87");
+  const [totalBalance, setTotalBalance] = useState("0.00");
+
+  // Token states
+  const [ethBalance, setEthBalance] = useState('0');
+  const [usdcBalance, setUsdcBalance] = useState('0');
+  const [ethPrice, setEthPrice] = useState(0);
+  const [ethValue, setEthValue] = useState('0.00');
+  const [usdcValue, setUsdcValue] = useState('0.00');
+  const [ethChange, setEthChange] = useState('0.00');
+  const [usdcChange, setUsdcChange] = useState('0.00');
 
   // Format the address for display
   const formatAddress = (address: string | null) => {
@@ -131,10 +102,22 @@ export default function HomeScreen() {
     )}`;
   };
 
-  // Format the balance for display
+  // Format the balance for display with proper decimal places
   const formatBalance = (balance: string) => {
     const balanceNum = parseFloat(balance);
-    return balanceNum.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return balanceNum.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 6
+    });
+  };
+
+  // Format USD value for display
+  const formatUSD = (value: string) => {
+    const valueNum = parseFloat(value);
+    return valueNum.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
   };
 
   // Get greeting based on time of day
@@ -155,14 +138,103 @@ export default function HomeScreen() {
     toggleTheme();
   };
 
+  // Fetch ETH price and 24h change from CoinGecko
+  const fetchEthPrice = async () => {
+    try {
+      const response = await fetch(
+        'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd&include_24hr_change=true'
+      );
+      const data = await response.json();
+      setEthPrice(data.ethereum.usd);
+      setEthChange(data.ethereum.usd_24h_change.toFixed(2));
+    } catch (error) {
+      console.error('Error fetching ETH price:', error);
+    }
+  };
+
+  // Fetch balances and calculate values
+  const fetchBalances = async () => {
+    try {
+      const provider = await getProvider();
+      if (!provider || !address) return;
+
+      // Fetch ETH balance
+      const ethBalanceWei = await provider.getBalance(address);
+      const formattedEthBalance = ethers.utils.formatEther(ethBalanceWei);
+      setEthBalance(formattedEthBalance);
+
+      // Calculate ETH value
+      const ethValueUSD = parseFloat(formattedEthBalance) * ethPrice;
+      setEthValue(ethValueUSD.toFixed(2));
+
+      // Fetch USDC balance
+      const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, provider);
+      const usdcBalanceWei = await usdcContract.balanceOf(address);
+      const usdcDecimals = await usdcContract.decimals();
+      const formattedUsdcBalance = ethers.utils.formatUnits(usdcBalanceWei, usdcDecimals);
+      setUsdcBalance(formattedUsdcBalance);
+
+      // USDC value is 1:1 with USD
+      const usdcValueUSD = parseFloat(formattedUsdcBalance);
+      setUsdcValue(usdcValueUSD.toFixed(2));
+
+      // Calculate total balance
+      const total = ethValueUSD + usdcValueUSD;
+      setTotalBalance(total.toFixed(2));
+
+    } catch (error) {
+      console.error('Error fetching balances:', error);
+    }
+  };
+
+  // Update balances and prices
+  useEffect(() => {
+    if (isConnected) {
+      fetchEthPrice();
+      fetchBalances();
+
+      // Refresh every 30 seconds
+      const interval = setInterval(() => {
+        fetchEthPrice();
+        fetchBalances();
+      }, 30000);
+
+      return () => clearInterval(interval);
+    }
+  }, [isConnected, address]);
+
   // Handle refresh
-  const onRefresh = React.useCallback(() => {
+  const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    // Simulate fetching updated balances
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1500);
+    await Promise.all([fetchEthPrice(), fetchBalances()]);
+    setRefreshing(false);
   }, []);
+
+  // Real-time token data
+  const tokenData = [
+    {
+      id: "1",
+      symbol: "ETH",
+      name: "Ethereum",
+      balance: formatBalance(ethBalance),
+      value: formatUSD(ethValue),
+      change: ethChange,
+      isPositive: parseFloat(ethChange) >= 0,
+      logo: require("../../assets/images/ethereum.png"),
+      gradientColors: ["#627EEA", "#3C5BE0"] as [string, string],
+    },
+    {
+      id: "2",
+      symbol: "USDC",
+      name: "USD Coin",
+      balance: formatBalance(usdcBalance),
+      value: formatUSD(usdcValue),
+      change: "0.00", // USDC is pegged to USD
+      isPositive: true,
+      logo: require("../../assets/images/usdc.png"),
+      gradientColors: ["#2775CA", "#2775CA"] as [string, string],
+    },
+  ];
 
   // Handle wallet connection
   const handleConnectWallet = async () => {
@@ -259,10 +331,9 @@ export default function HomeScreen() {
                   <Text style={styles.balanceLabelLight}>Total Balance</Text>
                   <View style={styles.balanceRow}>
                     <Text style={styles.balanceAmountLight}>
-                      $
-                      {isConnected
+                      ${isConnected
                         ? isBalanceVisible
-                          ? formatBalance(totalBalance)
+                          ? formatUSD(totalBalance)
                           : "••••••"
                         : "---"}
                     </Text>

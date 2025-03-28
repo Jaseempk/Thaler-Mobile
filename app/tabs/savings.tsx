@@ -144,13 +144,13 @@ export default function SavingsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: Colors[activeTheme].secondary }]}>
       <ThemedStatusBar />
 
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: Colors[activeTheme].primary }]}>
         <Text style={styles.headerTitle}>Savings Pools</Text>
         <TouchableOpacity
-          style={styles.createButton}
+          style={[styles.createButton, { backgroundColor: Colors[activeTheme].primaryLight }]}
           onPress={handleCreateSavingsPool}
         >
           <Ionicons name="add" size={24} color="#FFFFFF" />
@@ -159,8 +159,10 @@ export default function SavingsScreen() {
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.light.primary} />
-          <Text style={styles.loadingText}>Loading your savings pools...</Text>
+          <ActivityIndicator size="large" color={Colors[activeTheme].primary} />
+          <Text style={[styles.loadingText, { color: Colors[activeTheme].text }]}>
+            Loading your savings pools...
+          </Text>
         </View>
       ) : (
         <ScrollView
@@ -172,14 +174,16 @@ export default function SavingsScreen() {
               <Ionicons
                 name="wallet-outline"
                 size={64}
-                color={Colors.light.textSecondary}
+                color={Colors[activeTheme].textSecondary}
               />
-              <Text style={styles.emptyTitle}>No Savings Pools Yet</Text>
-              <Text style={styles.emptySubtitle}>
+              <Text style={[styles.emptyTitle, { color: Colors[activeTheme].text }]}>
+                No Savings Pools Yet
+              </Text>
+              <Text style={[styles.emptySubtitle, { color: Colors[activeTheme].textSecondary }]}>
                 Start saving by creating your first savings pool
               </Text>
               <TouchableOpacity
-                style={styles.emptyButton}
+                style={[styles.emptyButton, { backgroundColor: Colors[activeTheme].primary }]}
                 onPress={handleCreateSavingsPool}
               >
                 <Text style={styles.emptyButtonText}>Create Savings Pool</Text>
@@ -187,7 +191,9 @@ export default function SavingsScreen() {
             </View>
           ) : (
             <>
-              <Text style={styles.sectionTitle}>Your Savings Pools</Text>
+              <Text style={[styles.sectionTitle, { color: Colors[activeTheme].text }]}>
+                Your Savings Pools
+              </Text>
               {pools.map((pool) => (
                 <SavingsPoolCard
                   key={pool.id}
@@ -208,14 +214,12 @@ export default function SavingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.secondary,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 16,
-    backgroundColor: Colors.light.primary,
   },
   headerTitle: {
     fontSize: 20,
@@ -226,7 +230,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.light.primaryLight,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -240,7 +243,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: Colors.light.text,
     marginBottom: 16,
   },
   loadingContainer: {
@@ -251,7 +253,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: Colors.light.text,
   },
   emptyContainer: {
     flex: 1,
@@ -262,19 +263,16 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: Colors.light.text,
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 16,
-    color: Colors.light.textSecondary,
     textAlign: "center",
     marginBottom: 24,
     paddingHorizontal: 32,
   },
   emptyButton: {
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
@@ -293,17 +291,14 @@ const styles = StyleSheet.create({
   authTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: Colors.light.text,
     marginBottom: 8,
   },
   authSubtitle: {
     fontSize: 16,
-    color: Colors.light.textSecondary,
     textAlign: "center",
     marginBottom: 32,
   },
   authButton: {
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,

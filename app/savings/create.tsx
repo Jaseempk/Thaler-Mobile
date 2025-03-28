@@ -16,6 +16,7 @@ import {
   Dimensions,
   LayoutAnimation,
   UIManager,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -50,6 +51,20 @@ const ANIMATION_CONFIG = {
     useNativeDriver: true,
     easing: Easing.bezier(0.4, 0.0, 0.2, 1),
   },
+};
+
+// Add token interface
+interface Token {
+  address: string;
+  symbol: string;
+  name: string;
+}
+
+// Add USDC token constant
+const USDC_TOKEN: Token = {
+  address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+  symbol: 'USDC',
+  name: 'USD Coin'
 };
 
 export default function CreateSavingsScreen() {
@@ -143,7 +158,7 @@ export default function CreateSavingsScreen() {
       position: 'absolute',
       width: TOKEN_BUTTON_WIDTH,
       height: '100%',
-      backgroundColor: '#82CD47',
+      backgroundColor: Colors[activeTheme].primaryLight,
       borderRadius: TOGGLE_BORDER_RADIUS,
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 2 },
@@ -241,7 +256,7 @@ export default function CreateSavingsScreen() {
       position: 'absolute',
       width: (containerWidth - (TOGGLE_PADDING * 2)) / 3,
       height: 40,
-      backgroundColor: '#82CD47',
+      backgroundColor: Colors[activeTheme].primaryLight,
       borderRadius: 10,
       top: TOGGLE_PADDING,
       left: TOGGLE_PADDING,
@@ -336,6 +351,90 @@ export default function CreateSavingsScreen() {
       fontSize: 16,
       fontWeight: 'bold',
     },
+    tokenDropdown: {
+      backgroundColor: Colors[activeTheme].secondaryLight,
+      borderRadius: 12,
+      padding: 16,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: Colors[activeTheme].border,
+    },
+    tokenDropdownText: {
+      fontSize: 16,
+      color: Colors[activeTheme].text,
+      fontWeight: '600',
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      backgroundColor: Colors[activeTheme].card,
+      borderRadius: 16,
+      padding: 20,
+      width: '90%',
+      maxHeight: '80%',
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: Colors[activeTheme].text,
+      marginBottom: 20,
+    },
+    tokenOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: Colors[activeTheme].border,
+    },
+    tokenOptionText: {
+      fontSize: 16,
+      color: Colors[activeTheme].text,
+      marginLeft: 12,
+    },
+    addTokenButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      backgroundColor: Colors[activeTheme].secondaryLight,
+      borderRadius: 12,
+      marginTop: 12,
+    },
+    addTokenButtonText: {
+      fontSize: 16,
+      color: Colors[activeTheme].primary,
+      marginLeft: 8,
+    },
+    modalInput: {
+      backgroundColor: Colors[activeTheme].secondaryLight,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      fontSize: 16,
+      color: Colors[activeTheme].text,
+      borderWidth: 1,
+      borderColor: Colors[activeTheme].border,
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      marginTop: 20,
+    },
+    modalButton: {
+      padding: 12,
+      borderRadius: 8,
+      marginLeft: 12,
+    },
+    modalButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+    },
   });
 
   // State management
@@ -346,6 +445,13 @@ export default function CreateSavingsScreen() {
   const [initialDeposit, setInitialDeposit] = useState('');
   const [duration, setDuration] = useState<number>(90); // 3 months in days
   const [intervals, setIntervals] = useState<number>(3); // 3 deposits
+  const [showTokenModal, setShowTokenModal] = useState(false);
+  const [showAddTokenModal, setShowAddTokenModal] = useState(false);
+  const [availableTokens, setAvailableTokens] = useState<Token[]>([USDC_TOKEN]);
+  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
+  const [newTokenAddress, setNewTokenAddress] = useState('');
+  const [newTokenSymbol, setNewTokenSymbol] = useState('');
+  const [newTokenName, setNewTokenName] = useState('');
 
   // Animation values
   const tokenTypeAnimation = useRef(new Animated.Value(0)).current;
@@ -397,6 +503,159 @@ export default function CreateSavingsScreen() {
     if (months === 3) setIntervals(3);
     else if (months === 6) setIntervals(6);
     else setIntervals(12);
+  };
+
+  // Handle token selection
+  const handleTokenSelect = (token: Token) => {
+    setSelectedToken(token);
+    setTokenType('ERC20');
+    setTokenAddress(token.address);
+    setTokenSymbol(token.symbol);
+    setShowTokenModal(false);
+  };
+
+  // Handle adding new token
+  const handleAddToken = () => {
+    if (!newTokenAddress || !newTokenSymbol || !newTokenName) {
+      Alert.alert('Error', 'Please fill in all token details');
+      return;
+    }
+
+    const newToken: Token = {
+      address: newTokenAddress,
+      symbol: newTokenSymbol,
+      name: newTokenName
+    };
+
+    setAvailableTokens([...availableTokens, newToken]);
+    setNewTokenAddress('');
+    setNewTokenSymbol('');
+    setNewTokenName('');
+    setShowAddTokenModal(false);
+    handleTokenSelect(newToken);
+  };
+
+  // Replace the existing ERC20 input fields with this new UI
+  const renderTokenSelection = () => {
+    if (tokenType !== 'ERC20') return null;
+
+    return (
+      <View style={styles.inputContainer}>
+        <Text style={styles.inputLabel}>Select Token</Text>
+        <TouchableOpacity
+          style={styles.tokenDropdown}
+          onPress={() => setShowTokenModal(true)}
+        >
+          <Text style={styles.tokenDropdownText}>
+            {selectedToken ? selectedToken.symbol : 'Select a token'}
+          </Text>
+          <Ionicons
+            name="chevron-down"
+            size={24}
+            color={Colors[activeTheme].text}
+          />
+        </TouchableOpacity>
+
+        <Modal
+          visible={showTokenModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowTokenModal(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select Token</Text>
+              
+              {availableTokens.map((token, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.tokenOption}
+                  onPress={() => handleTokenSelect(token)}
+                >
+                  <Text style={styles.tokenOptionText}>
+                    {token.symbol} - {token.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+
+              <TouchableOpacity
+                style={styles.addTokenButton}
+                onPress={() => {
+                  setShowTokenModal(false);
+                  setShowAddTokenModal(true);
+                }}
+              >
+                <Ionicons
+                  name="add-circle-outline"
+                  size={24}
+                  color={Colors[activeTheme].primary}
+                />
+                <Text style={styles.addTokenButtonText}>Add Custom Token</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
+          visible={showAddTokenModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowAddTokenModal(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add Custom Token</Text>
+              
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Token Address (0x...)"
+                placeholderTextColor={Colors[activeTheme].textSecondary}
+                value={newTokenAddress}
+                onChangeText={setNewTokenAddress}
+                autoCapitalize="none"
+              />
+              
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Token Symbol (e.g. USDC)"
+                placeholderTextColor={Colors[activeTheme].textSecondary}
+                value={newTokenSymbol}
+                onChangeText={setNewTokenSymbol}
+                autoCapitalize="characters"
+              />
+
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Token Name"
+                placeholderTextColor={Colors[activeTheme].textSecondary}
+                value={newTokenName}
+                onChangeText={setNewTokenName}
+              />
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, { backgroundColor: Colors[activeTheme].secondaryLight }]}
+                  onPress={() => setShowAddTokenModal(false)}
+                >
+                  <Text style={[styles.modalButtonText, { color: Colors[activeTheme].text }]}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.modalButton, { backgroundColor: Colors[activeTheme].primary }]}
+                  onPress={handleAddToken}
+                >
+                  <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>
+                    Add Token
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    );
   };
 
   // Validate form
@@ -548,31 +807,7 @@ export default function CreateSavingsScreen() {
               </TouchableOpacity>
             </View>
             
-            {tokenType === 'ERC20' && (
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Token Address</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="0x..."
-                  placeholderTextColor={Colors.light.textSecondary}
-                  value={tokenAddress}
-                  onChangeText={setTokenAddress}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                
-                <Text style={styles.inputLabel}>Token Symbol</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. USDC"
-                  placeholderTextColor={Colors.light.textSecondary}
-                  value={tokenSymbol}
-                  onChangeText={setTokenSymbol}
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                />
-              </View>
-            )}
+            {renderTokenSelection()}
           </View>
           
           <View style={styles.formSection}>
