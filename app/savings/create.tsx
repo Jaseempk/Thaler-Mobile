@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -10,7 +10,12 @@ import {
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Animated,
+  Easing,
+  Dimensions,
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -22,14 +27,318 @@ import { useWallet } from '../../context/WalletContext';
 import { useSavingsPool } from '../../context/SavingsPoolContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+// Constants for measurements and animations
+const TOGGLE_PADDING = 4;
+const TOGGLE_HEIGHT = 48;
+const TOGGLE_BORDER_RADIUS = 12;
+const TOGGLE_TEXT_SIZE = 16;
+const SLIDER_HEIGHT = 40;
+const ANIMATION_CONFIG = {
+  SPRING: {
+    stiffness: 180,
+    damping: 20,
+    mass: 1,
+    useNativeDriver: true,
+  },
+  TIMING: {
+    duration: 150,
+    useNativeDriver: true,
+    easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+  },
+};
+
 export default function CreateSavingsScreen() {
   const router = useRouter();
+  const { width } = Dimensions.get('window');
   const privyState = usePrivy() as unknown as UsePrivy;
   const { user } = privyState;
   const { address: walletAddress, isConnected } = useWallet();
   const { createEthSavingsPool, createERC20SavingsPool, isLoading } = useSavingsPool();
   const { activeTheme } = useTheme();
   
+  // Calculate precise measurements
+  const containerPadding = 20; // Form section padding
+  const containerWidth = width - (containerPadding * 2); // Available width minus padding
+  const TOKEN_BUTTON_WIDTH = (containerWidth) / 2;
+  const DURATION_BUTTON_WIDTH = containerWidth / 3;
+  
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: Colors[activeTheme].secondary,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      backgroundColor: Colors[activeTheme].primary,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#FFFFFF',
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    placeholder: {
+      width: 40,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 32,
+    },
+    formSection: {
+      backgroundColor: Colors[activeTheme].card,
+      borderRadius: 16,
+      padding: 20,
+      marginBottom: 20,
+      shadowColor: Colors[activeTheme].shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 5,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: Colors[activeTheme].text,
+      marginBottom: 20,
+      letterSpacing: 0.5,
+    },
+    tokenTypeContainer: {
+      flexDirection: 'row',
+      marginBottom: 20,
+      backgroundColor: Colors[activeTheme].secondaryLight,
+      borderRadius: TOGGLE_BORDER_RADIUS,
+      position: 'relative',
+      height: TOGGLE_HEIGHT,
+      padding: 0,
+      overflow: 'hidden',
+    },
+    tokenTypeButton: {
+      width: TOKEN_BUTTON_WIDTH,
+      height: TOGGLE_HEIGHT,
+      justifyContent: 'center',
+      alignItems: 'center',
+      position: 'relative',
+      zIndex: 1,
+      padding: 0,
+      margin: 0,
+    },
+    tokenTypeSlider: {
+      position: 'absolute',
+      width: TOKEN_BUTTON_WIDTH,
+      height: '100%',
+      backgroundColor: '#82CD47',
+      borderRadius: TOGGLE_BORDER_RADIUS,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    tokenTypeText: {
+      fontSize: TOGGLE_TEXT_SIZE,
+      fontWeight: '600',
+      color: Colors[activeTheme].textSecondary,
+      textAlign: 'center',
+      textAlignVertical: 'center',
+      includeFontPadding: false,
+      padding: 0,
+      margin: 0,
+    },
+    tokenTypeTextActive: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+    },
+    tokenTypeTextContainer: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 0,
+      margin: 0,
+    },
+    inputContainer: {
+      marginBottom: 16,
+    },
+    inputLabel: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: Colors[activeTheme].text,
+      marginBottom: 10,
+      letterSpacing: 0.3,
+    },
+    input: {
+      backgroundColor: Colors[activeTheme].secondaryLight,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontSize: 16,
+      color: Colors[activeTheme].text,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: Colors[activeTheme].border,
+    },
+    amountInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: Colors[activeTheme].secondaryLight,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: Colors[activeTheme].border,
+    },
+    amountInput: {
+      flex: 1,
+      paddingVertical: 14,
+      fontSize: 18,
+      color: Colors[activeTheme].text,
+      fontWeight: '600',
+    },
+    amountSymbol: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: Colors[activeTheme].textSecondary,
+      marginLeft: 8,
+    },
+    durationContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      backgroundColor: Colors[activeTheme].secondaryLight,
+      borderRadius: 12,
+      position: 'relative',
+      height: 48,
+      padding: TOGGLE_PADDING,
+      overflow: 'hidden',
+    },
+    durationButton: {
+      width: (containerWidth - (TOGGLE_PADDING * 2)) / 3,
+      height: 40,
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1,
+    },
+    durationSlider: {
+      position: 'absolute',
+      width: (containerWidth - (TOGGLE_PADDING * 2)) / 3,
+      height: 40,
+      backgroundColor: '#82CD47',
+      borderRadius: 10,
+      top: TOGGLE_PADDING,
+      left: TOGGLE_PADDING,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    durationText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: Colors[activeTheme].textSecondary,
+      textAlign: 'center',
+      includeFontPadding: false,
+    },
+    durationTextActive: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+    },
+    summarySection: {
+      backgroundColor: Colors[activeTheme].card,
+      borderRadius: 16,
+      padding: 20,
+      marginBottom: 24,
+      shadowColor: Colors[activeTheme].shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 5,
+    },
+    summaryItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+      paddingVertical: 4,
+    },
+    summaryLabel: {
+      fontSize: 15,
+      color: Colors[activeTheme].textSecondary,
+      fontWeight: '500',
+    },
+    summaryValue: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: Colors[activeTheme].text,
+    },
+    createButton: {
+      backgroundColor: Colors[activeTheme].primary,
+      borderRadius: 14,
+      paddingVertical: 18,
+      alignItems: 'center',
+      marginBottom: 32,
+      shadowColor: Colors[activeTheme].primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 5,
+    },
+    createButtonText: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#FFFFFF',
+      letterSpacing: 0.5,
+    },
+    authContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 32,
+    },
+    authTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: Colors[activeTheme].text,
+      marginBottom: 8,
+    },
+    authSubtitle: {
+      fontSize: 16,
+      color: Colors[activeTheme].textSecondary,
+      textAlign: 'center',
+      marginBottom: 32,
+    },
+    authButton: {
+      backgroundColor: Colors[activeTheme].primary,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 12,
+    },
+    authButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+  });
+
+  // State management
   const [tokenType, setTokenType] = useState<'ETH' | 'ERC20'>('ETH');
   const [tokenAddress, setTokenAddress] = useState('');
   const [tokenSymbol, setTokenSymbol] = useState('ETH');
@@ -38,8 +347,31 @@ export default function CreateSavingsScreen() {
   const [duration, setDuration] = useState<number>(90); // 3 months in days
   const [intervals, setIntervals] = useState<number>(3); // 3 deposits
 
-  // Handle token type selection
+  // Animation values
+  const tokenTypeAnimation = useRef(new Animated.Value(0)).current;
+  const durationAnimation = useRef(new Animated.Value(0)).current;
+
+  // Calculate animated positions with precise measurements
+  const tokenTypeTranslateX = tokenTypeAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, TOKEN_BUTTON_WIDTH],
+  });
+
+  const durationTranslateX = durationAnimation.interpolate({
+    inputRange: [0, 1, 2],
+    outputRange: [0, (containerWidth - (TOGGLE_PADDING * 2)) / 3, ((containerWidth - (TOGGLE_PADDING * 2)) / 3) * 2],
+  });
+
+  // Handle token type selection with improved animation
   const handleTokenTypeSelect = (type: 'ETH' | 'ERC20') => {
+    Animated.spring(tokenTypeAnimation, {
+      toValue: type === 'ETH' ? 0 : 1,
+      useNativeDriver: true,
+      stiffness: 180,
+      damping: 20,
+      mass: 1,
+    }).start();
+
     setTokenType(type);
     if (type === 'ETH') {
       setTokenSymbol('ETH');
@@ -47,6 +379,24 @@ export default function CreateSavingsScreen() {
     } else {
       setTokenSymbol('');
     }
+  };
+
+  // Handle duration selection with improved animation
+  const handleDurationSelect = (months: number) => {
+    const durationValue = months === 3 ? 0 : months === 6 ? 1 : 2;
+    
+    Animated.spring(durationAnimation, {
+      toValue: durationValue,
+      useNativeDriver: true,
+      stiffness: 180,
+      damping: 20,
+      mass: 1,
+    }).start();
+
+    setDuration(months * 30);
+    if (months === 3) setIntervals(3);
+    else if (months === 6) setIntervals(6);
+    else setIntervals(12);
   };
 
   // Validate form
@@ -73,7 +423,7 @@ export default function CreateSavingsScreen() {
     
     return true;
   };
-
+  
   // Create savings pool
   const handleCreateSavingsPool = async () => {
     if (!validateForm()) return;
@@ -97,9 +447,9 @@ export default function CreateSavingsScreen() {
       } else {
         await createERC20SavingsPool(
           tokenAddress,
-          amountToSave,
+        amountToSave,
           durationInSeconds,
-          initialDeposit,
+        initialDeposit,
           intervals
         );
       }
@@ -114,17 +464,7 @@ export default function CreateSavingsScreen() {
       Alert.alert('Error', 'Failed to create savings pool. Please try again later.');
     }
   };
-
-  // Handle duration selection
-  const handleDurationSelect = (months: number) => {
-    setDuration(months * 30); // Convert months to days
-    
-    // Update intervals based on duration
-    if (months === 3) setIntervals(3);
-    else if (months === 6) setIntervals(6);
-    else setIntervals(12);
-  };
-
+  
   if (!isConnected || !walletAddress) {
     return (
       <SafeAreaView style={styles.container}>
@@ -167,34 +507,44 @@ export default function CreateSavingsScreen() {
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Token Type</Text>
             <View style={styles.tokenTypeContainer}>
-              <TouchableOpacity 
+              <Animated.View
                 style={[
-                  styles.tokenTypeButton, 
-                  tokenType === 'ETH' && styles.tokenTypeButtonActive
+                  styles.tokenTypeSlider,
+                  {
+                    transform: [{ translateX: tokenTypeTranslateX }],
+                  },
                 ]}
+              />
+              <TouchableOpacity 
+                style={styles.tokenTypeButton}
                 onPress={() => handleTokenTypeSelect('ETH')}
               >
-                <Text style={[
-                  styles.tokenTypeText,
-                  tokenType === 'ETH' && styles.tokenTypeTextActive
-                ]}>
-                  ETH
-                </Text>
+                <View style={styles.tokenTypeTextContainer}>
+                  <Text 
+                    style={[
+                      styles.tokenTypeText,
+                      tokenType === 'ETH' && styles.tokenTypeTextActive
+                    ]}
+                  >
+                    ETH
+                  </Text>
+                </View>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[
-                  styles.tokenTypeButton, 
-                  tokenType === 'ERC20' && styles.tokenTypeButtonActive
-                ]}
+                style={styles.tokenTypeButton}
                 onPress={() => handleTokenTypeSelect('ERC20')}
               >
-                <Text style={[
-                  styles.tokenTypeText,
-                  tokenType === 'ERC20' && styles.tokenTypeTextActive
-                ]}>
-                  ERC20 Token
-                </Text>
+                <View style={styles.tokenTypeTextContainer}>
+                  <Text 
+                    style={[
+                      styles.tokenTypeText,
+                      tokenType === 'ERC20' && styles.tokenTypeTextActive
+                    ]}
+                  >
+                    ERC20
+                  </Text>
+                </View>
               </TouchableOpacity>
             </View>
             
@@ -256,11 +606,16 @@ export default function CreateSavingsScreen() {
             
             <Text style={styles.inputLabel}>Duration</Text>
             <View style={styles.durationContainer}>
-              <TouchableOpacity 
+              <Animated.View
                 style={[
-                  styles.durationButton, 
-                  duration === 90 && styles.durationButtonActive
+                  styles.durationSlider,
+                  {
+                    transform: [{ translateX: durationTranslateX }],
+                  },
                 ]}
+              />
+              <TouchableOpacity 
+                style={styles.durationButton}
                 onPress={() => handleDurationSelect(3)}
               >
                 <Text style={[
@@ -272,10 +627,7 @@ export default function CreateSavingsScreen() {
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[
-                  styles.durationButton, 
-                  duration === 180 && styles.durationButtonActive
-                ]}
+                style={styles.durationButton}
                 onPress={() => handleDurationSelect(6)}
               >
                 <Text style={[
@@ -287,10 +639,7 @@ export default function CreateSavingsScreen() {
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[
-                  styles.durationButton, 
-                  duration === 360 && styles.durationButtonActive
-                ]}
+                style={styles.durationButton}
                 onPress={() => handleDurationSelect(12)}
               >
                 <Text style={[
@@ -370,197 +719,3 @@ export default function CreateSavingsScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.light.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: Colors.light.primary,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholder: {
-    width: 40,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  formSection: {
-    backgroundColor: Colors.light.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.light.text,
-    marginBottom: 16,
-  },
-  tokenTypeContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  tokenTypeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.light.secondaryLight,
-    marginRight: 8,
-    alignItems: 'center',
-  },
-  tokenTypeButtonActive: {
-    backgroundColor: Colors.light.primary,
-  },
-  tokenTypeText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.light.text,
-  },
-  tokenTypeTextActive: {
-    color: '#FFFFFF',
-  },
-  inputContainer: {
-    marginBottom: 8,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.light.text,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: Colors.light.secondaryLight,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: Colors.light.text,
-    marginBottom: 16,
-  },
-  amountInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.light.secondaryLight,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  amountInput: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: Colors.light.text,
-  },
-  amountSymbol: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.light.text,
-  },
-  durationContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  durationButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    backgroundColor: Colors.light.secondaryLight,
-    marginRight: 8,
-    alignItems: 'center',
-  },
-  durationButtonActive: {
-    backgroundColor: Colors.light.primary,
-  },
-  durationText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.light.text,
-  },
-  durationTextActive: {
-    color: '#FFFFFF',
-  },
-  summarySection: {
-    backgroundColor: Colors.light.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-  },
-  summaryItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: Colors.light.textSecondary,
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.light.text,
-  },
-  createButton: {
-    backgroundColor: Colors.light.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  createButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  authContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  authTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.light.text,
-    marginBottom: 8,
-  },
-  authSubtitle: {
-    fontSize: 16,
-    color: Colors.light.textSecondary,
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  authButton: {
-    backgroundColor: Colors.light.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  authButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
