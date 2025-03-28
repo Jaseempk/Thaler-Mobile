@@ -29,6 +29,7 @@ import TokenBalanceCard from "../../components/wallet/TokenBalanceCard";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../navigation/types";
+import { useRouter } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
@@ -113,6 +114,7 @@ const recentActivity = [
 
 export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const router = useRouter();
   const { activeTheme, toggleTheme } = useTheme();
   const { address, balance, isConnected, connectWallet } = useWallet();
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
@@ -359,22 +361,10 @@ export default function HomeScreen() {
                   <View style={styles.walletActionButtonsContainer}>
                     <TouchableOpacity
                       style={styles.walletActionButton}
-                      onPress={() => alert("Send tokens")}
+                      onPress={() => alert("Deposit tokens")}
                     >
                       <View style={styles.walletActionButtonIcon}>
-                        <FontAwesome5 name="paper-plane" size={16} color="#fff" />
-                      </View>
-                      <Text style={styles.walletActionButtonText}>
-                        Send
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.walletActionButton}
-                      onPress={() => alert("Receive tokens")}
-                    >
-                      <View style={styles.walletActionButtonIcon}>
-                        <FontAwesome5 name="qrcode" size={16} color="#fff" />
+                        <MaterialCommunityIcons name="arrow-down" size={20} color="#fff" />
                       </View>
                       <Text style={styles.walletActionButtonText}>
                         Deposit
@@ -382,14 +372,26 @@ export default function HomeScreen() {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={styles.walletActionButton}
-                      onPress={() => navigation.navigate('Savings')}
+                      style={[styles.walletActionButton, styles.createPoolButton]}
+                      onPress={() => router.push("/savings/create")}
                     >
                       <View style={styles.walletActionButtonIcon}>
-                        <MaterialCommunityIcons name="piggy-bank" size={18} color="#fff" />
+                        <MaterialCommunityIcons name="piggy-bank" size={24} color="#fff" />
                       </View>
                       <Text style={styles.walletActionButtonText}>
-                        Savings
+                        Create Pool
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.walletActionButton}
+                      onPress={() => alert("Withdraw tokens")}
+                    >
+                      <View style={styles.walletActionButtonIcon}>
+                        <MaterialCommunityIcons name="arrow-up" size={20} color="#fff" />
+                      </View>
+                      <Text style={styles.walletActionButtonText}>
+                        Withdraw
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -398,8 +400,6 @@ export default function HomeScreen() {
             </View>
           </LinearGradient>
         </View>
-
-        {/* Wallet address card is now integrated into the balance card above */}
 
         {/* Token Balances */}
         <View style={styles.tokensSection}>
@@ -856,30 +856,35 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.8)",
   },
   walletActionButtonsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: "rgba(255, 255, 255, 0.2)",
   },
   walletActionButton: {
-    alignItems: "center",
-    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 16,
   },
   walletActionButtonIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 8,
   },
   walletActionButtonText: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#FFFFFF",
-    fontWeight: "500",
+    fontWeight: "600",
+  },
+  createPoolButton: {
+    transform: [{ scale: 1.15 }],
+    marginHorizontal: 8,
   },
   tokensSection: {
     marginBottom: 24,
@@ -1080,9 +1085,4 @@ const styles = StyleSheet.create({
   expenseAmount: {
     color: "#000",
   },
-
-  // seeAllText: {
-  //   fontSize: 14,
-  //   marginRight: 4,
-  // },
 });

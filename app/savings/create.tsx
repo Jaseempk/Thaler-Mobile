@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -16,36 +16,39 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
-import { usePrivy } from '../../context/PrivyContext';
-import { SavingsService } from '../../services/SavingsService';
-import { SavingsPoolCreationParams } from '../../models/savings';
-import { ethers } from 'ethers';
+import { PrivyProvider, PrivyElements, usePrivy } from "@privy-io/expo";
+import { UsePrivy } from "../../types/privy";
+import { useWallet } from '../../context/WalletContext';
+import { useSavingsPool } from '../../context/SavingsPoolContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function CreateSavingsScreen() {
   const router = useRouter();
-  const { isAuthenticated, walletAddress, user, createWallet } = usePrivy();
-  const [isLoading, setIsLoading] = useState(false);
-  const [tokenType, setTokenType] = useState<'eth' | 'erc20'>('eth');
+  const privyState = usePrivy() as unknown as UsePrivy;
+  const { user } = privyState;
+  const { address: walletAddress, isConnected } = useWallet();
+  const { createEthSavingsPool, createERC20SavingsPool, isLoading } = useSavingsPool();
+  const { activeTheme } = useTheme();
+  
+  const [tokenType, setTokenType] = useState<'ETH' | 'ERC20'>('ETH');
   const [tokenAddress, setTokenAddress] = useState('');
   const [tokenSymbol, setTokenSymbol] = useState('ETH');
   const [amountToSave, setAmountToSave] = useState('');
   const [initialDeposit, setInitialDeposit] = useState('');
   const [duration, setDuration] = useState<number>(90); // 3 months in days
   const [intervals, setIntervals] = useState<number>(3); // 3 deposits
-  
-  // Initialize savings service with provider
-  const provider = new ethers.providers.JsonRpcProvider(
-    'https://goerli.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161' // Goerli testnet for demo
-  );
-  const savingsService = new SavingsService(provider);
-  
-  // Set Privy wallet in savings service
-  useEffect(() => {
-    if (walletAddress) {
-      savingsService.setPrivyWallet(walletAddress);
+
+  // Handle token type selection
+  const handleTokenTypeSelect = (type: 'ETH' | 'ERC20') => {
+    setTokenType(type);
+    if (type === 'ETH') {
+      setTokenSymbol('ETH');
+      setTokenAddress('');
+    } else {
+      setTokenSymbol('');
     }
-  }, [walletAddress]);
-  
+  };
+
   // Validate form
   const validateForm = () => {
     if (!amountToSave || parseFloat(amountToSave) <= 0) {
@@ -63,55 +66,44 @@ export default function CreateSavingsScreen() {
       return false;
     }
     
-    if (tokenType === 'erc20' && !ethers.utils.isAddress(tokenAddress)) {
+    if (tokenType === 'ERC20' && !tokenAddress) {
       Alert.alert('Error', 'Please enter a valid token address');
       return false;
     }
     
     return true;
   };
-  
+
   // Create savings pool
   const handleCreateSavingsPool = async () => {
     if (!validateForm()) return;
     
-    if (!isAuthenticated) {
-      Alert.alert('Error', 'Please log in to create a savings pool');
-      router.push('/auth/welcome');
+    if (!isConnected || !walletAddress) {
+      Alert.alert('Error', 'Please connect your wallet to create a savings pool');
       return;
     }
     
-    if (!walletAddress) {
-      try {
-        // Create a wallet if one doesn't exist
-        await createWallet();
-      } catch (error) {
-        console.error('Failed to create wallet:', error);
-        Alert.alert('Error', 'Failed to create wallet. Please try again later.');
-        return;
-      }
-    }
-    
     try {
-      setIsLoading(true);
-      
       // Convert duration from days to seconds
       const durationInSeconds = duration * 24 * 60 * 60;
       
-      const poolParams: SavingsPoolCreationParams = {
-        tokenType,
-        tokenAddress: tokenType === 'erc20' ? tokenAddress : undefined,
-        amountToSave,
-        duration: durationInSeconds,
-        initialDeposit,
-        totalIntervals: intervals
-      };
+      if (tokenType === 'ETH') {
+        await createEthSavingsPool(
+          amountToSave,
+          durationInSeconds,
+          initialDeposit,
+          intervals
+        );
+      } else {
+        await createERC20SavingsPool(
+          tokenAddress,
+          amountToSave,
+          durationInSeconds,
+          initialDeposit,
+          intervals
+        );
+      }
       
-      // In a real app, this would create the savings pool on the blockchain
-      // For this demo, we'll simulate the creation
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Navigate back to savings screen
       Alert.alert(
         'Success', 
         'Your savings pool has been created successfully!',
@@ -120,22 +112,9 @@ export default function CreateSavingsScreen() {
     } catch (error) {
       console.error('Error creating savings pool:', error);
       Alert.alert('Error', 'Failed to create savings pool. Please try again later.');
-    } finally {
-      setIsLoading(false);
     }
   };
-  
-  // Handle token type selection
-  const handleTokenTypeSelect = (type: 'eth' | 'erc20') => {
-    setTokenType(type);
-    if (type === 'eth') {
-      setTokenSymbol('ETH');
-      setTokenAddress('');
-    } else {
-      setTokenSymbol('');
-    }
-  };
-  
+
   // Handle duration selection
   const handleDurationSelect = (months: number) => {
     setDuration(months * 30); // Convert months to days
@@ -145,19 +124,19 @@ export default function CreateSavingsScreen() {
     else if (months === 6) setIntervals(6);
     else setIntervals(12);
   };
-  
-  if (!isAuthenticated) {
+
+  if (!isConnected || !walletAddress) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar style="light" />
         <View style={styles.authContainer}>
-          <Text style={styles.authTitle}>Authentication Required</Text>
-          <Text style={styles.authSubtitle}>Please log in to create a savings pool</Text>
+          <Text style={styles.authTitle}>Wallet Connection Required</Text>
+          <Text style={styles.authSubtitle}>Please connect your wallet to create a savings pool</Text>
           <TouchableOpacity 
             style={styles.authButton}
-            onPress={() => router.push('/auth/welcome')}
+            onPress={() => router.push('/wallet/connect')}
           >
-            <Text style={styles.authButtonText}>Go to Login</Text>
+            <Text style={styles.authButtonText}>Connect Wallet</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -191,13 +170,13 @@ export default function CreateSavingsScreen() {
               <TouchableOpacity 
                 style={[
                   styles.tokenTypeButton, 
-                  tokenType === 'eth' && styles.tokenTypeButtonActive
+                  tokenType === 'ETH' && styles.tokenTypeButtonActive
                 ]}
-                onPress={() => handleTokenTypeSelect('eth')}
+                onPress={() => handleTokenTypeSelect('ETH')}
               >
                 <Text style={[
                   styles.tokenTypeText,
-                  tokenType === 'eth' && styles.tokenTypeTextActive
+                  tokenType === 'ETH' && styles.tokenTypeTextActive
                 ]}>
                   ETH
                 </Text>
@@ -206,20 +185,20 @@ export default function CreateSavingsScreen() {
               <TouchableOpacity 
                 style={[
                   styles.tokenTypeButton, 
-                  tokenType === 'erc20' && styles.tokenTypeButtonActive
+                  tokenType === 'ERC20' && styles.tokenTypeButtonActive
                 ]}
-                onPress={() => handleTokenTypeSelect('erc20')}
+                onPress={() => handleTokenTypeSelect('ERC20')}
               >
                 <Text style={[
                   styles.tokenTypeText,
-                  tokenType === 'erc20' && styles.tokenTypeTextActive
+                  tokenType === 'ERC20' && styles.tokenTypeTextActive
                 ]}>
                   ERC20 Token
                 </Text>
               </TouchableOpacity>
             </View>
             
-            {tokenType === 'erc20' && (
+            {tokenType === 'ERC20' && (
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Token Address</Text>
                 <TextInput
