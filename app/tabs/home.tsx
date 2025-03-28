@@ -361,7 +361,7 @@ export default function HomeScreen() {
                   <View style={styles.walletActionButtonsContainer}>
                     <TouchableOpacity
                       style={styles.walletActionButton}
-                      onPress={() => alert("Deposit tokens")}
+                      onPress={() => router.push("/deposit")}
                     >
                       <View style={styles.walletActionButtonIcon}>
                         <MaterialCommunityIcons name="arrow-down" size={20} color="#fff" />
@@ -385,7 +385,7 @@ export default function HomeScreen() {
 
                     <TouchableOpacity
                       style={styles.walletActionButton}
-                      onPress={() => alert("Withdraw tokens")}
+                      onPress={() => router.push("/withdraw")}
                     >
                       <View style={styles.walletActionButtonIcon}>
                         <MaterialCommunityIcons name="arrow-up" size={20} color="#fff" />

@@ -522,12 +522,12 @@ export default function CreateSavingsScreen() {
                 <View style={styles.tokenTypeTextContainer}>
                   <Text 
                     style={[
-                      styles.tokenTypeText,
-                      tokenType === 'ETH' && styles.tokenTypeTextActive
+                  styles.tokenTypeText,
+                  tokenType === 'ETH' && styles.tokenTypeTextActive
                     ]}
                   >
-                    ETH
-                  </Text>
+                  ETH
+                </Text>
                 </View>
               </TouchableOpacity>
               
@@ -538,12 +538,12 @@ export default function CreateSavingsScreen() {
                 <View style={styles.tokenTypeTextContainer}>
                   <Text 
                     style={[
-                      styles.tokenTypeText,
-                      tokenType === 'ERC20' && styles.tokenTypeTextActive
+                  styles.tokenTypeText,
+                  tokenType === 'ERC20' && styles.tokenTypeTextActive
                     ]}
                   >
                     ERC20
-                  </Text>
+                </Text>
                 </View>
               </TouchableOpacity>
             </View>
