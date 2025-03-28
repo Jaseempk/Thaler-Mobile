@@ -7,7 +7,11 @@ import React, {
 } from "react";
 import { ethers } from "ethers";
 import { useWallet } from "./WalletContext";
-import { THALER_SAVINGS_POOL_ABI, THALER_SAVINGS_POOL_ADDRESS, TIME_CONSTANTS } from "../constants/Contracts";
+import {
+  THALER_SAVINGS_POOL_ABI,
+  THALER_SAVINGS_POOL_ADDRESS,
+  TIME_CONSTANTS,
+} from "../constants/Contracts";
 
 // Define the structure for a savings pool
 interface SavingsPool {
@@ -139,7 +143,11 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   };
 
   // Format pool data from contract
-  const formatPoolData = (poolId: string, poolData: any, isEth: boolean): SavingsPool => {
+  const formatPoolData = (
+    poolId: string,
+    poolData: any,
+    isEth: boolean
+  ): SavingsPool => {
     return {
       id: poolId,
       user: poolData.user,
@@ -162,44 +170,42 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   // Fetch user's savings pools
   const fetchUserPools = async () => {
     if (!address) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const contract = await getContract();
-      
-      // Listen for past events to get pool IDs
-      const ethPoolCreatedFilter = contract.filters.SavingsPoolEthCreated(address);
-      const erc20PoolCreatedFilter = contract.filters.SavingsPoolERC20Created(address);
-      
-      const ethPoolEvents = await contract.queryFilter(ethPoolCreatedFilter);
-      const erc20PoolEvents = await contract.queryFilter(erc20PoolCreatedFilter);
-      
+      console.log("Contract:", contract);
+
+      // Fetch all past SavingsPoolCreated events
+      const events = await contract.queryFilter(
+        contract.filters.SavingsPoolCreated()
+      );
+      console.log("Fetched events:", events.length);
+
+      // Filter events to only include the current user's pools
+      const userEvents = events.filter(
+        (event) => event.args?.user.toLowerCase() === address.toLowerCase()
+      );
+
+      console.log("User-specific events:", userEvents.length);
+
       const userPools: SavingsPool[] = [];
-      
-      // Process ETH pools
-      for (const event of ethPoolEvents) {
+
+      // Process each user's event to fetch pool data
+      for (const event of userEvents) {
         const poolId = event.args?.savingsPoolId;
-        if (poolId) {
-          const poolData = await contract.savingsPools(poolId);
-          if (poolData.user === address) {
-            userPools.push(formatPoolData(poolId, poolData, true));
-          }
+        if (!poolId) continue;
+
+        const poolData = await contract.savingsPools(poolId);
+        if (poolData.user.toLowerCase() === address.toLowerCase()) {
+          const isEthPool =
+            poolData.tokenToSave === ethers.constants.AddressZero;
+          userPools.push(formatPoolData(poolId, poolData, isEthPool));
         }
       }
-      
-      // Process ERC20 pools
-      for (const event of erc20PoolEvents) {
-        const poolId = event.args?.savingsPoolId;
-        if (poolId) {
-          const poolData = await contract.savingsPools(poolId);
-          if (poolData.user === address) {
-            userPools.push(formatPoolData(poolId, poolData, false));
-          }
-        }
-      }
-      
+
       setPools(userPools);
     } catch (error) {
       console.error("Error fetching user pools:", error);
@@ -217,17 +223,17 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     totalIntervals: number
   ) => {
     if (!address) throw new Error("Wallet not connected");
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const contract = await getContract(true);
-      
+
       // Convert amounts to wei
       const amountToSaveWei = ethers.utils.parseEther(amountToSave);
       const initialDepositWei = ethers.utils.parseEther(initialDeposit);
-      
+
       // Call contract function
       const tx = await contract.createSavingsPoolEth(
         amountToSaveWei,
@@ -236,9 +242,9 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
         totalIntervals,
         { value: initialDepositWei }
       );
-      
+
       await tx.wait();
-      
+
       // Refresh pools after creation
       await fetchUserPools();
     } catch (error) {
@@ -259,35 +265,35 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     totalIntervals: number
   ) => {
     if (!address) throw new Error("Wallet not connected");
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const signer = await getSigner();
       if (!signer) throw new Error("No signer available");
-      
+
       // Get ERC20 token contract
       const tokenContract = new ethers.Contract(
         tokenAddress,
         ["function approve(address spender, uint256 amount) returns (bool)"],
         signer
       );
-      
+
       // Convert amounts to wei
       const amountToSaveWei = ethers.utils.parseEther(amountToSave);
       const initialDepositWei = ethers.utils.parseEther(initialDeposit);
-      
+
       // Approve token spending
       const approveTx = await tokenContract.approve(
         THALER_SAVINGS_POOL_ADDRESS,
         initialDepositWei
       );
       await approveTx.wait();
-      
+
       // Get savings pool contract
       const contract = await getContract(true);
-      
+
       // Create savings pool
       const tx = await contract.createSavingsPoolERC20(
         tokenAddress,
@@ -296,9 +302,9 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
         initialDepositWei,
         totalIntervals
       );
-      
+
       await tx.wait();
-      
+
       // Refresh pools after creation
       await fetchUserPools();
     } catch (error) {
@@ -313,25 +319,23 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   // Deposit to ETH pool
   const depositToEthPool = async (poolId: string, amount: string) => {
     if (!address) throw new Error("Wallet not connected");
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const contract = await getContract(true);
-      
+
       // Convert amount to wei
       const amountWei = ethers.utils.parseEther(amount);
-      
+
       // Call contract function
-      const tx = await contract.depositToEthSavingPool(
-        poolId,
-        amountWei,
-        { value: amountWei }
-      );
-      
+      const tx = await contract.depositToEthSavingPool(poolId, amountWei, {
+        value: amountWei,
+      });
+
       await tx.wait();
-      
+
       // Refresh pools after deposit
       await fetchUserPools();
     } catch (error) {
@@ -346,41 +350,41 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   // Deposit to ERC20 pool
   const depositToERC20Pool = async (poolId: string, amount: string) => {
     if (!address) throw new Error("Wallet not connected");
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const contract = await getContract(true);
-      
+
       // Get pool data to get token address
       const poolData = await contract.savingsPools(poolId);
       const tokenAddress = poolData.tokenToSave;
-      
+
       const signer = await getSigner();
       if (!signer) throw new Error("No signer available");
-      
+
       // Get ERC20 token contract
       const tokenContract = new ethers.Contract(
         tokenAddress,
         ["function approve(address spender, uint256 amount) returns (bool)"],
         signer
       );
-      
+
       // Convert amount to wei
       const amountWei = ethers.utils.parseEther(amount);
-      
+
       // Approve token spending
       const approveTx = await tokenContract.approve(
         THALER_SAVINGS_POOL_ADDRESS,
         amountWei
       );
       await approveTx.wait();
-      
+
       // Deposit to pool
       const tx = await contract.depositToERC20SavingPool(poolId, amountWei);
       await tx.wait();
-      
+
       // Refresh pools after deposit
       await fetchUserPools();
     } catch (error) {
@@ -399,22 +403,22 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     publicInputs: string[]
   ) => {
     if (!address) throw new Error("Wallet not connected");
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const contract = await getContract(true);
-      
+
       // Call contract function
       const tx = await contract.withdrawFromEthSavingPool(
         poolId,
         proof,
         publicInputs
       );
-      
+
       await tx.wait();
-      
+
       // Refresh pools after withdrawal
       await fetchUserPools();
     } catch (error) {
@@ -433,22 +437,22 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     publicInputs: string[]
   ) => {
     if (!address) throw new Error("Wallet not connected");
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const contract = await getContract(true);
-      
+
       // Call contract function
       const tx = await contract.withdrawFromERC20SavingPool(
         poolId,
         proof,
         publicInputs
       );
-      
+
       await tx.wait();
-      
+
       // Refresh pools after withdrawal
       await fetchUserPools();
     } catch (error) {

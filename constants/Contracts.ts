@@ -2,6 +2,13 @@
 export const THALER_SAVINGS_POOL_ADDRESS =
   "0x4c0cB3c185D3E1d8B276dbB3AcebCc3298CA418F"; // Placeholder
 
+// Time constants from the contract (in seconds)
+export const TIME_CONSTANTS = {
+  THREE_MONTHS: 7884000,
+  SIX_MONTHS: 15768000,
+  TWELVE_MONTHS: 31536000,
+  INTERVAL: 2628000, // 1 month
+};
 // ABIs
 export const THALER_SAVINGS_POOL_ABI = [
   {
@@ -440,10 +447,3 @@ export const THALER_SAVINGS_POOL_ABI = [
     type: "function",
   },
 ];
-// Time constants from the contract (in seconds)
-export const TIME_CONSTANTS = {
-  THREE_MONTHS: 7884000,
-  SIX_MONTHS: 15768000,
-  TWELVE_MONTHS: 31536000,
-  INTERVAL: 2628000, // 1 month
-};
