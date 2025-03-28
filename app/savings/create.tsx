@@ -17,6 +17,7 @@ import {
   LayoutAnimation,
   UIManager,
   Modal,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -33,10 +34,14 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+// Import token logos
+const ethLogo = require('../../assets/images/ethereum.png');
+const usdcLogo = require('../../assets/images/usdc.png');
+
 // Constants for measurements and animations
-const TOGGLE_PADDING = 4;
+const TOGGLE_PADDING = 2;
 const TOGGLE_HEIGHT = 48;
-const TOGGLE_BORDER_RADIUS = 12;
+const TOGGLE_BORDER_RADIUS = 16;
 const TOGGLE_TEXT_SIZE = 16;
 const SLIDER_HEIGHT = 40;
 const ANIMATION_CONFIG = {
@@ -53,18 +58,20 @@ const ANIMATION_CONFIG = {
   },
 };
 
-// Add token interface
+// Add token interface with logo
 interface Token {
   address: string;
   symbol: string;
   name: string;
+  logo: any;
 }
 
-// Add USDC token constant
+// Add USDC token constant with logo
 const USDC_TOKEN: Token = {
   address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
   symbol: 'USDC',
-  name: 'USD Coin'
+  name: 'USD Coin',
+  logo: usdcLogo
 };
 
 export default function CreateSavingsScreen() {
@@ -92,7 +99,7 @@ export default function CreateSavingsScreen() {
       justifyContent: 'space-between',
       alignItems: 'center',
       padding: 16,
-      backgroundColor: Colors[activeTheme].primary,
+      backgroundColor: '#2ECC71',
     },
     headerTitle: {
       fontSize: 20,
@@ -139,42 +146,31 @@ export default function CreateSavingsScreen() {
       marginBottom: 20,
       backgroundColor: Colors[activeTheme].secondaryLight,
       borderRadius: TOGGLE_BORDER_RADIUS,
-      position: 'relative',
       height: TOGGLE_HEIGHT,
-      padding: 0,
+      padding: TOGGLE_PADDING,
       overflow: 'hidden',
     },
     tokenTypeButton: {
-      width: TOKEN_BUTTON_WIDTH,
-      height: TOGGLE_HEIGHT,
+      flex: 1,
+      height: TOGGLE_HEIGHT - (TOGGLE_PADDING * 2),
       justifyContent: 'center',
       alignItems: 'center',
-      position: 'relative',
       zIndex: 1,
-      padding: 0,
-      margin: 0,
     },
     tokenTypeSlider: {
       position: 'absolute',
-      width: TOKEN_BUTTON_WIDTH,
-      height: '100%',
-      backgroundColor: Colors[activeTheme].primaryLight,
-      borderRadius: TOGGLE_BORDER_RADIUS,
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+      width: '50%',
+      height: TOGGLE_HEIGHT - (TOGGLE_PADDING * 2),
+      backgroundColor: '#2ECC71',
+      borderRadius: TOGGLE_BORDER_RADIUS - (TOGGLE_PADDING / 2),
+      top: TOGGLE_PADDING,
+      left: TOGGLE_PADDING,
     },
     tokenTypeText: {
-      fontSize: TOGGLE_TEXT_SIZE,
+      fontSize: 16,
       fontWeight: '600',
       color: Colors[activeTheme].textSecondary,
       textAlign: 'center',
-      textAlignVertical: 'center',
-      includeFontPadding: false,
-      padding: 0,
-      margin: 0,
     },
     tokenTypeTextActive: {
       color: '#FFFFFF',
@@ -237,41 +233,33 @@ export default function CreateSavingsScreen() {
     },
     durationContainer: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
       backgroundColor: Colors[activeTheme].secondaryLight,
-      borderRadius: 12,
-      position: 'relative',
-      height: 48,
+      borderRadius: TOGGLE_BORDER_RADIUS,
+      height: TOGGLE_HEIGHT,
       padding: TOGGLE_PADDING,
       overflow: 'hidden',
     },
     durationButton: {
-      width: (containerWidth - (TOGGLE_PADDING * 2)) / 3,
-      height: 40,
+      flex: 1,
+      height: TOGGLE_HEIGHT - (TOGGLE_PADDING * 2),
       justifyContent: 'center',
       alignItems: 'center',
       zIndex: 1,
     },
     durationSlider: {
       position: 'absolute',
-      width: (containerWidth - (TOGGLE_PADDING * 2)) / 3,
-      height: 40,
-      backgroundColor: Colors[activeTheme].primaryLight,
-      borderRadius: 10,
+      width: `${100/3}%`,
+      height: TOGGLE_HEIGHT - (TOGGLE_PADDING * 2),
+      backgroundColor: '#2ECC71',
+      borderRadius: TOGGLE_BORDER_RADIUS - (TOGGLE_PADDING / 2),
       top: TOGGLE_PADDING,
       left: TOGGLE_PADDING,
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
     },
     durationText: {
       fontSize: 15,
       fontWeight: '600',
       color: Colors[activeTheme].textSecondary,
       textAlign: 'center',
-      includeFontPadding: false,
     },
     durationTextActive: {
       color: '#FFFFFF',
@@ -305,12 +293,12 @@ export default function CreateSavingsScreen() {
       color: Colors[activeTheme].text,
     },
     createButton: {
-      backgroundColor: Colors[activeTheme].primary,
+      backgroundColor: '#2ECC71',
       borderRadius: 14,
       paddingVertical: 18,
       alignItems: 'center',
       marginBottom: 32,
-      shadowColor: Colors[activeTheme].primary,
+      shadowColor: '#2ECC71',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
       shadowRadius: 8,
@@ -353,7 +341,7 @@ export default function CreateSavingsScreen() {
     },
     tokenDropdown: {
       backgroundColor: Colors[activeTheme].secondaryLight,
-      borderRadius: 12,
+      borderRadius: 16,
       padding: 16,
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -362,10 +350,27 @@ export default function CreateSavingsScreen() {
       borderWidth: 1,
       borderColor: Colors[activeTheme].border,
     },
-    tokenDropdownText: {
+    tokenDropdownContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    tokenDropdownLogo: {
+      width: 28,
+      height: 28,
+      marginRight: 12,
+      borderRadius: 14,
+      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+      padding: 4,
+    },
+    tokenDropdownSymbol: {
       fontSize: 16,
-      color: Colors[activeTheme].text,
       fontWeight: '600',
+      color: Colors[activeTheme].text,
+    },
+    tokenDropdownPlaceholder: {
+      fontSize: 16,
+      color: Colors[activeTheme].textSecondary,
     },
     modalContainer: {
       flex: 1,
@@ -375,7 +380,7 @@ export default function CreateSavingsScreen() {
     },
     modalContent: {
       backgroundColor: Colors[activeTheme].card,
-      borderRadius: 16,
+      borderRadius: 24,
       padding: 20,
       width: '90%',
       maxHeight: '80%',
@@ -392,24 +397,33 @@ export default function CreateSavingsScreen() {
       padding: 16,
       borderBottomWidth: 1,
       borderBottomColor: Colors[activeTheme].border,
+      borderRadius: 16,
     },
-    tokenOptionText: {
-      fontSize: 16,
-      color: Colors[activeTheme].text,
-      marginLeft: 12,
-    },
-    addTokenButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: 16,
+    tokenOptionSelected: {
       backgroundColor: Colors[activeTheme].secondaryLight,
-      borderRadius: 12,
-      marginTop: 12,
     },
-    addTokenButtonText: {
+    tokenOptionLogo: {
+      width: 32,
+      height: 32,
+      marginRight: 12,
+      borderRadius: 16,
+      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+      padding: 6,
+    },
+    tokenOptionSymbol: {
+      flex: 1,
       fontSize: 16,
-      color: Colors[activeTheme].primary,
-      marginLeft: 8,
+      fontWeight: '600',
+      color: Colors[activeTheme].text,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    modalCloseButton: {
+      padding: 8,
     },
     modalInput: {
       backgroundColor: Colors[activeTheme].secondaryLight,
@@ -420,6 +434,16 @@ export default function CreateSavingsScreen() {
       color: Colors[activeTheme].text,
       borderWidth: 1,
       borderColor: Colors[activeTheme].border,
+    },
+    modalInputError: {
+      borderColor: Colors[activeTheme].error,
+    },
+    modalInputErrorText: {
+      color: Colors[activeTheme].error,
+      fontSize: 12,
+      marginTop: -12,
+      marginBottom: 12,
+      marginLeft: 4,
     },
     modalButtons: {
       flexDirection: 'row',
@@ -434,6 +458,19 @@ export default function CreateSavingsScreen() {
     modalButtonText: {
       fontSize: 16,
       fontWeight: '600',
+    },
+    addTokenButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      backgroundColor: Colors[activeTheme].secondaryLight,
+      borderRadius: 12,
+      marginTop: 12,
+    },
+    addTokenButtonText: {
+      fontSize: 16,
+      color: '#2ECC71',
+      marginLeft: 8,
     },
   });
 
@@ -514,17 +551,28 @@ export default function CreateSavingsScreen() {
     setShowTokenModal(false);
   };
 
-  // Handle adding new token
+  // Validate token address
+  const validateTokenAddress = (address: string) => {
+    return /^0x[a-fA-F0-9]{40}$/.test(address);
+  };
+
+  // Handle adding new token with validation
   const handleAddToken = () => {
     if (!newTokenAddress || !newTokenSymbol || !newTokenName) {
       Alert.alert('Error', 'Please fill in all token details');
       return;
     }
 
+    if (!validateTokenAddress(newTokenAddress)) {
+      Alert.alert('Error', 'Please enter a valid token address');
+      return;
+    }
+
     const newToken: Token = {
       address: newTokenAddress,
       symbol: newTokenSymbol,
-      name: newTokenName
+      name: newTokenName,
+      logo: require('../../assets/images/usdc.png') // Default to USDC logo for now
     };
 
     setAvailableTokens([...availableTokens, newToken]);
@@ -535,7 +583,7 @@ export default function CreateSavingsScreen() {
     handleTokenSelect(newToken);
   };
 
-  // Replace the existing ERC20 input fields with this new UI
+  // Replace the existing token selection UI with this improved version
   const renderTokenSelection = () => {
     if (tokenType !== 'ERC20') return null;
 
@@ -546,9 +594,28 @@ export default function CreateSavingsScreen() {
           style={styles.tokenDropdown}
           onPress={() => setShowTokenModal(true)}
         >
-          <Text style={styles.tokenDropdownText}>
-            {selectedToken ? selectedToken.symbol : 'Select a token'}
-          </Text>
+          <View style={styles.tokenDropdownContent}>
+            {selectedToken ? (
+              <>
+                {selectedToken.symbol === 'USDC' && (
+                  <View style={styles.tokenDropdownLogo}>
+                    <Image 
+                      source={require('../../assets/images/usdc.png')}
+                      style={{ width: '100%', height: '100%' }}
+                      resizeMode="contain"
+                    />
+                  </View>
+                )}
+                <Text style={styles.tokenDropdownSymbol}>
+                  {selectedToken.symbol}
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.tokenDropdownPlaceholder}>
+                Select a token
+              </Text>
+            )}
+          </View>
           <Ionicons
             name="chevron-down"
             size={24}
@@ -564,17 +631,38 @@ export default function CreateSavingsScreen() {
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Select Token</Text>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Token</Text>
+                <TouchableOpacity
+                  onPress={() => setShowTokenModal(false)}
+                  style={styles.modalCloseButton}
+                >
+                  <Ionicons name="close" size={24} color={Colors[activeTheme].text} />
+                </TouchableOpacity>
+              </View>
               
               {availableTokens.map((token, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={styles.tokenOption}
+                  style={[
+                    styles.tokenOption,
+                    selectedToken?.symbol === token.symbol && styles.tokenOptionSelected
+                  ]}
                   onPress={() => handleTokenSelect(token)}
                 >
-                  <Text style={styles.tokenOptionText}>
-                    {token.symbol} - {token.name}
-                  </Text>
+                  {token.symbol === 'USDC' && (
+                    <View style={styles.tokenOptionLogo}>
+                      <Image 
+                        source={require('../../assets/images/usdc.png')}
+                        style={{ width: '100%', height: '100%' }}
+                        resizeMode="contain"
+                      />
+                    </View>
+                  )}
+                  <Text style={styles.tokenOptionSymbol}>{token.symbol}</Text>
+                  {selectedToken?.symbol === token.symbol && (
+                    <Ionicons name="checkmark-circle" size={24} color={Colors[activeTheme].primary} />
+                  )}
                 </TouchableOpacity>
               ))}
 
@@ -604,16 +692,32 @@ export default function CreateSavingsScreen() {
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Add Custom Token</Text>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Add Custom Token</Text>
+                <TouchableOpacity
+                  onPress={() => setShowAddTokenModal(false)}
+                  style={styles.modalCloseButton}
+                >
+                  <Ionicons name="close" size={24} color={Colors[activeTheme].text} />
+                </TouchableOpacity>
+              </View>
               
               <TextInput
-                style={styles.modalInput}
+                style={[
+                  styles.modalInput,
+                  !validateTokenAddress(newTokenAddress) && newTokenAddress.length > 0 && styles.modalInputError
+                ]}
                 placeholder="Token Address (0x...)"
                 placeholderTextColor={Colors[activeTheme].textSecondary}
                 value={newTokenAddress}
                 onChangeText={setNewTokenAddress}
                 autoCapitalize="none"
               />
+              {!validateTokenAddress(newTokenAddress) && newTokenAddress.length > 0 && (
+                <Text style={styles.modalInputErrorText}>
+                  Please enter a valid token address
+                </Text>
+              )}
               
               <TextInput
                 style={styles.modalInput}
@@ -762,7 +866,11 @@ export default function CreateSavingsScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Token Type</Text>
             <View style={styles.tokenTypeContainer}>

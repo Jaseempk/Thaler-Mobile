@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import { useWallet } from "../context/WalletContext";
 import { ethers } from "ethers";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "react-native";
+import { useTokenBalances } from "../hooks/useTokenBalances";
 
 // Import token logos
 const ethLogo = require("../assets/images/ethereum.png");
@@ -74,16 +75,17 @@ export default function WithdrawScreen() {
   const { address, getProvider, getSigner, isConnected } = useWallet();
   const isDarkMode = activeTheme === "dark";
   const [isLoading, setIsLoading] = useState(false);
-  const [ethBalance, setEthBalance] = useState("0");
-  const [usdcBalance, setUsdcBalance] = useState("0");
-  const [ethPrice, setEthPrice] = useState(0);
-  const [ethValue, setEthValue] = useState("0.00");
-  const [usdcValue, setUsdcValue] = useState("0.00");
-  const [ethChange, setEthChange] = useState("0.00");
-  const [totalBalanceUSD, setTotalBalanceUSD] = useState("0.00");
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const colorScheme = useColorScheme() ?? "light";
+  
+  // Use the useTokenBalances hook
+  const { 
+    balances: tokenBalances, 
+    totalBalanceUSD, 
+    refreshBalances, 
+    isLoading: isBalanceLoading 
+  } = useTokenBalances();
 
   // Animation values for each token
   const animationValues = useRef({
@@ -91,130 +93,41 @@ export default function WithdrawScreen() {
     USDC: new Animated.Value(0),
   }).current;
 
-  // Format the balance for display with proper decimal places
-  const formatBalance = (balance: string) => {
-    const balanceNum = parseFloat(balance);
-    return balanceNum.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 6,
-    });
-  };
-
-  // Format USD value for display
-  const formatUSD = (value: string) => {
-    const valueNum = parseFloat(value);
-    return valueNum.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
-  // Fetch ETH price from CoinGecko
-  const fetchEthPrice = async () => {
-    try {
-      const response = await fetch(
-        "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
-      );
-      const data = await response.json();
-      setEthPrice(data.ethereum.usd);
-    } catch (error) {
-      console.error("Error fetching ETH price:", error);
-    }
-  };
-
-  // Fetch balances
-  const fetchBalances = async () => {
-    try {
-      const provider = await getProvider();
-      if (!provider || !address) return;
-
-      // Fetch ETH balance
-      const ethBalanceWei = await provider.getBalance(address);
-      const formattedEthBalance = ethers.utils.formatEther(ethBalanceWei);
-      setEthBalance(formattedEthBalance);
-
-      // Fetch USDC balance
-      const usdcContract = new ethers.Contract(
-        USDC_ADDRESS,
-        USDC_ABI,
-        provider
-      );
-      const usdcBalanceWei = await usdcContract.balanceOf(address);
-      const usdcDecimals = await usdcContract.decimals();
-      const formattedUsdcBalance = ethers.utils.formatUnits(
-        usdcBalanceWei,
-        usdcDecimals
-      );
-      setUsdcBalance(formattedUsdcBalance);
-
-      // Calculate total balance in USD
-      const ethBalanceUSD = parseFloat(formattedEthBalance) * ethPrice;
-      const usdcBalanceUSD = parseFloat(formattedUsdcBalance); // USDC is pegged to USD
-      const total = ethBalanceUSD + usdcBalanceUSD;
-      setTotalBalanceUSD(total.toFixed(2));
-    } catch (error) {
-      console.error("Error fetching balances:", error);
-    }
-  };
-
-  // Update balances and prices
-  useEffect(() => {
-    if (isConnected) {
-      fetchEthPrice();
-      fetchBalances();
-
-      // Refresh every 30 seconds
-      const interval = setInterval(() => {
-        fetchEthPrice();
-        fetchBalances();
-      }, 30000);
-
-      return () => clearInterval(interval);
-    }
-  }, [isConnected, address]);
-
   // Handle refresh
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([fetchEthPrice(), fetchBalances()]);
+    await refreshBalances();
     setRefreshing(false);
-  }, []);
+  }, [refreshBalances]);
 
   // Available tokens with real balances
-  const tokens: Token[] = [
-    {
-      symbol: "ETH",
-      name: "Ethereum",
-      logo: ethLogo,
-      balance: formatBalance(ethBalance),
-      decimals: 18,
-    },
-    {
-      symbol: "USDC",
-      name: "USD Coin",
-      logo: usdcLogo,
-      balance: formatBalance(usdcBalance),
-      address: USDC_ADDRESS,
-      decimals: 6,
-    },
-  ];
+  const tokens: Token[] = tokenBalances.map((token): Token => ({
+    symbol: token.symbol,
+    name: token.name,
+    logo: token.symbol === 'ETH' ? ethLogo : usdcLogo,
+    balance: token.balance,
+    address: token.symbol === 'USDC' ? USDC_ADDRESS : undefined,
+    decimals: token.symbol === 'ETH' ? 18 : 6,
+  }));
 
-  const [selectedToken, setSelectedToken] = useState<Token>(tokens[0]);
+  const [selectedToken, setSelectedToken] = useState<Token | null>(tokens[0] || null);
   const [amount, setAmount] = useState("");
   const [recipientAddress, setRecipientAddress] = useState("");
   const [isAddressValid, setIsAddressValid] = useState(true);
 
   const animateSelection = (token: Token) => {
-    // Animate previous selection out
-    Animated.spring(
-      animationValues[selectedToken.symbol as keyof typeof animationValues],
-      {
-        toValue: 0,
-        tension: 40,
-        friction: 7,
-        useNativeDriver: false,
-      }
-    ).start();
+    // Only animate previous selection if it exists
+    if (selectedToken?.symbol) {
+      Animated.spring(
+        animationValues[selectedToken.symbol as keyof typeof animationValues],
+        {
+          toValue: 0,
+          tension: 40,
+          friction: 7,
+          useNativeDriver: false,
+        }
+      ).start();
+    }
 
     // Animate new selection in
     Animated.spring(
@@ -262,10 +175,10 @@ export default function WithdrawScreen() {
 
       const amountInWei = ethers.utils.parseUnits(
         amount,
-        selectedToken.decimals
+        selectedToken?.decimals
       );
 
-      if (selectedToken.symbol === "ETH") {
+      if (selectedToken?.symbol === "ETH") {
         // Handle ETH withdrawal
         const tx = await signer.sendTransaction({
           to: recipientAddress,
@@ -276,7 +189,7 @@ export default function WithdrawScreen() {
       } else {
         // Handle ERC20 withdrawal
         const contract = new ethers.Contract(
-          selectedToken.address!,
+          selectedToken?.address!,
           ["function transfer(address to, uint256 amount) returns (bool)"],
           signer
         );
@@ -602,7 +515,7 @@ export default function WithdrawScreen() {
             ]}
           >
             {tokens.map((token, index) => {
-              const isSelected = selectedToken.symbol === token.symbol;
+              const isSelected = selectedToken?.symbol === token.symbol;
               const animValue =
                 animationValues[token.symbol as keyof typeof animationValues];
 
@@ -765,7 +678,7 @@ export default function WithdrawScreen() {
                   styles.maxButtonInner,
                   { backgroundColor: Colors[activeTheme].secondaryLight },
                 ]}
-                onPress={() => setAmount(selectedToken.balance)}
+                onPress={() => selectedToken?.balance && setAmount(selectedToken.balance)}
               >
                 <Text
                   style={[
@@ -832,7 +745,7 @@ export default function WithdrawScreen() {
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text style={styles.withdrawButtonText}>
-                Withdraw {selectedToken.symbol}
+                Withdraw {selectedToken?.symbol}
               </Text>
             )}
           </TouchableOpacity>
