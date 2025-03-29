@@ -268,51 +268,6 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     };
   };
 
-  // Update fetchUserPools to use the contract from state
-  const fetchUserPools = async () => {
-    if (!address || !contract) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Fetch all past SavingsPoolCreated events
-      const events = await contract.queryFilter(
-        contract.filters.SavingsPoolCreated()
-      );
-      console.log("Fetched events:", events.length);
-
-      // Filter events to only include the current user's pools
-      const userEvents = events.filter(
-        (event) => event.args?.user.toLowerCase() === address.toLowerCase()
-      );
-
-      console.log("User-specific events:", userEvents.length);
-
-      const userPools: SavingsPool[] = [];
-
-      // Process each user's event to fetch pool data
-      for (const event of userEvents) {
-        const poolId = event.args?.savingsPoolId;
-        if (!poolId) continue;
-
-        const poolData = await contract.savingsPools(poolId);
-        if (poolData.user.toLowerCase() === address.toLowerCase()) {
-          const isEthPool =
-            poolData.tokenToSave === ethers.constants.AddressZero;
-          userPools.push(formatPoolData(poolId, poolData, isEthPool));
-        }
-      }
-
-      setPools(userPools);
-    } catch (error) {
-      console.error("Error fetching user pools:", error);
-      setError("Failed to fetch savings pools");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Update createEthSavingsPool to use wallets directly
   const createEthSavingsPool = async (
     amountToSave: string,
@@ -360,7 +315,6 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       });
 
       await new Promise((resolve) => setTimeout(resolve, 5000));
-      await fetchUserPools();
     } catch (error) {
       console.error("Error creating ETH savings pool:", error);
       setError("Failed to create ETH savings pool");
@@ -446,7 +400,6 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
       // Refresh pools after creation
-      await fetchUserPools();
     } catch (error) {
       console.error("Error creating ERC20 savings pool:", error);
       setError("Failed to create ERC20 savings pool");
@@ -487,7 +440,6 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       });
 
       await new Promise((resolve) => setTimeout(resolve, 5000));
-      await fetchUserPools();
     } catch (error) {
       console.error("Error depositing to ETH pool:", error);
       setError("Failed to deposit to ETH pool");
@@ -556,7 +508,6 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       });
 
       await new Promise((resolve) => setTimeout(resolve, 5000));
-      await fetchUserPools();
     } catch (error) {
       console.error("Error depositing to ERC20 pool:", error);
       setError("Failed to deposit to ERC20 pool");
@@ -588,7 +539,6 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       await tx.wait();
 
       // Refresh pools after withdrawal
-      await fetchUserPools();
     } catch (error) {
       console.error("Error withdrawing from ETH pool:", error);
       setError("Failed to withdraw from ETH savings pool");
@@ -620,7 +570,6 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       await tx.wait();
 
       // Refresh pools after withdrawal
-      await fetchUserPools();
     } catch (error) {
       console.error("Error withdrawing from ERC20 pool:", error);
       setError("Failed to withdraw from ERC20 savings pool");
@@ -631,14 +580,11 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   };
 
   // Refresh pools
-  const refreshPools = async () => {
-    await fetchUserPools();
-  };
+  const refreshPools = async () => {};
 
   // Fetch pools when address changes
   useEffect(() => {
     if (address) {
-      fetchUserPools();
     } else {
       setPools([]);
     }
