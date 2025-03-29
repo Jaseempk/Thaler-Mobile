@@ -12,7 +12,7 @@ import {
   THALER_SAVINGS_POOL_ADDRESS,
   TIME_CONSTANTS,
 } from "../constants/Contracts";
-import { encodeFunctionData } from "viem";
+import { encodeFunctionData, erc20Abi } from "viem";
 import { useEmbeddedEthereumWallet } from "@privy-io/expo";
 
 // Define the structure for a savings pool
@@ -102,6 +102,8 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
         }
 
         const embeddedWallet = wallets.find((w) => w.address === address);
+        // await (embeddedWallet as any).switchChain(84532);
+
         if (!embeddedWallet) {
           throw new Error("No embedded wallet found");
         }
@@ -113,6 +115,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
 
         // Create an ethers provider from the Privy provider
         const provider = new ethers.providers.Web3Provider(privyProvider);
+        console.log("providerss:", provider);
         const newContract = new ethers.Contract(
           THALER_SAVINGS_POOL_ADDRESS,
           THALER_SAVINGS_POOL_ABI,
@@ -218,13 +221,16 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     initialDeposit: string,
     totalIntervals: number
   ) => {
-    if (!address || !contract || !wallets) throw new Error("Wallet not connected");
+    if (!address || !contract || !wallets)
+      throw new Error("Wallet not connected");
 
     setIsLoading(true);
     setError(null);
 
     try {
       const embeddedWallet = wallets.find((w) => w.address === address);
+      // await (embeddedWallet as any).switchChain(84532);
+
       if (!embeddedWallet) throw new Error("No embedded wallet found");
 
       const provider = await embeddedWallet.getProvider();
@@ -251,7 +257,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       // Send transaction
       const txHash = await provider.request({
         method: "eth_sendTransaction",
-        params: [transactionRequest],
+        params: [transactionRequest, { chainId: "84532" }],
       });
 
       await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -279,31 +285,38 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     setError(null);
 
     try {
-      const provider = await wallets[0].getProvider();
+      const embeddedWallet = wallets.find((w) => w.address === address);
+      console.log("embedededAddress:", embeddedWallet);
+      if (!embeddedWallet) throw new Error("No embedded wallet found");
+
+      const provider = await embeddedWallet.getProvider();
       if (!provider) throw new Error("Failed to get provider");
 
       // Convert amounts to wei
-      const amountToSaveWei = ethers.utils.parseEther(amountToSave);
-      const initialDepositWei = ethers.utils.parseEther(initialDeposit);
+      const amountToSaveWei = BigInt(Math.floor(Number(amountToSave) * 1e6));
+      const initialDepositWei = BigInt(
+        Math.floor(Number(initialDeposit) * 1e6)
+      );
+      console.log("amouuntainssWei:", amountToSaveWei);
+      console.log("iniaitatsamouuntainssWei:", initialDepositWei);
 
       // First, approve token spending
       const approveData = encodeFunctionData({
-        abi: [
-          "function approve(address spender, uint256 amount) returns (bool)"
-        ],
+        abi: erc20Abi,
         functionName: "approve",
-        args: [THALER_SAVINGS_POOL_ADDRESS, initialDepositWei],
+        args: [THALER_SAVINGS_POOL_ADDRESS, amountToSaveWei],
       });
-
-      const approveTx = await provider.request({
+      const approveReq = {
+        to: tokenAddress,
+        data: approveData,
+        value: "0x0",
+      };
+      console.log("aaapaapapa");
+      const approvetxHash = await provider.request({
         method: "eth_sendTransaction",
-        params: [{
-          to: tokenAddress,
-          data: approveData,
-          value: "0x0",
-        }],
+        params: [approveReq],
       });
-
+      console.log("approveedededed:", approvetxHash);
       // Wait for approval transaction
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
@@ -311,16 +324,25 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       const createData = encodeFunctionData({
         abi: THALER_SAVINGS_POOL_ABI,
         functionName: "createSavingsPoolERC20",
-        args: [tokenAddress, amountToSaveWei, duration, initialDepositWei, totalIntervals],
+        args: [
+          tokenAddress,
+          amountToSaveWei,
+          duration,
+          initialDepositWei,
+          totalIntervals,
+        ],
       });
+      // Prepare transaction request
+      const transactionRequest = {
+        to: THALER_SAVINGS_POOL_ADDRESS,
+        data: createData,
+        value: "0x0",
+      };
 
-      const createTx = await provider.request({
+      // Send transaction
+      const txHash = await provider.request({
         method: "eth_sendTransaction",
-        params: [{
-          to: THALER_SAVINGS_POOL_ADDRESS,
-          data: createData,
-          value: "0x0",
-        }],
+        params: [transactionRequest, { chainId: "84532" }],
       });
 
       // Wait for creation transaction
@@ -358,11 +380,13 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
 
       const txHash = await provider.request({
         method: "eth_sendTransaction",
-        params: [{
-          to: THALER_SAVINGS_POOL_ADDRESS,
-          data: data,
-          value: depositAmountWei.toHexString(),
-        }],
+        params: [
+          {
+            to: THALER_SAVINGS_POOL_ADDRESS,
+            data: data,
+            value: depositAmountWei.toHexString(),
+          },
+        ],
       });
 
       await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -390,14 +414,14 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       const depositAmountWei = ethers.utils.parseEther(amount);
 
       // Get pool data to get token address
-      const pool = pools.find(p => p.id === poolId);
+      const pool = pools.find((p) => p.id === poolId);
       if (!pool) throw new Error("Pool not found");
       const tokenAddress = pool.tokenToSave;
 
       // First approve token spending
       const approveData = encodeFunctionData({
         abi: [
-          "function approve(address spender, uint256 amount) returns (bool)"
+          "function approve(address spender, uint256 amount) returns (bool)",
         ],
         functionName: "approve",
         args: [THALER_SAVINGS_POOL_ADDRESS, depositAmountWei],
@@ -405,11 +429,13 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
 
       const approveTx = await provider.request({
         method: "eth_sendTransaction",
-        params: [{
-          to: tokenAddress,
-          data: approveData,
-          value: "0x0",
-        }],
+        params: [
+          {
+            to: tokenAddress,
+            data: approveData,
+            value: "0x0",
+          },
+        ],
       });
 
       await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -423,11 +449,13 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
 
       const depositTx = await provider.request({
         method: "eth_sendTransaction",
-        params: [{
-          to: THALER_SAVINGS_POOL_ADDRESS,
-          data: depositData,
-          value: "0x0",
-        }],
+        params: [
+          {
+            to: THALER_SAVINGS_POOL_ADDRESS,
+            data: depositData,
+            value: "0x0",
+          },
+        ],
       });
 
       await new Promise((resolve) => setTimeout(resolve, 5000));

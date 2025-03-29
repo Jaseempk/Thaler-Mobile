@@ -101,12 +101,12 @@ export default function RootLayout() {
         },
       }}
       supportedChains={[
-        base,
         baseSepolia,
-        mainnet,
-        sepolia,
-        polygon,
-        polygonMumbai,
+        // base,
+        // mainnet,
+        // sepolia,
+        // polygon,
+        // polygonMumbai,
       ]}
     >
       <ThemeProvider>
@@ -119,13 +119,13 @@ export default function RootLayout() {
                   headerShown: false,
                 }}
               >
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="auth/welcome"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen name="tabs" options={{ headerShown: false }} />
-            </Stack>
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="auth/welcome"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen name="tabs" options={{ headerShown: false }} />
+              </Stack>
               <PrivyElements />
             </PrivyLogger>
           </SavingsPoolProvider>
