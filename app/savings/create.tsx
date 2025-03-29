@@ -28,6 +28,8 @@ import { UsePrivy } from "../../types/privy";
 import { useWallet } from '../../context/WalletContext';
 import { useSavingsPool } from '../../context/SavingsPoolContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTokenBalances } from '../../hooks/useTokenBalances';
+import CreateTokenBalanceCard from '../../components/wallet/CreateTokenBalanceCard';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -82,7 +84,44 @@ export default function CreateSavingsScreen() {
   const { address: walletAddress, isConnected } = useWallet();
   const { createEthSavingsPool, createERC20SavingsPool, isLoading } = useSavingsPool();
   const { activeTheme } = useTheme();
+  const { balances, refreshBalances } = useTokenBalances();
   
+  // Cache token balances and prices
+  const [cachedBalances, setCachedBalances] = useState<{
+    ETH?: { balance: string; price: number | null };
+    USDC?: { balance: string; price: number | null };
+  }>({});
+  
+  // Update cached values when balances change
+  useEffect(() => {
+    const newCachedBalances: typeof cachedBalances = {};
+    
+    // Update ETH balance
+    const ethToken = balances.find(token => token.symbol === 'ETH');
+    if (ethToken) {
+      newCachedBalances.ETH = {
+        balance: ethToken.balance,
+        price: ethToken.price || null
+      };
+    }
+    
+    // Update USDC balance
+    const usdcToken = balances.find(token => token.symbol === 'USDC');
+    if (usdcToken) {
+      newCachedBalances.USDC = {
+        balance: usdcToken.balance,
+        price: usdcToken.price || null
+      };
+    }
+    
+    setCachedBalances(newCachedBalances);
+  }, [balances]);
+
+  // Calculate USD value using cached price
+  const ethBalanceUSD = cachedBalances.ETH?.price 
+    ? (parseFloat(cachedBalances.ETH.balance) * cachedBalances.ETH.price).toFixed(2)
+    : '0';
+
   // Calculate precise measurements
   const containerPadding = 20; // Form section padding
   const containerWidth = width - (containerPadding * 2); // Available width minus padding
@@ -472,6 +511,53 @@ export default function CreateSavingsScreen() {
       color: '#2ECC71',
       marginLeft: 8,
     },
+    ethBalanceContainer: {
+      backgroundColor: Colors[activeTheme].secondaryLight,
+      borderRadius: 16,
+      padding: 16,
+      marginTop: 16,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: Colors[activeTheme].border,
+    },
+    ethBalanceHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    ethBalanceIcon: {
+      width: 24,
+      height: 24,
+      marginRight: 8,
+      resizeMode: 'contain',
+    },
+    ethBalanceTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: Colors[activeTheme].textSecondary,
+    },
+    ethBalanceRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    ethBalanceAmount: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: Colors[activeTheme].text,
+    },
+    ethBalanceUSD: {
+      fontSize: 14,
+      color: Colors[activeTheme].textSecondary,
+    },
+    refreshButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: Colors[activeTheme].primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
   });
 
   // State management
@@ -762,6 +848,39 @@ export default function CreateSavingsScreen() {
     );
   };
 
+  // Replace the ETH balance display with the new component
+  const renderBalanceCard = () => {
+    if (tokenType === 'ETH' && cachedBalances.ETH) {
+      return (
+        <CreateTokenBalanceCard
+          token={{
+            symbol: 'ETH',
+            balance: cachedBalances.ETH.balance,
+            price: cachedBalances.ETH.price || undefined,
+            logo: ethLogo
+          }}
+          onRefresh={refreshBalances}
+        />
+      );
+    }
+    
+    if (tokenType === 'ERC20' && selectedToken?.symbol === 'USDC' && cachedBalances.USDC) {
+      return (
+        <CreateTokenBalanceCard
+          token={{
+            symbol: 'USDC',
+            balance: cachedBalances.USDC.balance,
+            price: cachedBalances.USDC.price || undefined,
+            logo: usdcLogo
+          }}
+          onRefresh={refreshBalances}
+        />
+      );
+    }
+    
+    return null;
+  };
+
   // Validate form
   const validateForm = () => {
     if (!amountToSave || parseFloat(amountToSave) <= 0) {
@@ -914,7 +1033,9 @@ export default function CreateSavingsScreen() {
                 </View>
               </TouchableOpacity>
             </View>
-            
+
+            {renderBalanceCard()}
+
             {renderTokenSelection()}
           </View>
           

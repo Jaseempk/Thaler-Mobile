@@ -86,33 +86,49 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   children,
 }) => {
   const { address } = useWallet();
+  const { wallets } = useEmbeddedEthereumWallet();
   const [pools, setPools] = useState<SavingsPool[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [contract, setContract] = useState<ethers.Contract | null>(null);
 
-  // Get contract instance
-  const getContract = async (withSigner = false) => {
-    try {
-      const { wallets } = useEmbeddedEthereumWallet();
-      const embeddedWallet = wallets.find((wallet) => wallet.address === address);
-      if (!embeddedWallet) throw new Error("No embedded wallet found");
+  // Initialize contract when address or wallets change
+  useEffect(() => {
+    const initializeContract = async () => {
+      try {
+        if (!address || !wallets) {
+          setContract(null);
+          return;
+        }
 
-      const privyProvider = await embeddedWallet.getProvider();
-      if (!privyProvider) throw new Error("Failed to get provider");
+        const embeddedWallet = wallets.find((w) => w.address === address);
+        if (!embeddedWallet) {
+          throw new Error("No embedded wallet found");
+        }
 
-      // Create an ethers provider from the Privy provider
-      const provider = new ethers.providers.Web3Provider(privyProvider);
+        const privyProvider = await embeddedWallet.getProvider();
+        if (!privyProvider) {
+          throw new Error("Failed to get provider");
+        }
 
-      return new ethers.Contract(
-        THALER_SAVINGS_POOL_ADDRESS,
-        THALER_SAVINGS_POOL_ABI,
-        provider
-      );
-    } catch (error) {
-      console.error("Error getting contract:", error);
-      throw error;
-    }
-  };
+        // Create an ethers provider from the Privy provider
+        const provider = new ethers.providers.Web3Provider(privyProvider);
+        const newContract = new ethers.Contract(
+          THALER_SAVINGS_POOL_ADDRESS,
+          THALER_SAVINGS_POOL_ABI,
+          provider
+        );
+
+        setContract(newContract);
+      } catch (error) {
+        console.error("Error initializing contract:", error);
+        setError("Failed to initialize contract");
+        setContract(null);
+      }
+    };
+
+    initializeContract();
+  }, [address, wallets]);
 
   // Calculate progress percentage
   const calculateProgress = (
@@ -150,17 +166,14 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     };
   };
 
-  // Fetch user's savings pools
+  // Update fetchUserPools to use the contract from state
   const fetchUserPools = async () => {
-    if (!address) return;
+    if (!address || !contract) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const contract = await getContract();
-      console.log("Contract:", contract);
-
       // Fetch all past SavingsPoolCreated events
       const events = await contract.queryFilter(
         contract.filters.SavingsPoolCreated()
@@ -198,25 +211,22 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     }
   };
 
-  // Create ETH savings pool
+  // Update createEthSavingsPool to use wallets directly
   const createEthSavingsPool = async (
     amountToSave: string,
     duration: number,
     initialDeposit: string,
     totalIntervals: number
   ) => {
-    if (!address) throw new Error("Wallet not connected");
+    if (!address || !contract || !wallets) throw new Error("Wallet not connected");
 
     setIsLoading(true);
     setError(null);
 
     try {
-      // Get the embedded wallet
-      const { wallets } = useEmbeddedEthereumWallet();
-      const embeddedWallet = wallets.find((wallet) => wallet.address === address);
+      const embeddedWallet = wallets.find((w) => w.address === address);
       if (!embeddedWallet) throw new Error("No embedded wallet found");
 
-      // Get the provider
       const provider = await embeddedWallet.getProvider();
       if (!provider) throw new Error("Failed to get provider");
 
@@ -235,7 +245,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       const transactionRequest = {
         to: THALER_SAVINGS_POOL_ADDRESS,
         data: data,
-        value: initialDepositWei.toHexString(), // Convert to hex string for ETH value
+        value: initialDepositWei.toHexString(),
       };
 
       // Send transaction
@@ -244,10 +254,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
         params: [transactionRequest],
       });
 
-      // Wait for transaction to be mined
-      await new Promise((resolve) => setTimeout(resolve, 5000)); // Basic wait, you might want to implement proper transaction receipt checking
-
-      // Refresh pools after creation
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       await fetchUserPools();
     } catch (error) {
       console.error("Error creating ETH savings pool:", error);
@@ -266,19 +273,13 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     initialDeposit: string,
     totalIntervals: number
   ) => {
-    if (!address) throw new Error("Wallet not connected");
+    if (!address || !contract) throw new Error("Wallet not connected");
 
     setIsLoading(true);
     setError(null);
 
     try {
-      // Get the embedded wallet
-      const { wallets } = useEmbeddedEthereumWallet();
-      const embeddedWallet = wallets.find((wallet) => wallet.address === address);
-      if (!embeddedWallet) throw new Error("No embedded wallet found");
-
-      // Get the provider
-      const provider = await embeddedWallet.getProvider();
+      const provider = await wallets[0].getProvider();
       if (!provider) throw new Error("Failed to get provider");
 
       // Convert amounts to wei
@@ -338,17 +339,13 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
 
   // Deposit to ETH pool
   const depositToEthPool = async (poolId: string, amount: string) => {
-    if (!address) throw new Error("Wallet not connected");
+    if (!address || !contract) throw new Error("Wallet not connected");
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const { wallets } = useEmbeddedEthereumWallet();
-      const embeddedWallet = wallets.find((wallet) => wallet.address === address);
-      if (!embeddedWallet) throw new Error("No embedded wallet found");
-
-      const provider = await embeddedWallet.getProvider();
+      const provider = await wallets[0].getProvider();
       if (!provider) throw new Error("Failed to get provider");
 
       const depositAmountWei = ethers.utils.parseEther(amount);
@@ -381,17 +378,13 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
 
   // Deposit to ERC20 pool
   const depositToERC20Pool = async (poolId: string, amount: string) => {
-    if (!address) throw new Error("Wallet not connected");
+    if (!address || !contract) throw new Error("Wallet not connected");
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const { wallets } = useEmbeddedEthereumWallet();
-      const embeddedWallet = wallets.find((wallet) => wallet.address === address);
-      if (!embeddedWallet) throw new Error("No embedded wallet found");
-
-      const provider = await embeddedWallet.getProvider();
+      const provider = await wallets[0].getProvider();
       if (!provider) throw new Error("Failed to get provider");
 
       const depositAmountWei = ethers.utils.parseEther(amount);
@@ -454,14 +447,12 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     proof: string,
     publicInputs: string[]
   ) => {
-    if (!address) throw new Error("Wallet not connected");
+    if (!address || !contract) throw new Error("Wallet not connected");
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const contract = await getContract(true);
-
       // Call contract function
       const tx = await contract.withdrawFromEthSavingPool(
         poolId,
@@ -488,14 +479,12 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     proof: string,
     publicInputs: string[]
   ) => {
-    if (!address) throw new Error("Wallet not connected");
+    if (!address || !contract) throw new Error("Wallet not connected");
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const contract = await getContract(true);
-
       // Call contract function
       const tx = await contract.withdrawFromERC20SavingPool(
         poolId,

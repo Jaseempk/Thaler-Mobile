@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
+import { useTheme } from "../../contexts/ThemeContext";
 
 interface TokenData {
   id: string;
@@ -20,7 +21,7 @@ interface TokenData {
   change: string;
   isPositive: boolean;
   logo: any;
-  gradientColors: string[] | [string, string, ...string[]]; // Accept both types for backward compatibility
+  gradientColors: string[] | [string, string, ...string[]];
 }
 
 interface TokenBalanceCardProps {
@@ -34,6 +35,112 @@ const TokenBalanceCard: React.FC<TokenBalanceCardProps> = ({
   theme,
   onPress,
 }) => {
+  const styles = StyleSheet.create({
+    container: {
+      marginBottom: 16,
+      borderRadius: 16,
+      overflow: "hidden",
+      ...Platform.select({
+        ios: {
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+        },
+        android: {
+          elevation: 4,
+        },
+      }),
+    },
+    gradientBackground: {
+      borderRadius: 16,
+    },
+    contentContainer: {
+      padding: 16,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    leftSection: {
+      flexDirection: "row",
+      alignItems: "center",
+      flex: 1,
+    },
+    rightSection: {
+      alignItems: "flex-end",
+      flex: 1,
+    },
+    logoContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: "rgba(255, 255, 255, 0.25)",
+      justifyContent: "center",
+      alignItems: "center",
+      marginRight: 12,
+      padding: 8,
+      overflow: "hidden",
+      ...Platform.select({
+        ios: {
+          shadowColor: "rgba(0, 0, 0, 0.2)",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.3,
+          shadowRadius: 2,
+        },
+        android: {
+          elevation: 2,
+        },
+      }),
+    },
+    tokenLogo: {
+      width: 22,
+      height: 22,
+      resizeMode: "contain",
+    },
+    nameContainer: {
+      justifyContent: "center",
+    },
+    tokenSymbol: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: "#FFFFFF",
+      marginBottom: 2,
+    },
+    tokenName: {
+      fontSize: 14,
+      color: "rgba(255, 255, 255, 0.8)",
+    },
+    tokenBalance: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: "#FFFFFF",
+      marginBottom: 4,
+      textAlign: "right",
+    },
+    valueContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-end",
+    },
+    tokenValue: {
+      fontSize: 14,
+      color: "rgba(255, 255, 255, 0.8)",
+      marginRight: 8,
+    },
+    changeContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 12,
+    },
+    changeText: {
+      fontSize: 10,
+      fontWeight: "600",
+      marginLeft: 2,
+    },
+  });
+
   return (
     <TouchableOpacity
       style={styles.container}
@@ -42,7 +149,6 @@ const TokenBalanceCard: React.FC<TokenBalanceCardProps> = ({
     >
       <LinearGradient
         colors={
-          // Ensure we have at least two colors for the gradient and proper type casting
           (token.gradientColors.length >= 2
             ? ([token.gradientColors[0], token.gradientColors[1]] as [
                 string,
@@ -120,111 +226,5 @@ const TokenBalanceCard: React.FC<TokenBalanceCardProps> = ({
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 16,
-    borderRadius: 16,
-    overflow: "hidden",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  gradientBackground: {
-    borderRadius: 16,
-  },
-  contentContainer: {
-    padding: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  leftSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  rightSection: {
-    alignItems: "flex-end",
-    flex: 1,
-  },
-  logoContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.25)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-    padding: 8, // Added padding to contain the logo better
-    overflow: "hidden", // Ensure the logo doesn't overflow
-    ...Platform.select({
-      ios: {
-        shadowColor: "rgba(0, 0, 0, 0.2)",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.3,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  tokenLogo: {
-    width: 22,
-    height: 22,
-    resizeMode: "contain", // Ensure the logo maintains its aspect ratio
-  },
-  nameContainer: {
-    justifyContent: "center",
-  },
-  tokenSymbol: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 2,
-  },
-  tokenName: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
-  },
-  tokenBalance: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 4,
-    textAlign: "right",
-  },
-  valueContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
-  },
-  tokenValue: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
-    marginRight: 8,
-  },
-  changeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 12,
-  },
-  changeText: {
-    fontSize: 10,
-    fontWeight: "600",
-    marginLeft: 2,
-  },
-});
 
 export default TokenBalanceCard;
