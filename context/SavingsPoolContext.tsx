@@ -193,12 +193,16 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
               id: event.id,
               user: event.user,
               tokenToSave: event.tokenToSave,
-              amountToSave: ethers.utils.formatEther(event.amountToSave),
-              totalSaved: ethers.utils.formatEther(event.totalSaved),
-              duration: Number(event.duration),
-              startDate: Number(event.startDate) * 1000,
-              endDate: Number(event.endDate) * 1000,
-              nextDepositDate: Number(event.nextDepositDate) * 1000,
+              amountToSave: isEth
+                ? ethers.utils.formatEther(event.amountToSave)
+                : (Number(event.amountToSave) / 1e6).toString(),
+              totalSaved: isEth
+                ? ethers.utils.formatEther(event.totalSaved)
+                : (Number(event.totalSaved) / 1e6).toString(),
+              duration: Number(event.duration) / (24 * 60 * 60),
+              startDate: Number(event.startDate),
+              endDate: Number(event.endDate),
+              nextDepositDate: Number(event.nextDepositDate),
               numberOfDeposits: Number(event.numberOfDeposits),
               totalIntervals: Number(event.totalIntervals),
               initialDeposit: ethers.utils.formatEther(event.initialDeposit),
@@ -209,21 +213,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
           }
         );
 
-        const userPools: SavingsPool[] = [];
-        for (const event of poolEvents) {
-          const poolId = event.id;
-          if (!poolId) continue;
-
-          if (event.user.toLowerCase() === address.toLowerCase()) {
-            const isEthPool =
-              event.tokenToSave === ethers.constants.AddressZero;
-            userPools.push(formatPoolData(poolId, event, isEthPool));
-          }
-        }
-        setPools(userPools);
-
-        // setEvents(poolEvents);
-        // setError(null);
+        setPools(poolEvents);
       } catch (err) {
         console.error("Error fetching savings pool events:", err);
         // setError(err instanceof Error ? err : new Error("Failed to fetch events"));
@@ -256,9 +246,9 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       amountToSave: ethers.utils.formatEther(poolData.amountToSave),
       totalSaved: ethers.utils.formatEther(poolData.totalSaved),
       duration: poolData.duration.toNumber(),
-      startDate: poolData.startDate.toNumber() * 1000, // Convert to milliseconds
-      endDate: poolData.endDate.toNumber() * 1000,
-      nextDepositDate: poolData.nextDepositDate.toNumber() * 1000,
+      startDate: poolData.startDate.toNumber(), // Convert to milliseconds
+      endDate: poolData.endDate.toNumber(),
+      nextDepositDate: poolData.nextDepositDate.toNumber(),
       numberOfDeposits: poolData.numberOfDeposits.toNumber(),
       totalIntervals: poolData.totalIntervals,
       initialDeposit: ethers.utils.formatEther(poolData.initialDeposit),

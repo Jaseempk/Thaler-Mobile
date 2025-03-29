@@ -1,58 +1,36 @@
-{
-  "_bodyBlob": {
-    "_data": {
-      "blobId": "18BFDDC9-231A-4798-886D-CF25B47ABFD1",
-      "name": "price.json",
-      "offset": 0,
-      "size": 63,
-      "type": "application/json"
-    }
+[
+  {
+    "amountToSave": "0.0000000012",
+    "duration": 15552000,
+    "endDate": 1758825386000,
+    "id": "0x2b0a4bdb94bf9c46b5121e3e483a1df9df7ab2f8bcd3d084b7ad4c4c4f2561f243000000",
+    "initialDeposit": "0.0000000002",
+    "isEth": false,
+    "nextDepositDate": 1745865386000,
+    "numberOfDeposits": 6,
+    "progress": 17,
+    "startDate": 1743273386000,
+    "tokenSymbol": "USDC",
+    "tokenToSave": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+    "totalIntervals": 6,
+    "totalSaved": "0.0000000002",
+    "user": "0x0b8f1e204afbe78ba056015639f759c6c37a3c57"
   },
-  "_bodyInit": {
-    "_data": {
-      "blobId": "18BFDDC9-231A-4798-886D-CF25B47ABFD1",
-      "name": "price.json",
-      "offset": 0,
-      "size": 63,
-      "type": "application/json"
-    }
-  },
-  "bodyUsed": true,
-  "headers": {
-    "map": {
-      "access-control-allow-headers": "Origin, X-Requested-With, Content-Type, Accept, Authorization",
-      "access-control-allow-methods": "POST, PUT, DELETE, GET, OPTIONS",
-      "access-control-allow-origin": "*",
-      "access-control-expose-headers": "link, per-page, total",
-      "access-control-request-method": "*",
-      "age": "56",
-      "alt-svc": "h3=\":443\"; ma=86400",
-      "alternate-protocol": "443:npn-spdy/2",
-      "cache-control": "max-age=30, public, must-revalidate, s-maxage=60",
-      "cf-cache-status": "HIT",
-      "cf-ray": "927a6f588ce37f77-MAA",
-      "content-encoding": "gzip",
-      "content-type": "application/json; charset=utf-8",
-      "date": "Fri, 28 Mar 2025 22:06:29 GMT",
-      "etag": "W/\"7c319a6fe3061b439674d0dde2589061\"",
-      "priority": "u=3,i",
-      "referrer-policy": "strict-origin-when-cross-origin",
-      "server": "cloudflare",
-      "server-timing": "cfExtPri",
-      "strict-transport-security": "max-age=15724800; includeSubdomains",
-      "vary": "Accept-Encoding, Origin",
-      "x-content-type-options": "nosniff",
-      "x-download-options": "noopen",
-      "x-frame-options": "SAMEORIGIN",
-      "x-permitted-cross-domain-policies": "none",
-      "x-request-id": "99d6a654-17f8-41cf-9d0e-a6c045183e98",
-      "x-runtime": "0.002898",
-      "x-xss-protection": "0"
-    }
-  },
-  "ok": true,
-  "status": 200,
-  "statusText": "",
-  "type": "default",
-  "url": "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd&include_24hr_change=true"
-}
+  {
+    "amountToSave": "1.2",
+    "duration": 15552000,
+    "endDate": 1758815884000,
+    "id": "0xe50cfea0d90dfba0992d75df6a2a451665a037f4792c65955df08a07b3533aa396000000",
+    "initialDeposit": "0.2",
+    "isEth": true,
+    "nextDepositDate": 1745855884000,
+    "numberOfDeposits": 6,
+    "progress": 17,
+    "startDate": 1743263884000,
+    "tokenSymbol": "ETH",
+    "tokenToSave": "0x0000000000000000000000000000000000000000",
+    "totalIntervals": 6,
+    "totalSaved": "0.2",
+    "user": "0x0b8f1e204afbe78ba056015639f759c6c37a3c57"
+  }
+]
