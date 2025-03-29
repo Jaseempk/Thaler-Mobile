@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Modal,
   View,
@@ -36,20 +36,88 @@ export default function StatusModal({
   theme,
 }: StatusModalProps) {
   const isDarkMode = theme === 'dark';
+  const animatedValue1 = useRef(new Animated.Value(0)).current;
+  const animatedValue2 = useRef(new Animated.Value(0)).current;
+  const scaleValue = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (visible) {
+      // First animation: flowing gradient
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(animatedValue1, {
+            toValue: 1,
+            duration: 4000,
+            useNativeDriver: true,
+            easing: (t) => t,
+          }),
+        ])
+      ).start();
+
+      // Second animation: pulsing effect
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(animatedValue2, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+            easing: (t) => Math.sin(t * Math.PI),
+          }),
+        ])
+      ).start();
+
+      // Scale animation for the icon
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(scaleValue, {
+            toValue: 1.1,
+            duration: 1500,
+            useNativeDriver: true,
+            easing: (t) => Math.sin(t * Math.PI),
+          }),
+          Animated.timing(scaleValue, {
+            toValue: 1,
+            duration: 1500,
+            useNativeDriver: true,
+            easing: (t) => Math.sin(t * Math.PI),
+          }),
+        ])
+      ).start();
+    } else {
+      animatedValue1.setValue(0);
+      animatedValue2.setValue(0);
+      scaleValue.setValue(1);
+    }
+  }, [visible]);
 
   const getIconName = () => {
     return type === 'success' ? 'checkmark-circle' : 'alert-circle';
   };
 
-  const getGradientColors = (): [string, string] => {
+  const getGradientColors = (): [string, string, string] => {
     return type === 'success'
       ? isDarkMode
-        ? ['#2E7D32', '#1A237E']
-        : ['#4CAF50', '#1E88E5']
+        ? ['#00C853', '#1B5E20', '#00C853']
+        : ['#69F0AE', '#00C853', '#69F0AE']
       : isDarkMode
-      ? ['#D32F2F', '#1A237E']
-      : ['#F44336', '#1E88E5'];
+      ? ['#D32F2F', '#1A237E', '#D32F2F']
+      : ['#F44336', '#1E88E5', '#F44336'];
   };
+
+  const translateX1 = animatedValue1.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, width],
+  });
+
+  const translateX2 = animatedValue2.interpolate({
+    inputRange: [0, 1],
+    outputRange: [width, 0],
+  });
+
+  const opacity = animatedValue2.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.3, 0.6, 0.3],
+  });
 
   return (
     <Modal
@@ -72,21 +140,62 @@ export default function StatusModal({
             },
           ]}
         >
-          <LinearGradient
-            colors={getGradientColors()}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.headerGradient}
-          >
-            <View style={styles.iconContainer}>
-              <Ionicons
-                name={getIconName()}
-                size={40}
-                color="#FFFFFF"
+          <View style={styles.headerContainer}>
+            <LinearGradient
+              colors={getGradientColors()}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.headerGradient, { position: 'absolute' }]}
+            />
+            <Animated.View
+              style={[
+                styles.animatedGradient,
+                {
+                  transform: [{ translateX: translateX1 }],
+                },
+              ]}
+            >
+              <LinearGradient
+                colors={['transparent', 'rgba(255, 255, 255, 0.15)', 'transparent']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.shineGradient}
               />
+            </Animated.View>
+            <Animated.View
+              style={[
+                styles.animatedGradient,
+                {
+                  transform: [{ translateX: translateX2 }],
+                  opacity,
+                },
+              ]}
+            >
+              <LinearGradient
+                colors={['transparent', 'rgba(255, 255, 255, 0.1)', 'transparent']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.shineGradient}
+              />
+            </Animated.View>
+            <View style={styles.headerContent}>
+              <Animated.View
+                style={[
+                  styles.iconContainer,
+                  {
+                    transform: [{ scale: scaleValue }],
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={getIconName()}
+                  size={40}
+                  color="#FFFFFF"
+                />
+              </Animated.View>
+              <Text style={styles.title}>{title}</Text>
             </View>
-            <Text style={styles.title}>{title}</Text>
-          </LinearGradient>
+          </View>
 
           <View style={styles.content}>
             <Text
@@ -171,7 +280,29 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  headerContainer: {
+    position: 'relative',
+    overflow: 'hidden',
+  },
   headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  animatedGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  shineGradient: {
+    width: width,
+    height: '100%',
+  },
+  headerContent: {
     padding: 24,
     alignItems: 'center',
   },

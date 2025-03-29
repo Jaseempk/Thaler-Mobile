@@ -12,6 +12,8 @@ import {
   THALER_SAVINGS_POOL_ADDRESS,
   TIME_CONSTANTS,
 } from "../constants/Contracts";
+import { encodeFunctionData } from "viem";
+import { useEmbeddedEthereumWallet } from "@privy-io/expo";
 
 // Define the structure for a savings pool
 interface SavingsPool {
@@ -64,43 +66,26 @@ interface SavingsPoolContextType {
   refreshPools: () => Promise<void>;
 }
 
-const SavingsPoolContext = createContext<SavingsPoolContextType>({
-  pools: [],
-  isLoading: false,
-  error: null,
-  createEthSavingsPool: async () => {
-    throw new Error("Not implemented");
-  },
-  createERC20SavingsPool: async () => {
-    throw new Error("Not implemented");
-  },
-  depositToEthPool: async () => {
-    throw new Error("Not implemented");
-  },
-  depositToERC20Pool: async () => {
-    throw new Error("Not implemented");
-  },
-  withdrawFromEthPool: async () => {
-    throw new Error("Not implemented");
-  },
-  withdrawFromERC20Pool: async () => {
-    throw new Error("Not implemented");
-  },
-  refreshPools: async () => {
-    throw new Error("Not implemented");
-  },
-});
-
-export const useSavingsPool = () => useContext(SavingsPoolContext);
-
 interface SavingsPoolProviderProps {
   children: ReactNode;
 }
 
+const SavingsPoolContext = createContext<SavingsPoolContextType | undefined>(
+  undefined
+);
+
+export const useSavingsPool = () => {
+  const context = useContext(SavingsPoolContext);
+  if (context === undefined) {
+    throw new Error("useSavingsPool must be used within a SavingsPoolProvider");
+  }
+  return context;
+};
+
 export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   children,
 }) => {
-  const { address, getProvider, getSigner } = useWallet();
+  const { address } = useWallet();
   const [pools, setPools] = useState<SavingsPool[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -108,23 +93,21 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   // Get contract instance
   const getContract = async (withSigner = false) => {
     try {
-      if (withSigner) {
-        const signer = await getSigner();
-        if (!signer) throw new Error("No signer available");
-        return new ethers.Contract(
-          THALER_SAVINGS_POOL_ADDRESS,
-          THALER_SAVINGS_POOL_ABI,
-          signer
-        );
-      } else {
-        const provider = await getProvider();
-        if (!provider) throw new Error("No provider available");
-        return new ethers.Contract(
-          THALER_SAVINGS_POOL_ADDRESS,
-          THALER_SAVINGS_POOL_ABI,
-          provider
-        );
-      }
+      const { wallets } = useEmbeddedEthereumWallet();
+      const embeddedWallet = wallets.find((wallet) => wallet.address === address);
+      if (!embeddedWallet) throw new Error("No embedded wallet found");
+
+      const privyProvider = await embeddedWallet.getProvider();
+      if (!privyProvider) throw new Error("Failed to get provider");
+
+      // Create an ethers provider from the Privy provider
+      const provider = new ethers.providers.Web3Provider(privyProvider);
+
+      return new ethers.Contract(
+        THALER_SAVINGS_POOL_ADDRESS,
+        THALER_SAVINGS_POOL_ABI,
+        provider
+      );
     } catch (error) {
       console.error("Error getting contract:", error);
       throw error;
@@ -228,22 +211,41 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     setError(null);
 
     try {
-      const contract = await getContract(true);
+      // Get the embedded wallet
+      const { wallets } = useEmbeddedEthereumWallet();
+      const embeddedWallet = wallets.find((wallet) => wallet.address === address);
+      if (!embeddedWallet) throw new Error("No embedded wallet found");
+
+      // Get the provider
+      const provider = await embeddedWallet.getProvider();
+      if (!provider) throw new Error("Failed to get provider");
 
       // Convert amounts to wei
       const amountToSaveWei = ethers.utils.parseEther(amountToSave);
       const initialDepositWei = ethers.utils.parseEther(initialDeposit);
 
-      // Call contract function
-      const tx = await contract.createSavingsPoolEth(
-        amountToSaveWei,
-        duration,
-        initialDepositWei,
-        totalIntervals,
-        { value: initialDepositWei }
-      );
+      // Encode function data using viem
+      const data = encodeFunctionData({
+        abi: THALER_SAVINGS_POOL_ABI,
+        functionName: "createSavingsPoolEth",
+        args: [amountToSaveWei, duration, initialDepositWei, totalIntervals],
+      });
 
-      await tx.wait();
+      // Prepare transaction request
+      const transactionRequest = {
+        to: THALER_SAVINGS_POOL_ADDRESS,
+        data: data,
+        value: initialDepositWei.toHexString(), // Convert to hex string for ETH value
+      };
+
+      // Send transaction
+      const txHash = await provider.request({
+        method: "eth_sendTransaction",
+        params: [transactionRequest],
+      });
+
+      // Wait for transaction to be mined
+      await new Promise((resolve) => setTimeout(resolve, 5000)); // Basic wait, you might want to implement proper transaction receipt checking
 
       // Refresh pools after creation
       await fetchUserPools();
@@ -270,40 +272,58 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     setError(null);
 
     try {
-      const signer = await getSigner();
-      if (!signer) throw new Error("No signer available");
+      // Get the embedded wallet
+      const { wallets } = useEmbeddedEthereumWallet();
+      const embeddedWallet = wallets.find((wallet) => wallet.address === address);
+      if (!embeddedWallet) throw new Error("No embedded wallet found");
 
-      // Get ERC20 token contract
-      const tokenContract = new ethers.Contract(
-        tokenAddress,
-        ["function approve(address spender, uint256 amount) returns (bool)"],
-        signer
-      );
+      // Get the provider
+      const provider = await embeddedWallet.getProvider();
+      if (!provider) throw new Error("Failed to get provider");
 
       // Convert amounts to wei
       const amountToSaveWei = ethers.utils.parseEther(amountToSave);
       const initialDepositWei = ethers.utils.parseEther(initialDeposit);
 
-      // Approve token spending
-      const approveTx = await tokenContract.approve(
-        THALER_SAVINGS_POOL_ADDRESS,
-        initialDepositWei
-      );
-      await approveTx.wait();
+      // First, approve token spending
+      const approveData = encodeFunctionData({
+        abi: [
+          "function approve(address spender, uint256 amount) returns (bool)"
+        ],
+        functionName: "approve",
+        args: [THALER_SAVINGS_POOL_ADDRESS, initialDepositWei],
+      });
 
-      // Get savings pool contract
-      const contract = await getContract(true);
+      const approveTx = await provider.request({
+        method: "eth_sendTransaction",
+        params: [{
+          to: tokenAddress,
+          data: approveData,
+          value: "0x0",
+        }],
+      });
 
-      // Create savings pool
-      const tx = await contract.createSavingsPoolERC20(
-        tokenAddress,
-        amountToSaveWei,
-        duration,
-        initialDepositWei,
-        totalIntervals
-      );
+      // Wait for approval transaction
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
-      await tx.wait();
+      // Then create the savings pool
+      const createData = encodeFunctionData({
+        abi: THALER_SAVINGS_POOL_ABI,
+        functionName: "createSavingsPoolERC20",
+        args: [tokenAddress, amountToSaveWei, duration, initialDepositWei, totalIntervals],
+      });
+
+      const createTx = await provider.request({
+        method: "eth_sendTransaction",
+        params: [{
+          to: THALER_SAVINGS_POOL_ADDRESS,
+          data: createData,
+          value: "0x0",
+        }],
+      });
+
+      // Wait for creation transaction
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
       // Refresh pools after creation
       await fetchUserPools();
@@ -324,23 +344,35 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     setError(null);
 
     try {
-      const contract = await getContract(true);
+      const { wallets } = useEmbeddedEthereumWallet();
+      const embeddedWallet = wallets.find((wallet) => wallet.address === address);
+      if (!embeddedWallet) throw new Error("No embedded wallet found");
 
-      // Convert amount to wei
-      const amountWei = ethers.utils.parseEther(amount);
+      const provider = await embeddedWallet.getProvider();
+      if (!provider) throw new Error("Failed to get provider");
 
-      // Call contract function
-      const tx = await contract.depositToEthSavingPool(poolId, amountWei, {
-        value: amountWei,
+      const depositAmountWei = ethers.utils.parseEther(amount);
+
+      const data = encodeFunctionData({
+        abi: THALER_SAVINGS_POOL_ABI,
+        functionName: "depositToEthSavingPool",
+        args: [poolId, depositAmountWei],
       });
 
-      await tx.wait();
+      const txHash = await provider.request({
+        method: "eth_sendTransaction",
+        params: [{
+          to: THALER_SAVINGS_POOL_ADDRESS,
+          data: data,
+          value: depositAmountWei.toHexString(),
+        }],
+      });
 
-      // Refresh pools after deposit
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       await fetchUserPools();
     } catch (error) {
       console.error("Error depositing to ETH pool:", error);
-      setError("Failed to deposit to ETH savings pool");
+      setError("Failed to deposit to ETH pool");
       throw error;
     } finally {
       setIsLoading(false);
@@ -355,41 +387,61 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     setError(null);
 
     try {
-      const contract = await getContract(true);
+      const { wallets } = useEmbeddedEthereumWallet();
+      const embeddedWallet = wallets.find((wallet) => wallet.address === address);
+      if (!embeddedWallet) throw new Error("No embedded wallet found");
+
+      const provider = await embeddedWallet.getProvider();
+      if (!provider) throw new Error("Failed to get provider");
+
+      const depositAmountWei = ethers.utils.parseEther(amount);
 
       // Get pool data to get token address
-      const poolData = await contract.savingsPools(poolId);
-      const tokenAddress = poolData.tokenToSave;
+      const pool = pools.find(p => p.id === poolId);
+      if (!pool) throw new Error("Pool not found");
+      const tokenAddress = pool.tokenToSave;
 
-      const signer = await getSigner();
-      if (!signer) throw new Error("No signer available");
+      // First approve token spending
+      const approveData = encodeFunctionData({
+        abi: [
+          "function approve(address spender, uint256 amount) returns (bool)"
+        ],
+        functionName: "approve",
+        args: [THALER_SAVINGS_POOL_ADDRESS, depositAmountWei],
+      });
 
-      // Get ERC20 token contract
-      const tokenContract = new ethers.Contract(
-        tokenAddress,
-        ["function approve(address spender, uint256 amount) returns (bool)"],
-        signer
-      );
+      const approveTx = await provider.request({
+        method: "eth_sendTransaction",
+        params: [{
+          to: tokenAddress,
+          data: approveData,
+          value: "0x0",
+        }],
+      });
 
-      // Convert amount to wei
-      const amountWei = ethers.utils.parseEther(amount);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
-      // Approve token spending
-      const approveTx = await tokenContract.approve(
-        THALER_SAVINGS_POOL_ADDRESS,
-        amountWei
-      );
-      await approveTx.wait();
+      // Then deposit
+      const depositData = encodeFunctionData({
+        abi: THALER_SAVINGS_POOL_ABI,
+        functionName: "depositToERC20SavingPool",
+        args: [poolId, depositAmountWei],
+      });
 
-      // Deposit to pool
-      const tx = await contract.depositToERC20SavingPool(poolId, amountWei);
-      await tx.wait();
+      const depositTx = await provider.request({
+        method: "eth_sendTransaction",
+        params: [{
+          to: THALER_SAVINGS_POOL_ADDRESS,
+          data: depositData,
+          value: "0x0",
+        }],
+      });
 
-      // Refresh pools after deposit
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       await fetchUserPools();
     } catch (error) {
       console.error("Error depositing to ERC20 pool:", error);
-      setError("Failed to deposit to ERC20 savings pool");
+      setError("Failed to deposit to ERC20 pool");
       throw error;
     } finally {
       setIsLoading(false);
