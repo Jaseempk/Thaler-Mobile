@@ -14,6 +14,8 @@ import {
 } from "../constants/Contracts";
 import { encodeFunctionData, erc20Abi } from "viem";
 import { useEmbeddedEthereumWallet } from "@privy-io/expo";
+import { gql, useQuery } from "@apollo/client";
+import { apolloClient } from "../lib/apollo-client";
 
 // Define the structure for a savings pool
 interface SavingsPool {
@@ -74,6 +76,33 @@ const SavingsPoolContext = createContext<SavingsPoolContextType | undefined>(
   undefined
 );
 
+const SAVINGS_POOL_EVENTS_QUERY = gql`
+  query GetSavingsPoolEvents($user: Bytes!) {
+    savingsPoolCreateds(
+      where: { user: $user }
+      orderBy: blockTimestamp
+      orderDirection: desc
+    ) {
+      id
+      user
+      duration
+      numberOfDeposits
+      totalSaved
+      tokenToSave
+      amountToSave
+      totalIntervals
+      initialDeposit
+      endDate
+      startDate
+      nextDepositDate
+      lastDepositedTimestamp
+      blockNumber
+      blockTimestamp
+      transactionHash
+    }
+  }
+`;
+
 export const useSavingsPool = () => {
   const context = useContext(SavingsPoolContext);
   if (context === undefined) {
@@ -85,12 +114,12 @@ export const useSavingsPool = () => {
 export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   children,
 }) => {
-  const { address } = useWallet();
   const { wallets } = useEmbeddedEthereumWallet();
   const [pools, setPools] = useState<SavingsPool[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [contract, setContract] = useState<ethers.Contract | null>(null);
+  const { address } = useWallet();
 
   // Initialize contract when address or wallets change
   useEffect(() => {
@@ -143,6 +172,76 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     if (target === 0) return 0;
     return Math.min(Math.round((saved / target) * 100), 100);
   };
+  useEffect(() => {
+    if (!address) return;
+
+    let intervalId: NodeJS.Timeout;
+
+    const fetchEvents = async () => {
+      // setIsLoading(true);
+      try {
+        const { data } = await apolloClient.query({
+          query: SAVINGS_POOL_EVENTS_QUERY,
+          variables: { user: address?.toLowerCase() },
+        });
+
+        // Transform data to match expected format
+        const poolEvents: SavingsPool[] = (data.savingsPoolCreateds || []).map(
+          (event: SavingsPool) => {
+            const isEth = event.tokenToSave === ethers.constants.AddressZero;
+            return {
+              id: event.id,
+              user: event.user,
+              tokenToSave: event.tokenToSave,
+              amountToSave: ethers.utils.formatEther(event.amountToSave),
+              totalSaved: ethers.utils.formatEther(event.totalSaved),
+              duration: Number(event.duration),
+              startDate: Number(event.startDate) * 1000,
+              endDate: Number(event.endDate) * 1000,
+              nextDepositDate: Number(event.nextDepositDate) * 1000,
+              numberOfDeposits: Number(event.numberOfDeposits),
+              totalIntervals: Number(event.totalIntervals),
+              initialDeposit: ethers.utils.formatEther(event.initialDeposit),
+              progress: calculateProgress(event.totalSaved, event.amountToSave),
+              isEth,
+              tokenSymbol: isEth ? "ETH" : "USDC",
+            };
+          }
+        );
+
+        const userPools: SavingsPool[] = [];
+        for (const event of poolEvents) {
+          const poolId = event.id;
+          if (!poolId) continue;
+
+          if (event.user.toLowerCase() === address.toLowerCase()) {
+            const isEthPool =
+              event.tokenToSave === ethers.constants.AddressZero;
+            userPools.push(formatPoolData(poolId, event, isEthPool));
+          }
+        }
+        setPools(userPools);
+
+        // setEvents(poolEvents);
+        // setError(null);
+      } catch (err) {
+        console.error("Error fetching savings pool events:", err);
+        // setError(err instanceof Error ? err : new Error("Failed to fetch events"));
+      } finally {
+        // setIsLoading(false);
+      }
+    };
+
+    // Initial fetch
+    fetchEvents();
+
+    // Set up polling every 30 seconds
+    intervalId = setInterval(fetchEvents, 30000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [address]);
 
   // Format pool data from contract
   const formatPoolData = (
@@ -286,7 +385,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
 
     try {
       const embeddedWallet = wallets.find((w) => w.address === address);
-      console.log("embedededAddress:", embeddedWallet);
+
       if (!embeddedWallet) throw new Error("No embedded wallet found");
 
       const provider = await embeddedWallet.getProvider();
@@ -297,8 +396,6 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       const initialDepositWei = BigInt(
         Math.floor(Number(initialDeposit) * 1e6)
       );
-      console.log("amouuntainssWei:", amountToSaveWei);
-      console.log("iniaitatsamouuntainssWei:", initialDepositWei);
 
       // First, approve token spending
       const approveData = encodeFunctionData({
@@ -311,14 +408,14 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
         data: approveData,
         value: "0x0",
       };
-      console.log("aaapaapapa");
+
       const approvetxHash = await provider.request({
         method: "eth_sendTransaction",
         params: [approveReq],
       });
-      console.log("approveedededed:", approvetxHash);
+
       // Wait for approval transaction
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Then create the savings pool
       const createData = encodeFunctionData({

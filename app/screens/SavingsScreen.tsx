@@ -21,7 +21,8 @@ import SavingsPoolCard from "../../components/savings/SavingsPoolCard";
 import Colors from "../../constants/Colors";
 import { SavingsPool } from "../../models/savings";
 
-type SavingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type SavingsScreenNavigationProp =
+  NativeStackNavigationProp<RootStackParamList>;
 
 const SavingsScreen = () => {
   const navigation = useNavigation<SavingsScreenNavigationProp>();
@@ -83,7 +84,7 @@ const SavingsScreen = () => {
       resetForm();
     } catch (error: any) {
       console.error("Error creating pool:", error);
-      alert(`Failed to create pool: ${error.message || 'Unknown error'}`);
+      alert(`Failed to create pool: ${error.message || "Unknown error"}`);
     }
   };
 
@@ -101,7 +102,7 @@ const SavingsScreen = () => {
       setDepositAmount("");
     } catch (error: any) {
       console.error("Error depositing to pool:", error);
-      alert(`Failed to deposit: ${error.message || 'Unknown error'}`);
+      alert(`Failed to deposit: ${error.message || "Unknown error"}`);
     }
   };
 
@@ -110,7 +111,7 @@ const SavingsScreen = () => {
     try {
       if (!selectedPool) return;
 
-      // In a real app, you would generate the zero-knowledge proof here
+      // In a real app,  would generate the zero-knowledge proof here
       // For now, we'll just use placeholder values
       const proof = withdrawProof || "0x";
       const publicInputs = ["0"];
@@ -124,7 +125,7 @@ const SavingsScreen = () => {
       setWithdrawProof("");
     } catch (error: any) {
       console.error("Error withdrawing from pool:", error);
-      alert(`Failed to withdraw: ${error.message || 'Unknown error'}`);
+      alert(`Failed to withdraw: ${error.message || "Unknown error"}`);
     }
   };
 
@@ -151,12 +152,26 @@ const SavingsScreen = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: Colors[activeTheme].background }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: Colors[activeTheme].background },
+      ]}
+    >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors[activeTheme].text} />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Ionicons
+            name="arrow-back"
+            size={24}
+            color={Colors[activeTheme].text}
+          />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: Colors[activeTheme].text }]}>Savings Pools</Text>
+        <Text style={[styles.title, { color: Colors[activeTheme].text }]}>
+          Savings Pools
+        </Text>
         <TouchableOpacity onPress={refreshPools} style={styles.refreshButton}>
           <Ionicons name="refresh" size={24} color={Colors[activeTheme].text} />
         </TouchableOpacity>
@@ -164,20 +179,31 @@ const SavingsScreen = () => {
 
       {!isConnected ? (
         <View style={styles.connectWalletContainer}>
-          <Text style={[styles.connectWalletText, { color: Colors[activeTheme].text }]}>
+          <Text
+            style={[
+              styles.connectWalletText,
+              { color: Colors[activeTheme].text },
+            ]}
+          >
             Connect your wallet to view savings pools
           </Text>
         </View>
       ) : isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors[activeTheme].primary} />
-          <Text style={[styles.loadingText, { color: Colors[activeTheme].text }]}>
+          <Text
+            style={[styles.loadingText, { color: Colors[activeTheme].text }]}
+          >
             Loading savings pools...
           </Text>
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
-          <Text style={[styles.errorText, { color: Colors[activeTheme].error }]}>{error}</Text>
+          <Text
+            style={[styles.errorText, { color: Colors[activeTheme].error }]}
+          >
+            {error}
+          </Text>
           <TouchableOpacity onPress={refreshPools} style={styles.retryButton}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
@@ -186,7 +212,9 @@ const SavingsScreen = () => {
         <ScrollView style={styles.scrollView}>
           {pools.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: Colors[activeTheme].text }]}>
+              <Text
+                style={[styles.emptyText, { color: Colors[activeTheme].text }]}
+              >
                 You don't have any savings pools yet
               </Text>
             </View>
@@ -205,7 +233,10 @@ const SavingsScreen = () => {
       )}
 
       <TouchableOpacity
-        style={[styles.createButton, { backgroundColor: Colors[activeTheme].primary }]}
+        style={[
+          styles.createButton,
+          { backgroundColor: Colors[activeTheme].primary },
+        ]}
         onPress={() => setCreateModalVisible(true)}
       >
         <Text style={styles.createButtonText}>Create New Savings Pool</Text>
@@ -219,8 +250,15 @@ const SavingsScreen = () => {
         onRequestClose={() => setCreateModalVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, { backgroundColor: Colors[activeTheme].card }]}>
-            <Text style={[styles.modalTitle, { color: Colors[activeTheme].text }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: Colors[activeTheme].card },
+            ]}
+          >
+            <Text
+              style={[styles.modalTitle, { color: Colors[activeTheme].text }]}
+            >
               Create Savings Pool
             </Text>
 
@@ -353,14 +391,24 @@ const SavingsScreen = () => {
         onRequestClose={() => setDepositModalVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, { backgroundColor: Colors[activeTheme].card }]}>
-            <Text style={[styles.modalTitle, { color: Colors[activeTheme].text }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: Colors[activeTheme].card },
+            ]}
+          >
+            <Text
+              style={[styles.modalTitle, { color: Colors[activeTheme].text }]}
+            >
               Deposit to Savings Pool
             </Text>
 
             {selectedPool && (
-              <Text style={[styles.poolInfo, { color: Colors[activeTheme].text }]}>
-                Pool Target: {selectedPool.amountToSave} {selectedPool.tokenSymbol}
+              <Text
+                style={[styles.poolInfo, { color: Colors[activeTheme].text }]}
+              >
+                Pool Target: {selectedPool.amountToSave}{" "}
+                {selectedPool.tokenSymbol}
               </Text>
             )}
 
@@ -369,7 +417,9 @@ const SavingsScreen = () => {
                 styles.input,
                 { backgroundColor: Colors[activeTheme].card },
               ]}
-              placeholder={`Amount to Deposit (${selectedPool?.tokenSymbol || "ETH"})`}
+              placeholder={`Amount to Deposit (${
+                selectedPool?.tokenSymbol || "ETH"
+              })`}
               placeholderTextColor={Colors[activeTheme].textSecondary}
               keyboardType="numeric"
               value={depositAmount}
@@ -405,13 +455,22 @@ const SavingsScreen = () => {
         onRequestClose={() => setWithdrawModalVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, { backgroundColor: Colors[activeTheme].card }]}>
-            <Text style={[styles.modalTitle, { color: Colors[activeTheme].text }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: Colors[activeTheme].card },
+            ]}
+          >
+            <Text
+              style={[styles.modalTitle, { color: Colors[activeTheme].text }]}
+            >
               Withdraw from Savings Pool
             </Text>
 
             {selectedPool && (
-              <Text style={[styles.poolInfo, { color: Colors[activeTheme].text }]}>
+              <Text
+                style={[styles.poolInfo, { color: Colors[activeTheme].text }]}
+              >
                 Available: {selectedPool.totalSaved} {selectedPool.tokenSymbol}
               </Text>
             )}
@@ -427,8 +486,11 @@ const SavingsScreen = () => {
               onChangeText={setWithdrawProof}
             />
 
-            <Text style={[styles.noteText, { color: Colors[activeTheme].text }]}>
-              Note: In a real app, the zero-knowledge proof would be generated automatically.
+            <Text
+              style={[styles.noteText, { color: Colors[activeTheme].text }]}
+            >
+              Note: In a real app, the zero-knowledge proof would be generated
+              automatically.
             </Text>
 
             <View style={styles.modalButtonsContainer}>

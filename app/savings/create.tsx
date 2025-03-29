@@ -30,6 +30,7 @@ import { useSavingsPool } from "../../context/SavingsPoolContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTokenBalances } from "../../hooks/useTokenBalances";
 import CreateTokenBalanceCard from "../../components/wallet/CreateTokenBalanceCard";
+import StatusModal from "../../components/modals/StatusModal";
 
 // Enable LayoutAnimation for Android
 if (
@@ -95,6 +96,19 @@ export default function CreateSavingsScreen() {
     ETH?: { balance: string; price: number | null };
     USDC?: { balance: string; price: number | null };
   }>({});
+
+  const [statusModal, setStatusModal] = useState<{
+    visible: boolean;
+    type: "success" | "error";
+    title: string;
+    message: string;
+    transactionHash?: string;
+  }>({
+    visible: false,
+    type: "success",
+    title: "",
+    message: "",
+  });
 
   // Update cached values when balances change
   useEffect(() => {
@@ -973,6 +987,13 @@ export default function CreateSavingsScreen() {
           initialDeposit,
           intervals
         );
+        setStatusModal({
+          visible: true,
+          type: "success",
+          title: "Transaction Successful",
+          message: `ETH Savings Pool Created Successfully `,
+          transactionHash: "txHash",
+        });
       } else {
         console.log("tookenAddressshs:", tokenAddress);
         await createERC20SavingsPool(
@@ -982,19 +1003,22 @@ export default function CreateSavingsScreen() {
           initialDeposit,
           intervals
         );
+        setStatusModal({
+          visible: true,
+          type: "success",
+          title: "Transaction Successful",
+          message: `USDC Savings Pool Created Successfully `,
+          transactionHash: "txHash",
+        });
       }
-
-      Alert.alert(
-        "Success",
-        "Your savings pool has been created successfully!",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
     } catch (error) {
       console.error("Error creating savings pool:", error);
-      Alert.alert(
-        "Error",
-        "Failed to create savings pool. Please try again later."
-      );
+      setStatusModal({
+        visible: true,
+        type: "error",
+        title: "Transaction Failed",
+        message: error as string,
+      });
     }
   };
 
@@ -1244,6 +1268,15 @@ export default function CreateSavingsScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+      <StatusModal
+        visible={statusModal.visible}
+        onClose={() => setStatusModal((prev) => ({ ...prev, visible: false }))}
+        type={statusModal.type}
+        title={statusModal.title}
+        message={statusModal.message}
+        transactionHash={statusModal.transactionHash}
+        theme={activeTheme}
+      />
     </SafeAreaView>
   );
 }
