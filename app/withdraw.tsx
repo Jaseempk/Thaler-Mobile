@@ -25,6 +25,7 @@ import { ethers } from "ethers";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "react-native";
 import { useTokenBalances } from "../hooks/useTokenBalances";
+import { usePrivy } from "@privy-io/expo";
 
 // Import token logos
 const ethLogo = require("../assets/images/ethereum.png");
@@ -67,6 +68,11 @@ type Token = {
   balance: string;
   address?: string;
   decimals: number;
+};
+
+// Add EIP-1193 Provider type
+type EIP1193Provider = {
+  request: (args: { method: string; params?: any[] }) => Promise<any>;
 };
 
 export default function WithdrawScreen() {
@@ -116,18 +122,17 @@ export default function WithdrawScreen() {
   const [isAddressValid, setIsAddressValid] = useState(true);
 
   const animateSelection = (token: Token) => {
-    // Only animate previous selection if it exists
-    if (selectedToken?.symbol) {
-      Animated.spring(
-        animationValues[selectedToken.symbol as keyof typeof animationValues],
-        {
+    // Reset all animation values first
+    Object.keys(animationValues).forEach(key => {
+      if (key !== token.symbol) {
+        Animated.spring(animationValues[key as keyof typeof animationValues], {
           toValue: 0,
           tension: 40,
           friction: 7,
           useNativeDriver: false,
-        }
-      ).start();
-    }
+        }).start();
+      }
+    });
 
     // Animate new selection in
     Animated.spring(
@@ -166,36 +171,57 @@ export default function WithdrawScreen() {
 
     try {
       setIsLoading(true);
-      const provider = await getProvider();
-      const signer = await getSigner();
-
-      if (!provider || !signer) {
-        throw new Error("Failed to get provider or signer");
+      
+      const rawProvider = await getProvider();
+      if (!rawProvider) {
+        throw new Error("Failed to get provider");
       }
 
+      // Cast the provider to EIP1193Provider
+      const provider = rawProvider as unknown as EIP1193Provider;
+      
+      // Calculate amount in Wei
       const amountInWei = ethers.utils.parseUnits(
         amount,
         selectedToken?.decimals
       );
 
       if (selectedToken?.symbol === "ETH") {
-        // Handle ETH withdrawal
-        const tx = await signer.sendTransaction({
-          to: recipientAddress,
-          value: amountInWei,
+        // Handle ETH withdrawal using eth_sendTransaction
+        await provider.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            to: recipientAddress,
+            value: ethers.utils.hexlify(amountInWei),
+            from: address,
+            chainId: '0x14A33', // Base Sepolia chain ID in hex
+          }]
         });
-        await tx.wait();
+        
         Alert.alert("Success", "ETH withdrawal successful!");
       } else {
         // Handle ERC20 withdrawal
-        const contract = new ethers.Contract(
-          selectedToken?.address!,
-          ["function transfer(address to, uint256 amount) returns (bool)"],
-          signer
-        );
+        const erc20Interface = new ethers.utils.Interface([
+          "function transfer(address to, uint256 amount) returns (bool)"
+        ]);
+        
+        // Encode the transfer function call
+        const data = erc20Interface.encodeFunctionData("transfer", [
+          recipientAddress,
+          amountInWei
+        ]);
 
-        const tx = await contract.transfer(recipientAddress, amountInWei);
-        await tx.wait();
+        // Send the transaction
+        await provider.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            to: selectedToken?.address,
+            data,
+            from: address,
+            chainId: '0x14A33', // Base Sepolia chain ID in hex
+          }]
+        });
+
         Alert.alert("Success", "USDC withdrawal successful!");
       }
 
