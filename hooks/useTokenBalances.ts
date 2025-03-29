@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ethers } from 'ethers';
 import { useWallet } from '../context/WalletContext';
 
@@ -21,6 +21,15 @@ interface TokenBalance {
   price?: number;
 }
 
+// Cache for token balances
+const balanceCache = new Map<string, {
+  balances: TokenBalance[];
+  totalBalanceUSD: string;
+  timestamp: number;
+}>();
+
+const CACHE_DURATION = 10000; // 10 seconds cache duration
+
 export function useTokenBalances() {
   const { address, getProvider, isConnected } = useWallet();
   const [balances, setBalances] = useState<TokenBalance[]>([]);
@@ -28,6 +37,8 @@ export function useTokenBalances() {
   const [isLoading, setIsLoading] = useState(false);
   const [ethPrice, setEthPrice] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const lastFetchRef = useRef<number>(0);
+  const isInitialLoadRef = useRef(true);
 
   // Format the balance for display with proper decimal places
   const formatBalance = (balance: string) => {
@@ -50,7 +61,6 @@ export function useTokenBalances() {
   // Fetch ETH price and 24h change from CoinGecko
   const fetchEthPrice = async () => {
     try {
-      console.log('Fetching ETH price...');
       const response = await fetch(
         'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd&include_24hr_change=true'
       );
@@ -60,7 +70,6 @@ export function useTokenBalances() {
       }
       
       const data = await response.json();
-      console.log('ETH price response:', data);
       
       if (!data.ethereum || !data.ethereum.usd) {
         throw new Error('Invalid ETH price data received');
@@ -75,31 +84,40 @@ export function useTokenBalances() {
     } catch (error) {
       console.error('Error fetching ETH price:', error);
       setError('Failed to fetch ETH price');
-      // Set a default price if we can't fetch it
-      setEthPrice(0);
       return {
-        price: 0,
+        price: ethPrice || 0,
         priceChange24h: '0.00'
       };
     }
   };
 
   // Fetch balances
-  const fetchBalances = async () => {
+  const fetchBalances = async (forceRefresh = false) => {
     if (!isConnected || !address) {
-      console.log('Wallet not connected or no address:', { isConnected, address });
       setError('Wallet not connected');
       return;
     }
+
+    // Check cache first
+    const now = Date.now();
+    const cachedData = balanceCache.get(address);
+    if (!forceRefresh && cachedData && (now - cachedData.timestamp) < CACHE_DURATION) {
+      setBalances(cachedData.balances);
+      setTotalBalanceUSD(cachedData.totalBalanceUSD);
+      isInitialLoadRef.current = false;
+      return;
+    }
     
-    setIsLoading(true);
+    // Only show loading state on initial load or force refresh
+    if (isInitialLoadRef.current || forceRefresh) {
+      setIsLoading(true);
+    }
+    
     setError(null);
     
     try {
-      console.log('Fetching balances for address:', address);
       const provider = await getProvider();
       if (!provider) {
-        console.log('No provider available');
         setError('No provider available');
         return;
       }
@@ -108,25 +126,19 @@ export function useTokenBalances() {
       const { price, priceChange24h } = await fetchEthPrice();
 
       // Fetch ETH balance
-      console.log('Fetching ETH balance...');
       const ethBalanceWei = await provider.getBalance(address);
       const formattedEthBalance = ethers.utils.formatEther(ethBalanceWei);
-      console.log('ETH balance:', formattedEthBalance);
 
       // Fetch USDC balance
-      console.log('Fetching USDC balance...');
       const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, provider);
       const usdcBalanceWei = await usdcContract.balanceOf(address);
       const usdcDecimals = await usdcContract.decimals();
       const formattedUsdcBalance = ethers.utils.formatUnits(usdcBalanceWei, usdcDecimals);
-      console.log('USDC balance:', formattedUsdcBalance);
 
       // Calculate total balance in USD
       const ethBalanceUSD = parseFloat(formattedEthBalance) * price;
-      const usdcBalanceUSD = parseFloat(formattedUsdcBalance); // USDC is pegged to USD
+      const usdcBalanceUSD = parseFloat(formattedUsdcBalance);
       const total = ethBalanceUSD + usdcBalanceUSD;
-      console.log('Total balance USD:', total);
-      setTotalBalanceUSD(total.toFixed(2));
 
       // Set token balances with price and price change data
       const newBalances = [
@@ -144,12 +156,22 @@ export function useTokenBalances() {
           balance: formatBalance(formattedUsdcBalance),
           address: USDC_ADDRESS,
           decimals: 6,
-          price: 1, // USDC is pegged to USD
-          priceChange24h: '0.00' // USDC is pegged to USD
+          price: 1,
+          priceChange24h: '0.00'
         }
       ];
-      console.log('Setting balances:', newBalances);
+
+      // Update cache
+      balanceCache.set(address, {
+        balances: newBalances,
+        totalBalanceUSD: total.toFixed(2),
+        timestamp: now
+      });
+
       setBalances(newBalances);
+      setTotalBalanceUSD(total.toFixed(2));
+      lastFetchRef.current = now;
+      isInitialLoadRef.current = false;
 
     } catch (error) {
       console.error('Error fetching balances:', error);
@@ -161,14 +183,12 @@ export function useTokenBalances() {
 
   // Update balances and prices
   useEffect(() => {
-    console.log('useEffect triggered:', { isConnected, address });
     if (isConnected) {
       fetchBalances();
 
       // Refresh every 30 seconds
       const interval = setInterval(() => {
-        console.log('Auto-refreshing balances...');
-        fetchBalances();
+        fetchBalances(true); // Force refresh on interval
       }, 30000);
 
       return () => clearInterval(interval);
@@ -180,6 +200,6 @@ export function useTokenBalances() {
     totalBalanceUSD,
     isLoading,
     error,
-    refreshBalances: fetchBalances
+    refreshBalances: () => fetchBalances(true)
   };
 } 

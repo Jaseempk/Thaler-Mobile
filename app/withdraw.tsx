@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -25,7 +25,9 @@ import { ethers } from "ethers";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "react-native";
 import { useTokenBalances } from "../hooks/useTokenBalances";
-import { usePrivy } from "@privy-io/expo";
+import { useEmbeddedEthereumWallet } from "@privy-io/expo";
+import StatusModal from '../components/modals/StatusModal';
+import { Clipboard } from 'react-native';
 
 // Import token logos
 const ethLogo = require("../assets/images/ethereum.png");
@@ -70,60 +72,68 @@ type Token = {
   decimals: number;
 };
 
-// Add EIP-1193 Provider type
-type EIP1193Provider = {
+// Add EIP1193Provider type
+interface EIP1193Provider {
   request: (args: { method: string; params?: any[] }) => Promise<any>;
-};
+}
 
 export default function WithdrawScreen() {
   const router = useRouter();
   const { activeTheme } = useTheme();
-  const { address, getProvider, getSigner, isConnected } = useWallet();
+  const { address, isConnected } = useWallet();
   const isDarkMode = activeTheme === "dark";
   const [isLoading, setIsLoading] = useState(false);
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const colorScheme = useColorScheme() ?? "light";
-  
+
+  // Get the embedded wallet
+  const { wallets } = useEmbeddedEthereumWallet();
+  const embeddedWallet = wallets.find((wallet) => wallet.address === address);
+
   // Use the useTokenBalances hook
-  const { 
-    balances: tokenBalances, 
-    totalBalanceUSD, 
-    refreshBalances, 
-    isLoading: isBalanceLoading 
+  const {
+    balances: tokenBalances,
+    totalBalanceUSD,
+    refreshBalances,
+    isLoading: isBalanceLoading,
   } = useTokenBalances();
 
-  // Animation values for each token
+  // Initialize tokens with loading state
+  const [tokens, setTokens] = useState<Token[]>([]);
+  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
+
+  // Update tokens and selected token when balances are loaded
+  useEffect(() => {
+    if (tokenBalances.length > 0) {
+      const newTokens: Token[] = tokenBalances.map(
+        (token): Token => ({
+          symbol: token.symbol,
+          name: token.name,
+          logo: token.symbol === "ETH" ? ethLogo : usdcLogo,
+          balance: token.balance,
+          address: token.symbol === "USDC" ? USDC_ADDRESS : undefined,
+          decimals: token.symbol === "ETH" ? 18 : 6,
+        })
+      );
+
+      setTokens(newTokens);
+      // Set initial selected token if not already set
+      if (!selectedToken) {
+        setSelectedToken(newTokens[0]);
+      }
+    }
+  }, [tokenBalances]);
+
+  // Initialize animation values with selected token
   const animationValues = useRef({
-    ETH: new Animated.Value(1),
-    USDC: new Animated.Value(0),
+    ETH: new Animated.Value(selectedToken?.symbol === "ETH" ? 1 : 0),
+    USDC: new Animated.Value(selectedToken?.symbol === "USDC" ? 1 : 0),
   }).current;
-
-  // Handle refresh
-  const onRefresh = React.useCallback(async () => {
-    setRefreshing(true);
-    await refreshBalances();
-    setRefreshing(false);
-  }, [refreshBalances]);
-
-  // Available tokens with real balances
-  const tokens: Token[] = tokenBalances.map((token): Token => ({
-    symbol: token.symbol,
-    name: token.name,
-    logo: token.symbol === 'ETH' ? ethLogo : usdcLogo,
-    balance: token.balance,
-    address: token.symbol === 'USDC' ? USDC_ADDRESS : undefined,
-    decimals: token.symbol === 'ETH' ? 18 : 6,
-  }));
-
-  const [selectedToken, setSelectedToken] = useState<Token | null>(tokens[0] || null);
-  const [amount, setAmount] = useState("");
-  const [recipientAddress, setRecipientAddress] = useState("");
-  const [isAddressValid, setIsAddressValid] = useState(true);
 
   const animateSelection = (token: Token) => {
     // Reset all animation values first
-    Object.keys(animationValues).forEach(key => {
+    Object.keys(animationValues).forEach((key) => {
       if (key !== token.symbol) {
         Animated.spring(animationValues[key as keyof typeof animationValues], {
           toValue: 0,
@@ -154,6 +164,10 @@ export default function WithdrawScreen() {
     return ethAddressRegex.test(address);
   };
 
+  const [amount, setAmount] = useState("");
+  const [recipientAddress, setRecipientAddress] = useState("");
+  const [isAddressValid, setIsAddressValid] = useState(true);
+
   const handleAddressChange = (text: string) => {
     setRecipientAddress(text);
     if (text.length > 0) {
@@ -163,92 +177,138 @@ export default function WithdrawScreen() {
     }
   };
 
+  // Optimize isWithdrawEnabled check
+  const isWithdrawEnabled = useMemo(() => {
+    if (!selectedToken || !amount || !recipientAddress) return false;
+
+    const amountNum = parseFloat(amount);
+    const balanceNum = parseFloat(selectedToken.balance.replace(",", ""));
+
+    return amountNum > 0 && amountNum <= balanceNum && isAddressValid;
+  }, [selectedToken, amount, recipientAddress, isAddressValid]);
+
+  // Handle refresh
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await refreshBalances();
+    setRefreshing(false);
+  }, [refreshBalances]);
+
+  // Handle withdrawal
   const handleWithdraw = async () => {
-    if (!address) {
-      Alert.alert("Error", "Please connect your wallet first");
+    if (!amount || !selectedToken || !embeddedWallet) {
+      setStatusModal({
+        visible: true,
+        type: 'error',
+        title: 'Invalid Input',
+        message: 'Please fill in all fields and select a token',
+      });
       return;
     }
 
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      
-      const rawProvider = await getProvider();
+      // Get the provider from the embedded wallet
+      const rawProvider = await embeddedWallet.getProvider();
+      console.log("embeddedWalet:", embeddedWallet);
+
       if (!rawProvider) {
         throw new Error("Failed to get provider");
       }
 
       // Cast the provider to EIP1193Provider
       const provider = rawProvider as unknown as EIP1193Provider;
-      
-      // Calculate amount in Wei
-      const amountInWei = ethers.utils.parseUnits(
-        amount,
-        selectedToken?.decimals
-      );
 
-      if (selectedToken?.symbol === "ETH") {
-        // Handle ETH withdrawal using eth_sendTransaction
-        await provider.request({
-          method: 'eth_sendTransaction',
-          params: [{
-            to: recipientAddress,
-            value: ethers.utils.hexlify(amountInWei),
-            from: address,
-            chainId: '0x14A33', // Base Sepolia chain ID in hex
-          }]
+      // Convert amount to Wei
+      const amountWei = ethers.utils.parseUnits(amount, selectedToken.decimals);
+
+      if (selectedToken.symbol === "ETH") {
+        // Handle ETH withdrawal
+        const tx = {
+          to: recipientAddress,
+          value: ethers.utils.hexlify(amountWei),
+          from: address,
+          chainId: "84532", // Base Sepolia chain ID in hex
+        };
+
+        const txHash = await provider.request({
+          method: "eth_sendTransaction",
+          params: [tx],
         });
-        
-        Alert.alert("Success", "ETH withdrawal successful!");
+
+        setStatusModal({
+          visible: true,
+          type: 'success',
+          title: 'Transaction Successful',
+          message: `Successfully sent ${amount} ${selectedToken.symbol} to ${recipientAddress}`,
+          transactionHash: txHash,
+        });
+
+        // Clear form
+        setAmount("");
+        setRecipientAddress("");
       } else {
-        // Handle ERC20 withdrawal
+        // Handle USDC withdrawal
         const erc20Interface = new ethers.utils.Interface([
-          "function transfer(address to, uint256 amount) returns (bool)"
+          "function transfer(address to, uint256 amount) returns (bool)",
         ]);
-        
+
         // Encode the transfer function call
         const data = erc20Interface.encodeFunctionData("transfer", [
           recipientAddress,
-          amountInWei
+          amountWei,
         ]);
 
         // Send the transaction
-        await provider.request({
-          method: 'eth_sendTransaction',
-          params: [{
-            to: selectedToken?.address,
-            data,
-            from: address,
-            chainId: '0x14A33', // Base Sepolia chain ID in hex
-          }]
+        const txHash = await provider.request({
+          method: "eth_sendTransaction",
+          params: [
+            {
+              to: selectedToken.address,
+              data,
+              from: address,
+              chainId: "84532", // Base Sepolia chain ID in hex
+            },
+          ],
         });
 
-        Alert.alert("Success", "USDC withdrawal successful!");
+        setStatusModal({
+          visible: true,
+          type: 'success',
+          title: 'Transaction Successful',
+          message: `Successfully sent ${amount} ${selectedToken.symbol} to ${recipientAddress}`,
+          transactionHash: txHash,
+        });
+
+        // Clear form
+        setAmount("");
+        setRecipientAddress("");
       }
 
-      // Clear form and go back
-      setAmount("");
-      setRecipientAddress("");
-      router.back();
+      // Refresh balances after successful withdrawal
+      refreshBalances();
     } catch (error: any) {
       console.error("Withdrawal error:", error);
-      Alert.alert(
-        "Error",
-        error.message || "Failed to process withdrawal. Please try again."
-      );
+      
+      // Handle specific error cases
+      let errorMessage = "Failed to process withdrawal. Please try again.";
+      if (error.message?.includes("insufficient funds")) {
+        errorMessage = "Insufficient funds for transaction. Please check your balance.";
+      } else if (error.message?.includes("user rejected")) {
+        errorMessage = "Transaction was rejected. Please try again.";
+      } else if (error.message?.includes("nonce too low")) {
+        errorMessage = "Transaction failed. Please try again.";
+      }
+
+      setStatusModal({
+        visible: true,
+        type: 'error',
+        title: 'Transaction Failed',
+        message: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const isWithdrawEnabled = () => {
-    return (
-      selectedToken &&
-      amount &&
-      parseFloat(amount) > 0 &&
-      recipientAddress &&
-      isAddressValid &&
-      parseFloat(amount) <= parseFloat(selectedToken.balance.replace(",", ""))
-    );
   };
 
   // Add styles for balance display
@@ -451,6 +511,19 @@ export default function WithdrawScreen() {
     },
   });
 
+  const [statusModal, setStatusModal] = useState<{
+    visible: boolean;
+    type: 'success' | 'error';
+    title: string;
+    message: string;
+    transactionHash?: string;
+  }>({
+    visible: false,
+    type: 'success',
+    title: '',
+    message: '',
+  });
+
   return (
     <SafeAreaView
       style={[
@@ -540,67 +613,107 @@ export default function WithdrawScreen() {
               { backgroundColor: Colors[activeTheme].card },
             ]}
           >
-            {tokens.map((token, index) => {
-              const isSelected = selectedToken?.symbol === token.symbol;
-              const animValue =
-                animationValues[token.symbol as keyof typeof animationValues];
+            {tokens.length === 0 ? (
+              <View style={[styles.tokenItem, { justifyContent: "center" }]}>
+                <ActivityIndicator color={Colors[activeTheme].primary} />
+              </View>
+            ) : (
+              tokens.map((token, index) => {
+                const isSelected = selectedToken?.symbol === token.symbol;
+                const animValue =
+                  animationValues[token.symbol as keyof typeof animationValues];
 
-              return (
-                <React.Fragment key={token.symbol}>
-                  <Animated.View
-                    style={[
-                      styles.tokenItem,
-                      {
-                        backgroundColor: animValue.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [
-                            "transparent",
-                            isDarkMode
-                              ? "rgba(46, 125, 50, 0.35)"
-                              : "rgba(76, 175, 80, 0.1)",
-                          ],
-                        }),
-                        borderWidth: 1,
-                        borderColor: animValue.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [
-                            "transparent",
-                            isDarkMode
-                              ? "rgba(76, 175, 80, 0.5)"
-                              : "rgba(46, 125, 50, 0.2)",
-                          ],
-                        }),
-                      },
-                    ]}
-                  >
-                    <TouchableOpacity
-                      onPress={() => animateSelection(token)}
-                      activeOpacity={0.7}
-                      style={styles.tokenItemContent}
+                return (
+                  <React.Fragment key={token.symbol}>
+                    <Animated.View
+                      style={[
+                        styles.tokenItem,
+                        {
+                          backgroundColor: animValue.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [
+                              "transparent",
+                              isDarkMode
+                                ? "rgba(46, 125, 50, 0.35)"
+                                : "rgba(76, 175, 80, 0.1)",
+                            ],
+                          }),
+                          borderWidth: 1,
+                          borderColor: animValue.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [
+                              "transparent",
+                              isDarkMode
+                                ? "rgba(76, 175, 80, 0.5)"
+                                : "rgba(46, 125, 50, 0.2)",
+                            ],
+                          }),
+                        },
+                      ]}
                     >
-                      <View style={styles.tokenInfo}>
-                        <Animated.View
-                          style={[
-                            styles.tokenIconContainer,
-                            {
-                              backgroundColor: animValue.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [
-                                  "#FFFFFF",
-                                  isDarkMode
-                                    ? "rgba(46, 125, 50, 0.25)"
-                                    : "#FFFFFF",
-                                ],
-                              }),
-                            },
-                          ]}
-                        >
-                          <Image source={token.logo} style={styles.tokenIcon} />
-                        </Animated.View>
+                      <TouchableOpacity
+                        onPress={() => animateSelection(token)}
+                        activeOpacity={0.7}
+                        style={styles.tokenItemContent}
+                      >
+                        <View style={styles.tokenInfo}>
+                          <Animated.View
+                            style={[
+                              styles.tokenIconContainer,
+                              {
+                                backgroundColor: animValue.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: [
+                                    "#FFFFFF",
+                                    isDarkMode
+                                      ? "rgba(46, 125, 50, 0.25)"
+                                      : "#FFFFFF",
+                                  ],
+                                }),
+                              },
+                            ]}
+                          >
+                            <Image
+                              source={token.logo}
+                              style={styles.tokenIcon}
+                            />
+                          </Animated.View>
+                          <View>
+                            <Animated.Text
+                              style={[
+                                styles.tokenSymbol,
+                                {
+                                  color: Colors[activeTheme].text,
+                                  fontWeight: isSelected ? "700" : "600",
+                                  fontSize: animValue.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [16, 18],
+                                  }),
+                                },
+                              ]}
+                            >
+                              {token.symbol}
+                            </Animated.Text>
+                            <Animated.Text
+                              style={[
+                                styles.tokenName,
+                                {
+                                  color: Colors[activeTheme].textSecondary,
+                                  opacity: animValue.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0.7, 1],
+                                  }),
+                                },
+                              ]}
+                            >
+                              {token.name}
+                            </Animated.Text>
+                          </View>
+                        </View>
                         <View>
                           <Animated.Text
                             style={[
-                              styles.tokenSymbol,
+                              styles.tokenBalance,
                               {
                                 color: Colors[activeTheme].text,
                                 fontWeight: isSelected ? "700" : "600",
@@ -611,11 +724,11 @@ export default function WithdrawScreen() {
                               },
                             ]}
                           >
-                            {token.symbol}
+                            {token.balance}
                           </Animated.Text>
                           <Animated.Text
                             style={[
-                              styles.tokenName,
+                              styles.tokenBalanceLabel,
                               {
                                 color: Colors[activeTheme].textSecondary,
                                 opacity: animValue.interpolate({
@@ -625,54 +738,25 @@ export default function WithdrawScreen() {
                               },
                             ]}
                           >
-                            {token.name}
+                            Available
                           </Animated.Text>
                         </View>
-                      </View>
-                      <View>
-                        <Animated.Text
-                          style={[
-                            styles.tokenBalance,
-                            {
-                              color: Colors[activeTheme].text,
-                              fontWeight: isSelected ? "700" : "600",
-                              fontSize: animValue.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [16, 18],
-                              }),
-                            },
-                          ]}
-                        >
-                          {token.balance}
-                        </Animated.Text>
-                        <Animated.Text
-                          style={[
-                            styles.tokenBalanceLabel,
-                            {
-                              color: Colors[activeTheme].textSecondary,
-                              opacity: animValue.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [0.7, 1],
-                              }),
-                            },
-                          ]}
-                        >
-                          Available
-                        </Animated.Text>
-                      </View>
-                    </TouchableOpacity>
-                  </Animated.View>
-                  {index < tokens.length - 1 && (
-                    <View
-                      style={[
-                        styles.divider,
-                        { backgroundColor: Colors[activeTheme].secondaryLight },
-                      ]}
-                    />
-                  )}
-                </React.Fragment>
-              );
-            })}
+                      </TouchableOpacity>
+                    </Animated.View>
+                    {index < tokens.length - 1 && (
+                      <View
+                        style={[
+                          styles.divider,
+                          {
+                            backgroundColor: Colors[activeTheme].secondaryLight,
+                          },
+                        ]}
+                      />
+                    )}
+                  </React.Fragment>
+                );
+              })
+            )}
           </View>
 
           {/* Amount Input */}
@@ -704,7 +788,9 @@ export default function WithdrawScreen() {
                   styles.maxButtonInner,
                   { backgroundColor: Colors[activeTheme].secondaryLight },
                 ]}
-                onPress={() => selectedToken?.balance && setAmount(selectedToken.balance)}
+                onPress={() =>
+                  selectedToken?.balance && setAmount(selectedToken.balance)
+                }
               >
                 <Text
                   style={[
@@ -759,13 +845,13 @@ export default function WithdrawScreen() {
             style={[
               styles.withdrawButton,
               {
-                backgroundColor: isWithdrawEnabled()
+                backgroundColor: isWithdrawEnabled
                   ? Colors[activeTheme].primary
                   : Colors[activeTheme].gray,
               },
             ]}
             onPress={handleWithdraw}
-            disabled={!isWithdrawEnabled() || isLoading}
+            disabled={!isWithdrawEnabled || isLoading}
           >
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
@@ -777,6 +863,17 @@ export default function WithdrawScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Status Modal */}
+      <StatusModal
+        visible={statusModal.visible}
+        onClose={() => setStatusModal(prev => ({ ...prev, visible: false }))}
+        type={statusModal.type}
+        title={statusModal.title}
+        message={statusModal.message}
+        transactionHash={statusModal.transactionHash}
+        theme={activeTheme}
+      />
     </SafeAreaView>
   );
 }
