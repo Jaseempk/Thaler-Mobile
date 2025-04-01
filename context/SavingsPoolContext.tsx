@@ -131,7 +131,6 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
         }
 
         const embeddedWallet = wallets.find((w) => w.address === address);
-        // await (embeddedWallet as any).switchChain(84532);
 
         if (!embeddedWallet) {
           throw new Error("No embedded wallet found");
@@ -165,10 +164,15 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   // Calculate progress percentage
   const calculateProgress = (
     totalSaved: string,
-    amountToSave: string
+    amountToSave: string,
+    isEth: boolean
   ): number => {
-    const saved = parseFloat(ethers.utils.formatEther(totalSaved));
-    const target = parseFloat(ethers.utils.formatEther(amountToSave));
+    const saved = isEth
+      ? parseFloat(ethers.utils.formatEther(totalSaved))
+      : Number(totalSaved) / 1e6;
+    const target = isEth
+      ? parseFloat(ethers.utils.formatEther(amountToSave))
+      : Number(amountToSave) / 1e6;
     if (target === 0) return 0;
     return Math.min(Math.round((saved / target) * 100), 100);
   };
@@ -206,7 +210,11 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
               numberOfDeposits: Number(event.numberOfDeposits),
               totalIntervals: Number(event.totalIntervals),
               initialDeposit: ethers.utils.formatEther(event.initialDeposit),
-              progress: calculateProgress(event.totalSaved, event.amountToSave),
+              progress: calculateProgress(
+                event.totalSaved,
+                event.amountToSave,
+                isEth
+              ),
               isEth,
               tokenSymbol: isEth ? "ETH" : "USDC",
             };
@@ -216,7 +224,6 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
         setPools(poolEvents);
       } catch (err) {
         console.error("Error fetching savings pool events:", err);
-        // setError(err instanceof Error ? err : new Error("Failed to fetch events"));
       } finally {
         // setIsLoading(false);
       }
@@ -252,7 +259,11 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       numberOfDeposits: poolData.numberOfDeposits.toNumber(),
       totalIntervals: poolData.totalIntervals,
       initialDeposit: ethers.utils.formatEther(poolData.initialDeposit),
-      progress: calculateProgress(poolData.totalSaved, poolData.amountToSave),
+      progress: calculateProgress(
+        poolData.totalSaved,
+        poolData.amountToSave,
+        isEth
+      ),
       isEth,
       tokenSymbol: isEth ? "ETH" : "USDC", // Default to USDC for ERC20, should be updated based on token address
     };
