@@ -162,14 +162,14 @@ export default function SavingsScreen() {
     if (now < pool.endDate && pool.progress < 100) {
       Alert.alert(
         "Early Withdrawal",
-        "This pool has not ended yet. Early withdrawals require a zero-knowledge proof. Do you want to proceed?",
+        "This pool has not ended yet. Early withdrawals require accountability charity donations. Do you want to proceed?",
         [
           { text: "Cancel", style: "cancel" },
           {
             text: "Proceed",
             onPress: () => {
               router.push({
-                pathname: "/savings/withdraw",
+                pathname: "/savings/early-withdrawal",
                 params: { id: pool.id, early: "true" },
               });
             },
@@ -933,6 +933,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+    resizeMode: "contain",
   },
   tokenLogoFallback: {
     width: 40,
