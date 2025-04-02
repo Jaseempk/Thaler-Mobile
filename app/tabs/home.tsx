@@ -26,6 +26,7 @@ import { useWallet } from "../../context/WalletContext";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../contexts/ThemeContext";
 import TokenBalanceCard from "../../components/wallet/TokenBalanceCard";
+import TokenBalanceCardSkeleton from "../../components/wallet/TokenBalanceCardSkeleton";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../navigation/types";
@@ -120,18 +121,27 @@ export default function HomeScreen() {
     symbol: token.symbol,
     name: token.name,
     balance: token.balance,
-    value: token.symbol === 'ETH' 
-      ? (parseFloat(token.balance) * (token.price || 0)).toFixed(2)
-      : token.balance,
-    change: token.priceChange24h || '0.00',
-    isPositive: parseFloat(token.priceChange24h || '0.00') >= 0,
-    logo: token.symbol === 'ETH' 
-      ? require("../../assets/images/ethereum.png")
-      : require("../../assets/images/usdc.png"),
-    gradientColors: token.symbol === 'ETH' 
-      ? ["#627EEA", "#3C5BE0"] as [string, string]
-      : ["#2775CA", "#2775CA"] as [string, string],
+    value:
+      token.symbol === "ETH"
+        ? (parseFloat(token.balance) * (token.price || 0)).toFixed(2)
+        : token.balance,
+    change: token.priceChange24h || "0.00",
+    isPositive: parseFloat(token.priceChange24h || "0.00") >= 0,
+    logo:
+      token.symbol === "ETH"
+        ? require("../../assets/images/ethereum.png")
+        : require("../../assets/images/usdc.png"),
+    gradientColors:
+      token.symbol === "ETH"
+        ? (["#627EEA", "#3C5BE0"] as [string, string])
+        : (["#2775CA", "#2775CA"] as [string, string]),
   }));
+
+  // Default token skeletons to show when data is loading
+  const defaultTokens = [
+    { symbol: "ETH", name: "Ethereum" },
+    { symbol: "USDC", name: "USD Coin" }
+  ];
 
   return (
     <SafeAreaView
@@ -398,13 +408,22 @@ export default function HomeScreen() {
           >
             Token Balances
           </Text>
-          {tokenData.map((token) => (
-            <TokenBalanceCard
-              key={token.id}
-              token={token}
-              theme={activeTheme}
-            />
-          ))}
+          {/* Always display token cards, either as skeletons or with real data */}
+          {tokenData.length > 0 ? (
+            // Show real data when available
+            tokenData.map((token) => (
+              <TokenBalanceCard
+                key={token.id}
+                token={token}
+                theme={activeTheme}
+              />
+            ))
+          ) : (
+            // Show skeletons when no data is available yet
+            defaultTokens.map((_, index) => (
+              <TokenBalanceCardSkeleton key={index} theme={activeTheme} />
+            ))
+          )}
         </View>
 
         {/* Recent Activity */}
