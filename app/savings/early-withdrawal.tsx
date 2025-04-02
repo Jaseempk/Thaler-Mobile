@@ -108,13 +108,18 @@ export default function EarlyWithdrawalScreen() {
         const totalDuration = foundPool.endDate - foundPool.startDate;
         const currentTime = Date.now();
         const elapsed = currentTime - foundPool.startDate;
-        const progress = (elapsed / totalDuration) * 100;
         
-        // Update the pool object with the calculated progress
-        foundPool.progress = progress;
-
-        // Set minimum donation percentage based on progress
-        const minPercentage = progress < 50 ? 25 : 12.5;
+        // Calculate progress as percentage (0-100)
+        const progressPercentage = (elapsed / totalDuration) * 100;
+        
+        // For display purposes, ensure the progress is at least 1% to show on timeline
+        // but for calculation purposes, use the actual progress
+        foundPool.progress = Math.max(progressPercentage, 1);
+        
+        // Set minimum donation percentage based on actual progress
+        // If less than 50% through the savings cycle, donation is 25%
+        // Otherwise, donation is 12.5%
+        const minPercentage = progressPercentage < 50 ? 25 : 12.5;
         setMinimumDonationPercentage(minPercentage);
 
         // Calculate minimum donation amount
@@ -428,10 +433,18 @@ export default function EarlyWithdrawalScreen() {
                       <View style={[styles.timelineMarker, { left: "100%" }]}>
                         <Text style={styles.timelineMarkerLabel}>End</Text>
                       </View>
+                      
+                      {/* Position the current marker based on actual progress */}
                       <View
                         style={[
                           styles.timelineCurrentMarker,
-                          { left: `${Math.min(pool.progress, 100)}%` },
+                          { 
+                            // Snap to key points if close to them
+                            left: pool.progress < 5 ? "0%" : 
+                                  (pool.progress > 45 && pool.progress < 55) ? "50%" :
+                                  pool.progress > 95 ? "100%" :
+                                  `${pool.progress}%` 
+                          },
                         ]}
                       >
                         <Text style={styles.currentMarkerLabel}>
@@ -987,6 +1000,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 5,
   },
   timelineMarkerLabel: {
     position: "absolute",
@@ -999,14 +1013,17 @@ const styles = StyleSheet.create({
   },
   timelineCurrentMarker: {
     position: "absolute",
-    top: -4,
-    width: 16,
-    height: 16,
-    marginLeft: -8,
+    top: 0,
+    width: 20,
+    height: 20,
+    marginLeft: -10,
     backgroundColor: "#FF9800",
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: "#FFFFFF",
+    zIndex: 10,
+    justifyContent: "center",
+    alignItems: "center",
   },
   currentMarkerLabel: {
     position: "absolute",
@@ -1016,7 +1033,7 @@ const styles = StyleSheet.create({
     color: "#FF9800",
     width: 80,
     textAlign: "center",
-    marginLeft: -32,
+    marginLeft: -30,
   },
   donationRequirementCard: {
     backgroundColor: "rgba(255, 152, 0, 0.1)",

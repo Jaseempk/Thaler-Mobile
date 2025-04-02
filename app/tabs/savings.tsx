@@ -12,6 +12,7 @@ import {
   Image,
   Dimensions,
   Animated,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import ThemedStatusBar from "../../components/ui/ThemedStatusBar";
@@ -580,8 +581,14 @@ export default function SavingsScreen() {
             { useNativeDriver: false }
           )}
           scrollEventThrottle={16}
-          refreshing={refreshing}
-          onRefresh={handlePullToRefresh}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handlePullToRefresh}
+              tintColor={Colors[activeTheme].text}
+              colors={[Colors[activeTheme].primary]}
+            />
+          }
         >
           {pools.length === 0 ? (
             <View style={styles.emptyContainer}>
