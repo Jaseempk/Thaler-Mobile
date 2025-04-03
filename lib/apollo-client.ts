@@ -2,7 +2,7 @@ import { ApolloClient, InMemoryCache } from "@apollo/client";
 
 const SUBGRAPH_URL =
   process.env.NEXT_PUBLIC_SUBGRAPH_URL ||
-  "https://api.studio.thegraph.com/query/107901/thaler_v1/version/latest";
+  "https://api.studio.thegraph.com/query/107901/thaler_v2/version/latest";
 
 export const apolloClient = new ApolloClient({
   uri: SUBGRAPH_URL,

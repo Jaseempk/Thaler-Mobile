@@ -65,7 +65,7 @@ const recentActivity = [
     avatarColor: "#8247E5",
   },
 ];
-
+//0xDEbd09128C04da6ecf14B8391141D732e420FE05
 export default function HomeScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -140,7 +140,7 @@ export default function HomeScreen() {
   // Default token skeletons to show when data is loading
   const defaultTokens = [
     { symbol: "ETH", name: "Ethereum" },
-    { symbol: "USDC", name: "USD Coin" }
+    { symbol: "USDC", name: "USD Coin" },
   ];
 
   return (
@@ -383,7 +383,6 @@ export default function HomeScreen() {
             </View>
           </LinearGradient>
         </View>
-
         {/* Token Balances */}
         <View style={styles.tokensSection}>
           <View style={styles.sectionHeader}>
@@ -409,21 +408,19 @@ export default function HomeScreen() {
             Token Balances
           </Text>
           {/* Always display token cards, either as skeletons or with real data */}
-          {tokenData.length > 0 ? (
-            // Show real data when available
-            tokenData.map((token) => (
-              <TokenBalanceCard
-                key={token.id}
-                token={token}
-                theme={activeTheme}
-              />
-            ))
-          ) : (
-            // Show skeletons when no data is available yet
-            defaultTokens.map((_, index) => (
-              <TokenBalanceCardSkeleton key={index} theme={activeTheme} />
-            ))
-          )}
+          {tokenData.length > 0
+            ? // Show real data when available
+              tokenData.map((token) => (
+                <TokenBalanceCard
+                  key={token.id}
+                  token={token}
+                  theme={activeTheme}
+                />
+              ))
+            : // Show skeletons when no data is available yet
+              defaultTokens.map((_, index) => (
+                <TokenBalanceCardSkeleton key={index} theme={activeTheme} />
+              ))}
         </View>
 
         {/* Recent Activity */}

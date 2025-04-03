@@ -1,37 +1,78 @@
 // Contract addresses - these would be updated based on deployment environment
 export const THALER_SAVINGS_POOL_ADDRESS =
-  "0xEff4AFDf5a9dEb72c5b0037934820B81a4405be0"; // Placeholder
+  "0x2a55A6D89E46B5108Dc1986Cc8be483CAd0ff867"; // Placeholder
 
 // Time constants from the contract (in seconds)
 export const TIME_CONSTANTS = {
   THREE_MONTHS: 7884000,
-  SIX_MONTHS: 15768000,
+  SIX_MONTHS: 15552000,
   TWELVE_MONTHS: 31536000,
-  INTERVAL: 2628000, // 1 month
+  INTERVAL: 2592000, // 1 month
 };
 // ABIs
 export const THALER_SAVINGS_POOL_ABI = [
-  {
-    inputs: [{ internalType: "address", name: "_verifier", type: "address" }],
-    stateMutability: "nonpayable",
-    type: "constructor",
-  },
+  { inputs: [], stateMutability: "nonpayable", type: "constructor" },
+  { inputs: [], name: "TLR__AlreadyWhitelisted", type: "error" },
   { inputs: [], name: "TLR__CallerNotOwner", type: "error" },
+  { inputs: [], name: "TLR__CharityNotWhitelisted", type: "error" },
+  { inputs: [], name: "TLR__DonationFailed", type: "error" },
   { inputs: [], name: "TLR__ExcessEthDeposit", type: "error" },
   { inputs: [], name: "TLR__INVALID_INPUTS", type: "error" },
-  { inputs: [], name: "TLR__InValidProof", type: "error" },
-  { inputs: [], name: "TLR__InsufficientDonationAmount", type: "error" },
   { inputs: [], name: "TLR__InsufficientSavings", type: "error" },
-  { inputs: [], name: "TLR__InvalidDepositAmount", type: "error" },
+  { inputs: [], name: "TLR__InvalidCharityAddress", type: "error" },
   { inputs: [], name: "TLR__InvalidDuration", type: "error" },
-  { inputs: [], name: "TLR__InvalidEthDepositAmount", type: "error" },
   { inputs: [], name: "TLR__InvalidEthDepositRatio", type: "error" },
   { inputs: [], name: "TLR__InvalidInitialDeposit", type: "error" },
   { inputs: [], name: "TLR__InvalidInitialETHDeposit", type: "error" },
   { inputs: [], name: "TLR__InvalidTotalDuration", type: "error" },
   { inputs: [], name: "TLR__NonExistentPool", type: "error" },
+  { inputs: [], name: "TLR__OnlyOwner", type: "error" },
   { inputs: [], name: "TLR__SavingPoolDepositIntervalNotYet", type: "error" },
   { inputs: [], name: "TLR__SavingPoolEnded", type: "error" },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "address",
+        name: "charityAddress",
+        type: "address",
+      },
+    ],
+    name: "CharityWhitelisted",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "address",
+        name: "user",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "address",
+        name: "charityAddress",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amountDonated",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "address",
+        name: "tokenToSave",
+        type: "address",
+      },
+    ],
+    name: "EarlyWithdrawalDonation",
+    type: "event",
+  },
   {
     anonymous: false,
     inputs: [
@@ -327,21 +368,7 @@ export const THALER_SAVINGS_POOL_ABI = [
   },
   {
     inputs: [],
-    name: "DONATION_RATIO",
-    outputs: [{ internalType: "uint8", name: "", type: "uint8" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
     name: "INTERVAL",
-    outputs: [{ internalType: "uint48", name: "", type: "uint48" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "PRECISION",
     outputs: [{ internalType: "uint48", name: "", type: "uint48" }],
     stateMutability: "view",
     type: "function",
@@ -392,6 +419,13 @@ export const THALER_SAVINGS_POOL_ABI = [
     type: "function",
   },
   {
+    inputs: [{ internalType: "address", name: "", type: "address" }],
+    name: "isWhitelistedCharity",
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [{ internalType: "bytes32", name: "", type: "bytes32" }],
     name: "savingsPools",
     outputs: [
@@ -416,19 +450,18 @@ export const THALER_SAVINGS_POOL_ABI = [
     type: "function",
   },
   {
-    inputs: [],
-    name: "verifier",
-    outputs: [
-      { internalType: "contract IVerifier", name: "", type: "address" },
+    inputs: [
+      { internalType: "address", name: "charityAddress", type: "address" },
     ],
-    stateMutability: "view",
+    name: "whitelistCharity",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
     inputs: [
       { internalType: "bytes32", name: "_savingsPoolId", type: "bytes32" },
-      { internalType: "bytes", name: "_proof", type: "bytes" },
-      { internalType: "bytes32[]", name: "_publicInputs", type: "bytes32[]" },
+      { internalType: "address", name: "_charityAddress", type: "address" },
     ],
     name: "withdrawFromERC20SavingPool",
     outputs: [],
@@ -438,8 +471,7 @@ export const THALER_SAVINGS_POOL_ABI = [
   {
     inputs: [
       { internalType: "bytes32", name: "_savingsPoolId", type: "bytes32" },
-      { internalType: "bytes", name: "_proof", type: "bytes" },
-      { internalType: "bytes32[]", name: "_publicInputs", type: "bytes32[]" },
+      { internalType: "address", name: "_charityAddress", type: "address" },
     ],
     name: "withdrawFromEthSavingPool",
     outputs: [],

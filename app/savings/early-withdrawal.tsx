@@ -41,6 +41,7 @@ const CHARITIES = [
     description: "Providing clean water to communities in need",
     logo: require("../../assets/images/ethereum.png"), // Using existing assets as placeholders
     website: "https://water.org",
+    address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
   },
   {
     id: "2",
@@ -48,6 +49,7 @@ const CHARITIES = [
     description: "Fighting climate change through reforestation",
     logo: require("../../assets/images/ethereum.png"),
     website: "https://climateactionnow.org",
+    address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
   },
   {
     id: "3",
@@ -55,6 +57,7 @@ const CHARITIES = [
     description: "Supporting education in underserved communities",
     logo: require("../../assets/images/usdc.png"),
     website: "https://educationforall.org",
+    address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
   },
   {
     id: "4",
@@ -62,6 +65,7 @@ const CHARITIES = [
     description: "Providing meals to those facing food insecurity",
     logo: require("../../assets/images/usdc.png"),
     website: "https://hungerrelief.org",
+    address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
   },
 ];
 
@@ -72,6 +76,7 @@ type Charity = {
   description: string;
   logo: any;
   website: string;
+  address: string;
 };
 
 export default function EarlyWithdrawalScreen() {
@@ -263,16 +268,25 @@ export default function EarlyWithdrawalScreen() {
     setIsLoading(true);
 
     try {
-      // In a real implementation, this would call the smart contract
-      // with the appropriate parameters for the donation and withdrawal
-
-      // Mock implementation for now
-      setTimeout(() => {
-        setIsLoading(false);
-        router.replace({
-          pathname: "/tabs/savings",
-        });
-      }, 2000);
+      // Call the appropriate withdrawal function based on pool type
+      if (pool.isEth) {
+        await withdrawFromEthPool(
+          pool.id,
+          selectedCharity.address,
+          [] // Empty array for the updated contract that doesn't need ZK proofs
+        );
+      } else {
+        await withdrawFromERC20Pool(
+          pool.id,
+          selectedCharity.address,
+          [] // Empty array for the updated contract that doesn't need ZK proofs
+        );
+      }
+      
+      setIsLoading(false);
+      router.replace({
+        pathname: "/tabs/savings",
+      });
     } catch (error) {
       console.error("Error processing withdrawal:", error);
       setIsLoading(false);
@@ -291,7 +305,10 @@ export default function EarlyWithdrawalScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors[activeTheme].primary} />
           <Text
-            style={[styles.loadingText, { color: Colors[activeTheme].text }]}
+            style={[
+              styles.loadingText,
+              { color: Colors[activeTheme].text },
+            ]}
           >
             Loading pool details...
           </Text>

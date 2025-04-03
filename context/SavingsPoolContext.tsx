@@ -57,12 +57,12 @@ interface SavingsPoolContextType {
   depositToERC20Pool: (poolId: string, amount: string) => Promise<void>;
   withdrawFromEthPool: (
     poolId: string,
-    proof: string,
+    charityAddress: string,
     publicInputs: string[]
   ) => Promise<void>;
   withdrawFromERC20Pool: (
     poolId: string,
-    proof: string,
+    charityAddress: string,
     publicInputs: string[]
   ) => Promise<void>;
   refreshPools: () => Promise<void>;
@@ -204,7 +204,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
                 ? ethers.utils.formatEther(event.totalSaved)
                 : (Number(event.totalSaved) / 1e6).toString(),
               duration: Number(event.duration) / (24 * 60 * 60),
-              startDate: Number(event.startDate),
+              startDate: Number(event.startDate) * 1000,
               endDate: Number(event.endDate) * 1000,
               nextDepositDate: Number(event.nextDepositDate) * 1000,
               numberOfDeposits: Number(event.numberOfDeposits),
@@ -521,7 +521,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   // Withdraw from ETH pool
   const withdrawFromEthPool = async (
     poolId: string,
-    proof: string,
+    charityAddress: string,
     publicInputs: string[]
   ) => {
     if (!address || !contract) throw new Error("Wallet not connected");
@@ -530,15 +530,28 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     setError(null);
 
     try {
-      // Call contract function
-      const tx = await contract.withdrawFromEthSavingPool(
-        poolId,
-        proof,
-        publicInputs
-      );
+      const provider = await wallets[0].getProvider();
+      if (!provider) throw new Error("Failed to get provider");
 
-      await tx.wait();
+      const data = encodeFunctionData({
+        abi: THALER_SAVINGS_POOL_ABI,
+        functionName: "withdrawFromEthSavingPool",
+        args: [poolId, charityAddress],
+      });
 
+      const txHash = await provider.request({
+        method: "eth_sendTransaction",
+        params: [
+          {
+            to: THALER_SAVINGS_POOL_ADDRESS,
+            data: data,
+            value: "0x0",
+          },
+        ],
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      
       // Refresh pools after withdrawal
     } catch (error) {
       console.error("Error withdrawing from ETH pool:", error);
@@ -552,7 +565,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   // Withdraw from ERC20 pool
   const withdrawFromERC20Pool = async (
     poolId: string,
-    proof: string,
+    charityAddress: string,
     publicInputs: string[]
   ) => {
     if (!address || !contract) throw new Error("Wallet not connected");
@@ -561,15 +574,28 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
     setError(null);
 
     try {
-      // Call contract function
-      const tx = await contract.withdrawFromERC20SavingPool(
-        poolId,
-        proof,
-        publicInputs
-      );
+      const provider = await wallets[0].getProvider();
+      if (!provider) throw new Error("Failed to get provider");
 
-      await tx.wait();
+      const data = encodeFunctionData({
+        abi: THALER_SAVINGS_POOL_ABI,
+        functionName: "withdrawFromERC20SavingPool",
+        args: [poolId, charityAddress],
+      });
 
+      const txHash = await provider.request({
+        method: "eth_sendTransaction",
+        params: [
+          {
+            to: THALER_SAVINGS_POOL_ADDRESS,
+            data: data,
+            value: "0x0",
+          },
+        ],
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      
       // Refresh pools after withdrawal
     } catch (error) {
       console.error("Error withdrawing from ERC20 pool:", error);
