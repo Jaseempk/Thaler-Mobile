@@ -303,8 +303,8 @@ export default function StatusModal({
           style={[
             styles.particle,
             {
-              bottom: '25%',
-              left: '30%',
+              top: '20%',
+              right: '25%',
               backgroundColor: '#10B981',
               transform: [
                 {
@@ -329,14 +329,12 @@ export default function StatusModal({
             },
           ]}
         />
-
-        {/* Additional particles for a richer effect */}
         <Animated.View
           style={[
-            styles.smallParticle,
+            styles.particle,
             {
-              top: '45%',
-              right: '25%',
+              bottom: '45%',
+              left: '25%',
               backgroundColor: '#8B5CF6',
               transform: [
                 {
@@ -401,7 +399,7 @@ export default function StatusModal({
                     {
                       scale: scaleAnim.interpolate({
                         inputRange: [0.95, 1, 1.05],
-                        outputRange: [1.2, 1.5, 1.7],
+                        outputRange: [0.9, 1.1, 1.2],
                       }),
                     },
                   ],
@@ -712,18 +710,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    width: 72,
+    height: 72,
   },
   iconGlow: {
     position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     opacity: 0.6,
   },
   iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

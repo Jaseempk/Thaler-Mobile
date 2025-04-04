@@ -81,8 +81,8 @@ const SAVINGS_POOL_EVENTS_QUERY = gql`
       orderBy: blockTimestamp
       orderDirection: desc
     ) {
-      id
       user
+      savingsPoolId
       duration
       numberOfDeposits
       totalSaved
@@ -192,7 +192,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
           (event: SavingsPool) => {
             const isEth = event.tokenToSave === ethers.constants.AddressZero;
             return {
-              id: event.savingsPoolId,
+              savingsPoolId: event.savingsPoolId,
               user: event.user,
               tokenToSave: event.tokenToSave,
               amountToSave: isEth
@@ -285,7 +285,9 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
 
       // Convert amounts to wei - using BigInt for ethers v6 compatibility
       const amountToSaveWei = BigInt(Math.floor(Number(amountToSave) * 1e18));
-      const initialDepositWei = BigInt(Math.floor(Number(initialDeposit) * 1e18));
+      const initialDepositWei = BigInt(
+        Math.floor(Number(initialDeposit) * 1e18)
+      );
 
       // Encode function data using viem
       const data = encodeFunctionData({
@@ -364,7 +366,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       };
 
       console.log("enthe");
-      
+
       // Send approval transaction
       const approvetxHash = await provider.request({
         method: "eth_sendTransaction",
@@ -377,7 +379,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
 
       console.log("oude");
       console.log("duration:", duration);
-      
+
       // Then create the savings pool
       const createData = encodeFunctionData({
         abi: THALER_SAVINGS_POOL_ABI,
@@ -391,42 +393,46 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
         ],
       });
       console.log("audoude");
-      
+
       // Prepare transaction request
       const transactionRequest = {
         to: THALER_SAVINGS_POOL_ADDRESS,
         data: createData,
         value: "0x0",
       };
-      
+
       console.log("aa");
-      
+
       // Implement retry logic for transaction
       let txHash;
       let retries = 0;
       const maxRetries = 3;
-      
+
       while (retries < maxRetries) {
         try {
           // Add a delay before sending the transaction to allow previous tx to be processed
-          await new Promise((resolve) => setTimeout(resolve, 2000 * (retries + 1)));
-          
+          await new Promise((resolve) =>
+            setTimeout(resolve, 2000 * (retries + 1))
+          );
+
           // Send transaction
           txHash = await provider.request({
             method: "eth_sendTransaction",
             params: [transactionRequest],
           });
-          
+
           // If successful, break out of retry loop
           break;
         } catch (error: any) {
           console.error(`Attempt ${retries + 1} failed:`, error);
-          
+
           // If it's a nonce error, wait longer and retry
           if (error.message && error.message.includes("nonce too low")) {
             retries++;
             if (retries >= maxRetries) {
-              throw new Error("Failed after multiple attempts: " + error.message);
+              throw new Error(
+                "Failed after multiple attempts: " + error.message
+              );
             }
             console.log(`Retrying... (${retries}/${maxRetries})`);
           } else {
@@ -435,7 +441,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
           }
         }
       }
-      
+
       console.log("kooi");
 
       // Wait for creation transaction

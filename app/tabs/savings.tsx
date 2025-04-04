@@ -167,6 +167,7 @@ export default function SavingsScreen() {
   const handleWithdraw = (pool: SavingsPool) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const now = Date.now();
+    console.log("ppoosoosossl:", pool);
     if (now < pool.endDate && pool.progress < 100) {
       Alert.alert(
         "Early Withdrawal",
@@ -219,211 +220,176 @@ export default function SavingsScreen() {
     const tokenLogo = getLogoForToken(pool.tokenSymbol);
     const progressWidth = `${pool.progress || 0}%`;
 
-    return (
-      <MotiView
-        from={{ opacity: 0, translateY: 20 }}
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: "timing", duration: 400 }}
-      >
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={[
-            styles.poolCard,
-            { backgroundColor: isDarkMode ? "#1E1E1E" : "#FFFFFF" },
-          ]}
-          onPress={() => onPress(pool)}
-        >
-          {/* Card Header */}
-          <View style={styles.poolCardHeader}>
-            <View style={styles.poolCardHeaderLeft}>
-              {tokenLogo ? (
-                <Image source={tokenLogo} style={styles.tokenLogo} />
-              ) : (
-                <View
-                  style={[
-                    styles.tokenLogoFallback,
-                    { backgroundColor: pool.isEth ? "#627EEA" : "#2775CA" },
-                  ]}
-                >
-                  <Text style={styles.tokenLogoText}>
-                    {pool.tokenSymbol.charAt(0)}
-                  </Text>
-                </View>
-              )}
-              <View style={styles.poolTitleContainer}>
-                <Text
-                  style={[
-                    styles.poolTitle,
-                    { color: isDarkMode ? "#FFFFFF" : "#000000" },
-                  ]}
-                >
-                  {pool.tokenSymbol} Savings
-                </Text>
-                <Text
-                  style={[
-                    styles.poolSubtitle,
-                    { color: isDarkMode ? "#AAAAAA" : "#888888" },
-                  ]}
-                >
-                  {pool.duration / 30 || 6} Month Plan
-                </Text>
-              </View>
-            </View>
-            <View
-              style={[
-                styles.statusBadge,
-                {
-                  backgroundColor: isDarkMode
-                    ? "rgba(75, 181, 67, 0.2)"
-                    : "rgba(75, 181, 67, 0.15)",
-                },
-              ]}
-            >
-              <Text style={styles.statusText}>Active</Text>
-            </View>
-          </View>
+    // Create detail items with keys
+    const poolDetails = [
+      {
+        id: "target",
+        label: "Target Amount",
+        value: `${pool.amountToSave || 0} ${pool.tokenSymbol}`,
+      },
+      {
+        id: "saved",
+        label: "Saved So Far",
+        value: `${pool.totalSaved || 0} ${pool.tokenSymbol}`,
+      },
+      {
+        id: "nextDeposit",
+        label: "Next Deposit",
+        value: pool.nextDepositDate
+          ? new Date(pool.nextDepositDate).toLocaleDateString()
+          : "-",
+      },
+    ];
 
-          {/* Progress Bar */}
-          <View style={styles.progressBarContainer}>
-            <View style={styles.progressBarBackground}>
+    // Create action buttons with keys
+    const actionButtons = [
+      {
+        id: "deposit",
+        label: "Deposit",
+        icon: "arrow-up" as const,
+        color: Colors[activeTheme].primary,
+        backgroundColor: isDarkMode
+          ? "rgba(75, 181, 67, 0.15)"
+          : "rgba(75, 181, 67, 0.1)",
+        onAction: () => onDeposit(pool),
+      },
+      {
+        id: "withdraw",
+        label: "Withdraw",
+        icon: "arrow-down" as const,
+        color: isDarkMode ? "#EF4444" : "#DC2626",
+        backgroundColor: isDarkMode
+          ? "rgba(239, 68, 68, 0.15)"
+          : "rgba(239, 68, 68, 0.1)",
+        onAction: () => onWithdraw(pool),
+      },
+    ];
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.9}
+        style={[
+          styles.poolCard,
+          { backgroundColor: isDarkMode ? "#1E1E1E" : "#FFFFFF" },
+        ]}
+        onPress={() => onPress(pool)}
+      >
+        {/* Card Header */}
+        <View style={styles.poolCardHeader}>
+          <View style={styles.poolCardHeaderLeft}>
+            {tokenLogo ? (
+              <Image source={tokenLogo} style={styles.tokenLogo} />
+            ) : (
               <View
                 style={[
-                  styles.progressBarFill,
-                  {
-                    width: (width * (pool.progress || 0)) / 100,
-                    backgroundColor: Colors[activeTheme].primary,
-                  },
-                ]}
-              />
-            </View>
-            <Text
-              style={[
-                styles.progressText,
-                { color: isDarkMode ? "#AAAAAA" : "#888888" },
-              ]}
-            >
-              {pool.progress || 0}% Complete
-            </Text>
-          </View>
-
-          {/* Pool Details */}
-          <View style={styles.poolDetailsContainer}>
-            <View style={styles.poolDetailRow}>
-              <Text
-                style={[
-                  styles.poolDetailLabel,
-                  { color: isDarkMode ? "#AAAAAA" : "#888888" },
+                  styles.tokenLogoFallback,
+                  { backgroundColor: pool.isEth ? "#627EEA" : "#2775CA" },
                 ]}
               >
-                Target Amount
-              </Text>
+                <Text style={styles.tokenLogoText}>
+                  {pool.tokenSymbol.charAt(0)}
+                </Text>
+              </View>
+            )}
+            <View style={styles.poolTitleContainer}>
               <Text
                 style={[
-                  styles.poolDetailValue,
+                  styles.poolTitle,
                   { color: isDarkMode ? "#FFFFFF" : "#000000" },
                 ]}
               >
-                {pool.amountToSave || 0} {pool.tokenSymbol}
+                {pool.tokenSymbol} Savings
               </Text>
-            </View>
-
-            <View style={styles.poolDetailRow}>
               <Text
                 style={[
-                  styles.poolDetailLabel,
+                  styles.poolSubtitle,
                   { color: isDarkMode ? "#AAAAAA" : "#888888" },
                 ]}
               >
-                Saved So Far
-              </Text>
-              <Text
-                style={[
-                  styles.poolDetailValue,
-                  { color: isDarkMode ? "#FFFFFF" : "#000000" },
-                ]}
-              >
-                {pool.totalSaved || 0} {pool.tokenSymbol}
-              </Text>
-            </View>
-
-            <View style={styles.poolDetailRow}>
-              <Text
-                style={[
-                  styles.poolDetailLabel,
-                  { color: isDarkMode ? "#AAAAAA" : "#888888" },
-                ]}
-              >
-                Next Deposit
-              </Text>
-              <Text
-                style={[
-                  styles.poolDetailValue,
-                  { color: isDarkMode ? "#FFFFFF" : "#000000" },
-                ]}
-              >
-                {pool.nextDepositDate
-                  ? new Date(pool.nextDepositDate).toLocaleDateString()
-                  : "-"}
+                {pool.duration / 30 || 6} Month Plan
               </Text>
             </View>
           </View>
+          <View
+            style={[
+              styles.statusBadge,
+              {
+                backgroundColor: isDarkMode
+                  ? "rgba(75, 181, 67, 0.2)"
+                  : "rgba(75, 181, 67, 0.15)",
+              },
+            ]}
+          >
+            <Text style={styles.statusText}>Active</Text>
+          </View>
+        </View>
 
-          {/* Action Buttons */}
-          <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity
+        {/* Progress Bar */}
+        <View style={styles.progressBarContainer}>
+          <View style={styles.progressBarBackground}>
+            <View
               style={[
-                styles.actionButton,
+                styles.progressBarFill,
                 {
-                  backgroundColor: isDarkMode
-                    ? "rgba(75, 181, 67, 0.15)"
-                    : "rgba(75, 181, 67, 0.1)",
+                  width: (width * (pool.progress || 0)) / 100,
+                  backgroundColor: Colors[activeTheme].primary,
                 },
               ]}
-              onPress={() => onDeposit(pool)}
-            >
-              <Ionicons
-                name="arrow-up"
-                size={20}
-                color={Colors[activeTheme].primary}
-              />
+            />
+          </View>
+          <Text
+            style={[
+              styles.progressText,
+              { color: isDarkMode ? "#AAAAAA" : "#888888" },
+            ]}
+          >
+            {pool.progress || 0}% Complete
+          </Text>
+        </View>
+
+        {/* Pool Details */}
+        <View style={styles.poolDetailsContainer}>
+          {poolDetails.map((detail) => (
+            <View key={detail.id} style={styles.poolDetailRow}>
               <Text
                 style={[
-                  styles.actionButtonText,
-                  { color: Colors[activeTheme].primary },
+                  styles.poolDetailLabel,
+                  { color: isDarkMode ? "#AAAAAA" : "#888888" },
                 ]}
               >
-                Deposit
+                {detail.label}
               </Text>
-            </TouchableOpacity>
+              <Text
+                style={[
+                  styles.poolDetailValue,
+                  { color: isDarkMode ? "#FFFFFF" : "#000000" },
+                ]}
+              >
+                {detail.value}
+              </Text>
+            </View>
+          ))}
+        </View>
 
+        {/* Action Buttons */}
+        <View style={styles.actionButtonsContainer}>
+          {actionButtons.map((button) => (
             <TouchableOpacity
+              key={button.id}
               style={[
                 styles.actionButton,
-                {
-                  backgroundColor: isDarkMode
-                    ? "rgba(75, 181, 67, 0.15)"
-                    : "rgba(75, 181, 67, 0.1)",
-                },
+                { backgroundColor: button.backgroundColor },
               ]}
-              onPress={() => onWithdraw(pool)}
+              onPress={button.onAction}
             >
-              <Ionicons
-                name="arrow-down"
-                size={20}
-                color={Colors[activeTheme].primary}
-              />
-              <Text
-                style={[
-                  styles.actionButtonText,
-                  { color: Colors[activeTheme].primary },
-                ]}
-              >
-                Withdraw
+              <Ionicons name={button.icon} size={20} color={button.color} />
+              <Text style={[styles.actionButtonText, { color: button.color }]}>
+                {button.label}
               </Text>
             </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </MotiView>
+          ))}
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -668,25 +634,30 @@ export default function SavingsScreen() {
                 )}
               </View>
 
-              {pools.map((pool, index) => (
-                <MotiView
-                  key={pool.savingsPoolId}
-                  from={{ opacity: 0, translateY: 20 }}
-                  animate={{ opacity: 1, translateY: 0 }}
-                  transition={{
-                    type: "timing",
-                    duration: 400,
-                    delay: index * 100,
-                  }}
-                >
-                  <SavingsPoolCard
-                    pool={pool}
-                    onPress={handlePoolPress}
-                    onDeposit={handleDeposit}
-                    onWithdraw={handleWithdraw}
-                  />
-                </MotiView>
-              ))}
+              {/* Use MotiView.FlatList for better performance with animations */}
+              {pools.map((pool, index) => {
+                // Generate a guaranteed unique key using index as fallback
+                const uniqueKey = pool.savingsPoolId
+                  ? `pool-${pool.savingsPoolId}`
+                  : `pool-index-${index}`;
+
+                return (
+                  <MotiView
+                    key={uniqueKey}
+                    from={{ opacity: 0, translateY: 20 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    transition={{ type: "timing", duration: 400 }}
+                  >
+                    <SavingsPoolCard
+                      key={uniqueKey}
+                      pool={pool}
+                      onPress={handlePoolPress}
+                      onDeposit={handleDeposit}
+                      onWithdraw={handleWithdraw}
+                    />
+                  </MotiView>
+                );
+              })}
             </>
           )}
 
