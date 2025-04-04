@@ -1,5 +1,5 @@
 export interface SavingsPool {
-  id: string; // The savings pool ID (bytes32 in the contract)
+  savingsPoolId: string; // The savings pool ID (bytes32 in the contract)
   user: string; // Owner of the savings pool
   endDate: number; // Timestamp when the savings period ends
   duration: number; // Total duration of the savings pool in seconds
@@ -19,7 +19,7 @@ export interface SavingsPool {
 }
 
 export interface SavingsPoolCreationParams {
-  tokenType: 'eth' | 'erc20';
+  tokenType: "eth" | "erc20";
   tokenAddress?: string; // Required for ERC20 pools
   amountToSave: string;
   duration: number; // In seconds
@@ -44,7 +44,7 @@ export interface DonationProof {
 }
 
 export enum SavingsPoolStatus {
-  ACTIVE = 'active',
-  COMPLETED = 'completed',
-  WITHDRAWN = 'withdrawn'
+  ACTIVE = "active",
+  COMPLETED = "completed",
+  WITHDRAWN = "withdrawn",
 }

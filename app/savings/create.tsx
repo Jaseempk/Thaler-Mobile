@@ -582,8 +582,9 @@ export default function CreateSavingsScreen() {
 
   // State management
   const [tokenType, setTokenType] = useState<"ETH" | "ERC20">("ETH");
+  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [tokenAddress, setTokenAddress] = useState("");
-  const [tokenSymbol, setTokenSymbol] = useState("ETH");
+  const [tokenSymbol, setTokenSymbol] = useState("");
   const [amountToSave, setAmountToSave] = useState("");
   const [initialDeposit, setInitialDeposit] = useState("");
   const [duration, setDuration] = useState<number>(90); // 3 months in days
@@ -591,10 +592,10 @@ export default function CreateSavingsScreen() {
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [showAddTokenModal, setShowAddTokenModal] = useState(false);
   const [availableTokens, setAvailableTokens] = useState<Token[]>([USDC_TOKEN]);
-  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [newTokenAddress, setNewTokenAddress] = useState("");
   const [newTokenSymbol, setNewTokenSymbol] = useState("");
   const [newTokenName, setNewTokenName] = useState("");
+  const [isCreatingPool, setIsCreatingPool] = useState(false);
 
   // Animation values
   const tokenTypeAnimation = useRef(new Animated.Value(0)).current;
@@ -634,7 +635,7 @@ export default function CreateSavingsScreen() {
     }
   };
 
-  // Handle duration selection with improved animation
+  // Handle duration selection
   const handleDurationSelect = (months: number) => {
     const durationValue = months === 3 ? 0 : months === 6 ? 1 : 2;
 
@@ -646,7 +647,13 @@ export default function CreateSavingsScreen() {
       mass: 1,
     }).start();
 
-    setDuration(months * 30);
+    // Use 365 days for 12 months instead of 360 days
+    if (months === 12) {
+      setDuration(365); // 365 days for 12 months
+    } else {
+      setDuration(months * 30); // 30 days per month for 3 and 6 months
+    }
+    
     if (months === 3) setIntervals(3);
     else if (months === 6) setIntervals(6);
     else setIntervals(12);
@@ -967,58 +974,73 @@ export default function CreateSavingsScreen() {
   // Create savings pool
   const handleCreateSavingsPool = async () => {
     if (!validateForm()) return;
-
-    if (!isConnected || !walletAddress) {
+    
+    if (!walletAddress) {
       Alert.alert(
-        "Error",
+        "Wallet Not Connected",
         "Please connect your wallet to create a savings pool"
       );
       return;
     }
 
+    setIsCreatingPool(true);
+    
     try {
       // Convert duration from days to seconds
       const durationInSeconds = duration * 24 * 60 * 60;
+      let txHash: string;
 
       if (tokenType === "ETH") {
-        await createEthSavingsPool(
+        txHash = await createEthSavingsPool(
           amountToSave,
           durationInSeconds,
           initialDeposit,
           intervals
         );
-        setStatusModal({
-          visible: true,
-          type: "success",
-          title: "Transaction Successful",
-          message: `ETH Savings Pool Created Successfully `,
-          transactionHash: "txHash",
-        });
+        
+        setTimeout(() => {
+          setStatusModal({
+            visible: true,
+            type: "success",
+            title: "Transaction Successful",
+            message: `ETH Savings Pool Created Successfully`,
+            transactionHash: txHash,
+          });
+          setIsCreatingPool(false);
+        }, 500);
       } else {
-        console.log("tookenAddressshs:", tokenAddress);
-        await createERC20SavingsPool(
+        console.log("tokenAddress:", tokenAddress);
+        txHash = await createERC20SavingsPool(
           tokenAddress,
           amountToSave,
           durationInSeconds,
           initialDeposit,
           intervals
         );
-        setStatusModal({
-          visible: true,
-          type: "success",
-          title: "Transaction Successful",
-          message: `USDC Savings Pool Created Successfully `,
-          transactionHash: "txHash",
-        });
+        
+        setTimeout(() => {
+          setStatusModal({
+            visible: true,
+            type: "success",
+            title: "Transaction Successful",
+            message: `${tokenSymbol || 'ERC20'} Savings Pool Created Successfully`,
+            transactionHash: txHash,
+          });
+          setIsCreatingPool(false);
+        }, 500);
       }
     } catch (error) {
       console.error("Error creating savings pool:", error);
-      setStatusModal({
-        visible: true,
-        type: "error",
-        title: "Transaction Failed",
-        message: error as string,
-      });
+      
+      setTimeout(() => {
+        setStatusModal({
+          visible: true,
+          type: "error",
+          title: "Transaction Failed",
+          message: String(error),
+        });
+        setIsCreatingPool(false);
+      }, 500);
     }
   };
 
@@ -1190,7 +1212,7 @@ export default function CreateSavingsScreen() {
                 <Text
                   style={[
                     styles.durationText,
-                    duration === 360 && styles.durationTextActive,
+                    duration === 365 && styles.durationTextActive,
                   ]}
                 >
                   12 Months
@@ -1258,9 +1280,9 @@ export default function CreateSavingsScreen() {
           <TouchableOpacity
             style={styles.createButton}
             onPress={handleCreateSavingsPool}
-            disabled={isLoading}
+            disabled={isCreatingPool}
           >
-            {isLoading ? (
+            {isCreatingPool ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <Text style={styles.createButtonText}>Create Savings Pool</Text>
@@ -1270,7 +1292,21 @@ export default function CreateSavingsScreen() {
       </KeyboardAvoidingView>
       <StatusModal
         visible={statusModal.visible}
-        onClose={() => setStatusModal((prev) => ({ ...prev, visible: false }))}
+        onClose={() => {
+          // Properly reset the modal state
+          setStatusModal({
+            visible: false,
+            type: statusModal.type,
+            title: statusModal.title,
+            message: statusModal.message,
+            transactionHash: statusModal.transactionHash
+          });
+          
+          // If transaction was successful, navigate back to the savings tab
+          if (statusModal.type === "success") {
+            router.replace('/tabs/savings');
+          }
+        }}
         type={statusModal.type}
         title={statusModal.title}
         message={statusModal.message}

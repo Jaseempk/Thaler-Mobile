@@ -1,6 +1,6 @@
 // Contract addresses - these would be updated based on deployment environment
 export const THALER_SAVINGS_POOL_ADDRESS =
-  "0x2a55A6D89E46B5108Dc1986Cc8be483CAd0ff867"; // Placeholder
+  "0x0ed7AF49d7C2C49b95B9204BE8fEA9530CaF0019"; // Placeholder
 
 // Time constants from the contract (in seconds)
 export const TIME_CONSTANTS = {
@@ -81,6 +81,12 @@ export const THALER_SAVINGS_POOL_ABI = [
         internalType: "address",
         name: "user",
         type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "savingsPoolId",
+        type: "bytes32",
       },
       {
         indexed: false,

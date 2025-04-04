@@ -9,21 +9,40 @@ import {
   Dimensions,
   Platform,
   Clipboard,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useColorScheme } from 'react-native';
+import { formatDistanceToNow } from 'date-fns';
+import { router } from 'expo-router';
+import { Easing } from 'react-native';
 
 const { width } = Dimensions.get('window');
+
+// Define the types of status modals
+export type StatusType = 'success' | 'error' | 'info' | 'warning';
+
+// Define the action button type
+interface ActionButton {
+  label: string;
+  onPress: () => void;
+  primary?: boolean;
+}
 
 interface StatusModalProps {
   visible: boolean;
   onClose: () => void;
-  type: 'success' | 'error';
+  type: StatusType;
   title: string;
-  message: string;
+  message?: string;
+  amount?: string;
+  amountLabel?: string;
   transactionHash?: string;
-  theme: 'light' | 'dark';
+  timestamp?: Date;
+  actionButtons?: ActionButton[];
+  theme?: 'light' | 'dark';
 }
 
 export default function StatusModal({
@@ -32,224 +51,617 @@ export default function StatusModal({
   type,
   title,
   message,
+  amount,
+  amountLabel,
   transactionHash,
-  theme,
+  timestamp = new Date(),
+  actionButtons,
+  theme: themeProp,
 }: StatusModalProps) {
+  const systemTheme = useColorScheme();
+  const theme = themeProp || systemTheme || 'dark';
   const isDarkMode = theme === 'dark';
-  const animatedValue1 = useRef(new Animated.Value(0)).current;
-  const animatedValue2 = useRef(new Animated.Value(0)).current;
-  const scaleValue = useRef(new Animated.Value(1)).current;
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const particleAnim1 = useRef(new Animated.Value(0)).current;
+  const particleAnim2 = useRef(new Animated.Value(0)).current;
+  const particleAnim3 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    let animations = [];
+    
     if (visible) {
-      // First animation: flowing gradient
-      Animated.loop(
+      // Fade and scale in animation
+      const fadeInAnimation = Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 8,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]);
+      
+      fadeInAnimation.start();
+      
+      // Simplified particle animations - only use one particle animation to reduce load
+      const particleAnimation = Animated.loop(
         Animated.sequence([
-          Animated.timing(animatedValue1, {
+          Animated.timing(particleAnim1, {
             toValue: 1,
-            duration: 4000,
+            duration: 8000,
             useNativeDriver: true,
-            easing: (t) => t,
+          }),
+          Animated.timing(particleAnim1, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
           }),
         ])
-      ).start();
-
-      // Second animation: pulsing effect
-      Animated.loop(
+      );
+      
+      particleAnimation.start();
+      animations.push(particleAnimation);
+      
+      // Add a subtle pulse animation to the icon - simplified
+      const pulseAnimation = Animated.loop(
         Animated.sequence([
-          Animated.timing(animatedValue2, {
-            toValue: 1,
-            duration: 2000,
-            useNativeDriver: true,
-            easing: (t) => Math.sin(t * Math.PI),
-          }),
-        ])
-      ).start();
-
-      // Scale animation for the icon
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(scaleValue, {
-            toValue: 1.1,
+          Animated.timing(scaleAnim, {
+            toValue: 1.05,
             duration: 1500,
             useNativeDriver: true,
-            easing: (t) => Math.sin(t * Math.PI),
+            easing: Easing.inOut(Easing.ease),
           }),
-          Animated.timing(scaleValue, {
+          Animated.timing(scaleAnim, {
             toValue: 1,
             duration: 1500,
             useNativeDriver: true,
-            easing: (t) => Math.sin(t * Math.PI),
+            easing: Easing.inOut(Easing.ease),
           }),
         ])
-      ).start();
+      );
+      
+      // Start the pulse animation after a short delay to prevent conflicts
+      setTimeout(() => {
+        pulseAnimation.start();
+        animations.push(pulseAnimation);
+      }, 500);
     } else {
-      animatedValue1.setValue(0);
-      animatedValue2.setValue(0);
-      scaleValue.setValue(1);
+      // Reset animations
+      fadeAnim.setValue(0);
+      scaleAnim.setValue(0.95);
+      particleAnim1.setValue(0);
+      particleAnim2.setValue(0);
+      particleAnim3.setValue(0);
     }
+    
+    // Cleanup function to stop all animations when component unmounts or visibility changes
+    return () => {
+      animations.forEach(anim => anim.stop());
+    };
   }, [visible]);
 
   const getIconName = () => {
-    return type === 'success' ? 'checkmark-circle' : 'alert-circle';
+    switch (type) {
+      case 'success':
+        return 'checkmark';
+      case 'error':
+        return 'close';
+      case 'warning':
+        return 'warning';
+      case 'info':
+        return 'information';
+      default:
+        return 'checkmark';
+    }
   };
 
-  const getGradientColors = (): [string, string, string] => {
-    return type === 'success'
-      ? isDarkMode
-        ? ['#00C853', '#1B5E20', '#00C853']
-        : ['#69F0AE', '#00C853', '#69F0AE']
-      : isDarkMode
-      ? ['#D32F2F', '#1A237E', '#D32F2F']
-      : ['#F44336', '#1E88E5', '#F44336'];
+  const getIconColor = () => {
+    switch (type) {
+      case 'success':
+        return 'rgba(74, 222, 128, 0.8)';
+      case 'error':
+        return 'rgba(248, 113, 113, 0.8)';
+      case 'warning':
+        return 'rgba(251, 191, 36, 0.8)';
+      case 'info':
+        return 'rgba(96, 165, 250, 0.8)';
+      default:
+        return 'rgba(74, 222, 128, 0.8)';
+    }
   };
 
-  const translateX1 = animatedValue1.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, width],
-  });
+  const getIconGlowColor = () => {
+    switch (type) {
+      case 'success':
+        return 'rgba(74, 222, 128, 0.4)';
+      case 'error':
+        return 'rgba(248, 113, 113, 0.4)';
+      case 'warning':
+        return 'rgba(251, 191, 36, 0.4)';
+      case 'info':
+        return 'rgba(96, 165, 250, 0.4)';
+      default:
+        return 'rgba(74, 222, 128, 0.4)';
+    }
+  };
 
-  const translateX2 = animatedValue2.interpolate({
-    inputRange: [0, 1],
-    outputRange: [width, 0],
-  });
+  const getBackgroundColor = () => {
+    return isDarkMode ? '#121826' : '#FFFFFF';
+  };
 
-  const opacity = animatedValue2.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0.3, 0.6, 0.3],
-  });
+  const getTextColor = () => {
+    return isDarkMode ? '#FFFFFF' : '#1F2937';
+  };
+
+  const getSecondaryTextColor = () => {
+    return isDarkMode ? '#9CA3AF' : '#6B7280';
+  };
+
+  const formatTimestamp = () => {
+    if (!timestamp) return '';
+
+    // If today, show time
+    const today = new Date();
+    if (
+      timestamp.getDate() === today.getDate() &&
+      timestamp.getMonth() === today.getMonth() &&
+      timestamp.getFullYear() === today.getFullYear()
+    ) {
+      return `Today, ${timestamp.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })}`;
+    }
+
+    // Otherwise show relative time
+    return formatDistanceToNow(timestamp, { addSuffix: true });
+  };
+
+  // Format transaction hash for display
+  const formatHash = (hash: string) => {
+    if (!hash) return '';
+    if (hash.length <= 12) return hash;
+    return `${hash.substring(0, 6)}...${hash.substring(hash.length - 4)}`;
+  };
 
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="none"
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
+        {/* Background particles - add more for a richer effect */}
         <Animated.View
           style={[
-            styles.modalContent,
+            styles.particle,
             {
-              backgroundColor: Colors[theme].card,
+              top: '10%',
+              left: '20%',
+              backgroundColor: '#3B82F6',
               transform: [
                 {
-                  scale: new Animated.Value(1),
+                  translateX: particleAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, width * 0.7],
+                  }),
+                },
+                {
+                  translateY: particleAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, width * 0.5],
+                  }),
+                },
+                {
+                  rotate: particleAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '360deg'],
+                  }),
                 },
               ],
             },
           ]}
+        />
+        <Animated.View
+          style={[
+            styles.particle,
+            {
+              top: '30%',
+              right: '15%',
+              backgroundColor: '#F59E0B',
+              transform: [
+                {
+                  translateX: particleAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -width * 0.5],
+                  }),
+                },
+                {
+                  translateY: particleAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, width * 0.6],
+                  }),
+                },
+                {
+                  rotate: particleAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '-360deg'],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.particle,
+            {
+              bottom: '25%',
+              left: '30%',
+              backgroundColor: '#10B981',
+              transform: [
+                {
+                  translateX: particleAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, width * 0.4],
+                  }),
+                },
+                {
+                  translateY: particleAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -width * 0.6],
+                  }),
+                },
+                {
+                  rotate: particleAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '180deg'],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+
+        {/* Additional particles for a richer effect */}
+        <Animated.View
+          style={[
+            styles.smallParticle,
+            {
+              top: '45%',
+              right: '25%',
+              backgroundColor: '#8B5CF6',
+              transform: [
+                {
+                  translateX: particleAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, width * 0.3],
+                  }),
+                },
+                {
+                  translateY: particleAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -width * 0.4],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.smallParticle,
+            {
+              bottom: '35%',
+              right: '20%',
+              backgroundColor: '#EC4899',
+              transform: [
+                {
+                  translateX: particleAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -width * 0.2],
+                  }),
+                },
+                {
+                  translateY: particleAnim1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, width * 0.3],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+
+        <Animated.View
+          style={[
+            styles.modalContent,
+            {
+              backgroundColor: getBackgroundColor(),
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
         >
-          <View style={styles.headerContainer}>
-            <LinearGradient
-              colors={getGradientColors()}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.headerGradient, { position: 'absolute' }]}
+          {/* Status Icon with enhanced glow effect */}
+          <View style={styles.iconWrapper}>
+            <Animated.View
+              style={[
+                styles.iconGlow,
+                {
+                  backgroundColor: getIconGlowColor(),
+                  transform: [
+                    {
+                      scale: scaleAnim.interpolate({
+                        inputRange: [0.95, 1, 1.05],
+                        outputRange: [1.2, 1.5, 1.7],
+                      }),
+                    },
+                  ],
+                },
+              ]}
             />
             <Animated.View
               style={[
-                styles.animatedGradient,
+                styles.iconContainer,
                 {
-                  transform: [{ translateX: translateX1 }],
+                  backgroundColor: getIconColor(),
+                  transform: [
+                    {
+                      scale: scaleAnim.interpolate({
+                        inputRange: [0.95, 1, 1.05],
+                        outputRange: [0.95, 1, 1.05],
+                      }),
+                    },
+                  ],
                 },
               ]}
             >
-              <LinearGradient
-                colors={['transparent', 'rgba(255, 255, 255, 0.15)', 'transparent']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.shineGradient}
+              <Ionicons
+                name={getIconName()}
+                size={32}
+                color="#FFFFFF"
               />
             </Animated.View>
-            <Animated.View
-              style={[
-                styles.animatedGradient,
-                {
-                  transform: [{ translateX: translateX2 }],
-                  opacity,
-                },
-              ]}
-            >
-              <LinearGradient
-                colors={['transparent', 'rgba(255, 255, 255, 0.1)', 'transparent']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.shineGradient}
-              />
-            </Animated.View>
-            <View style={styles.headerContent}>
-              <Animated.View
-                style={[
-                  styles.iconContainer,
-                  {
-                    transform: [{ scale: scaleValue }],
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={getIconName()}
-                  size={40}
-                  color="#FFFFFF"
-                />
-              </Animated.View>
-              <Text style={styles.title}>{title}</Text>
-            </View>
           </View>
 
-          <View style={styles.content}>
-            <Text
+          {/* Title with subtle animation */}
+          <Animated.Text
+            style={[
+              styles.title,
+              {
+                color: getTextColor(),
+                transform: [
+                  {
+                    translateY: fadeAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [10, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            {title}
+          </Animated.Text>
+
+          {/* Amount (if provided) with emphasis animation */}
+          {amount && (
+            <Animated.Text
+              style={[
+                styles.amount,
+                {
+                  color: getTextColor(),
+                  transform: [
+                    {
+                      scale: fadeAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.9, 1],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              {amount} {amountLabel}
+            </Animated.Text>
+          )}
+
+          {/* Transaction Hash (if provided) with subtle highlight effect */}
+          {transactionHash && (
+            <TouchableOpacity
+              style={styles.hashContainer}
+              onPress={() => {
+                Clipboard.setString(transactionHash);
+                // Add a visual feedback when copied
+                Alert.alert("Copied", "Transaction hash copied to clipboard");
+              }}
+            >
+              <Text
+                style={[
+                  styles.hashText,
+                  { color: getSecondaryTextColor() },
+                ]}
+              >
+                {formatHash(transactionHash)}
+              </Text>
+              <Ionicons
+                name="copy-outline"
+                size={16}
+                color={getSecondaryTextColor()}
+                style={styles.copyIcon}
+              />
+            </TouchableOpacity>
+          )}
+
+          {/* Timestamp with subtle fade-in */}
+          <Animated.Text
+            style={[
+              styles.timestamp,
+              {
+                color: getSecondaryTextColor(),
+                opacity: fadeAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 0.8],
+                }),
+              },
+            ]}
+          >
+            {formatTimestamp()}
+          </Animated.Text>
+
+          {/* Message (if provided) with staggered fade-in */}
+          {message && (
+            <Animated.Text
               style={[
                 styles.message,
-                { color: Colors[theme].text },
+                {
+                  color: getTextColor(),
+                  opacity: fadeAnim.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0, 0.5, 1],
+                  }),
+                  transform: [
+                    {
+                      translateY: fadeAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [10, 0],
+                      }),
+                    },
+                  ],
+                },
               ]}
             >
               {message}
-            </Text>
+            </Animated.Text>
+          )}
 
-            {transactionHash && (
-              <View style={styles.hashContainer}>
-                <Text
-                  style={[
-                    styles.hashLabel,
-                    { color: Colors[theme].textSecondary },
-                  ]}
-                >
-                  Transaction Hash
-                </Text>
-                <TouchableOpacity
-                  style={styles.hashRow}
-                  onPress={() => {
-                    Clipboard.setString(transactionHash);
-                  }}
-                >
-                  <Text
+          {/* Action Buttons with improved visual feedback */}
+          <View style={styles.buttonsContainer}>
+            {actionButtons ? (
+              <>
+                {/* If custom action buttons are provided */}
+                {actionButtons.length === 1 ? (
+                  <TouchableOpacity
                     style={[
-                      styles.hashText,
-                      { color: Colors[theme].primary },
+                      styles.fullWidthButton,
+                      {
+                        backgroundColor:
+                          actionButtons[0].primary ? '#4F46E5' : 'transparent',
+                      },
+                      !actionButtons[0].primary && {
+                        borderWidth: 1,
+                        borderColor: isDarkMode ? '#374151' : '#E5E7EB',
+                      },
                     ]}
-                    numberOfLines={1}
+                    onPress={actionButtons[0].onPress}
+                    activeOpacity={0.7}
                   >
-                    {transactionHash}
-                  </Text>
-                  <Ionicons
-                    name="copy-outline"
-                    size={16}
-                    color={Colors[theme].primary}
-                  />
-                </TouchableOpacity>
-              </View>
+                    <Text
+                      style={[
+                        styles.buttonText,
+                        {
+                          color: actionButtons[0].primary
+                            ? '#FFFFFF'
+                            : getTextColor(),
+                        },
+                      ]}
+                    >
+                      {actionButtons[0].label}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <>
+                    <View style={styles.buttonRow}>
+                      {actionButtons.slice(0, 2).map((button, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          style={[
+                            styles.button,
+                            {
+                              backgroundColor:
+                                button.primary ? '#4F46E5' : 'transparent',
+                            },
+                            !button.primary && {
+                              borderWidth: 1,
+                              borderColor: isDarkMode ? '#374151' : '#E5E7EB',
+                            },
+                            index === 0 && { marginRight: 8 },
+                          ]}
+                          onPress={button.onPress}
+                          activeOpacity={0.7}
+                        >
+                          <Text
+                            style={[
+                              styles.buttonText,
+                              {
+                                color: button.primary
+                                  ? '#FFFFFF'
+                                  : getTextColor(),
+                              },
+                            ]}
+                          >
+                            {button.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    {actionButtons.length > 2 && (
+                      <TouchableOpacity
+                        style={[
+                          styles.fullWidthButton,
+                          {
+                            backgroundColor:
+                              actionButtons[2].primary ? '#4F46E5' : 'transparent',
+                            marginTop: 12,
+                          },
+                          !actionButtons[2].primary && {
+                            borderWidth: 1,
+                            borderColor: isDarkMode ? '#374151' : '#E5E7EB',
+                          },
+                        ]}
+                        onPress={actionButtons[2].onPress}
+                        activeOpacity={0.7}
+                      >
+                        <Text
+                          style={[
+                            styles.buttonText,
+                            {
+                              color: actionButtons[2].primary
+                                ? '#FFFFFF'
+                                : getTextColor(),
+                            },
+                          ]}
+                        >
+                          {actionButtons[2].label}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
+              </>
+            ) : (
+              // Default close button if no custom buttons provided
+              <TouchableOpacity
+                style={[styles.fullWidthButton, { backgroundColor: '#4F46E5' }]}
+                onPress={() => {
+                  onClose();
+                  router.replace('/tabs');
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>
+                  Close
+                </Text>
+              </TouchableOpacity>
             )}
-
-            <TouchableOpacity
-              style={[
-                styles.closeButton,
-                { backgroundColor: Colors[theme].primary },
-              ]}
-              onPress={onClose}
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
           </View>
         </Animated.View>
       </View>
@@ -260,104 +672,131 @@ export default function StatusModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    width: width - 32,
-    borderRadius: 16,
-    overflow: 'hidden',
+    width: width - 48,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
       },
       android: {
-        elevation: 5,
+        elevation: 10,
       },
     }),
   },
-  headerContainer: {
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  headerGradient: {
+  particle: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    opacity: 0.6,
   },
-  animatedGradient: {
+  smallParticle: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    opacity: 0.4,
   },
-  shineGradient: {
-    width: width,
-    height: '100%',
-  },
-  headerContent: {
-    padding: 24,
+  iconWrapper: {
+    marginBottom: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  iconGlow: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    opacity: 0.6,
   },
   iconContainer: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+    backgroundColor: 'rgba(74, 222, 128, 0.8)',
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
-    color: '#FFFFFF',
     textAlign: 'center',
+    marginBottom: 8,
   },
-  content: {
-    padding: 24,
+  amount: {
+    fontSize: 40,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  hashContainer: {
+    marginVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  hashText: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginRight: 8,
+  },
+  copyIcon: {
+    marginLeft: 4,
+  },
+  timestamp: {
+    fontSize: 16,
+    marginBottom: 24,
   },
   message: {
     fontSize: 16,
-    lineHeight: 24,
     textAlign: 'center',
     marginBottom: 24,
+    lineHeight: 24,
   },
-  hashContainer: {
-    marginBottom: 24,
+  buttonsContainer: {
+    width: '100%',
+    marginTop: 8,
   },
-  hashLabel: {
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  hashRow: {
+  buttonRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    padding: 12,
-    borderRadius: 8,
+    justifyContent: 'space-between',
   },
-  hashText: {
+  button: {
     flex: 1,
-    fontSize: 14,
-    marginRight: 8,
-  },
-  closeButton: {
     height: 48,
-    borderRadius: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  closeButtonText: {
-    color: '#FFFFFF',
+  fullWidthButton: {
+    width: '100%',
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  buttonText: {
     fontSize: 16,
     fontWeight: '600',
   },
-}); 
+});

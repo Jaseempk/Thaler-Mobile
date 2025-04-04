@@ -94,9 +94,9 @@ const SavingsScreen = () => {
       if (!selectedPool) return;
 
       if (selectedPool.isEth) {
-        await depositToEthPool(selectedPool.id, depositAmount);
+        await depositToEthPool(selectedPool.savingsPoolId, depositAmount);
       } else {
-        await depositToERC20Pool(selectedPool.id, depositAmount);
+        await depositToERC20Pool(selectedPool.savingsPoolId, depositAmount);
       }
       setDepositModalVisible(false);
       setDepositAmount("");
@@ -117,9 +117,9 @@ const SavingsScreen = () => {
       const publicInputs = ["0"];
 
       if (selectedPool.isEth) {
-        await withdrawFromEthPool(selectedPool.id, proof, publicInputs);
+        await withdrawFromEthPool(selectedPool.savingsPoolId, proof);
       } else {
-        await withdrawFromERC20Pool(selectedPool.id, proof, publicInputs);
+        await withdrawFromERC20Pool(selectedPool.savingsPoolId, proof);
       }
       setWithdrawModalVisible(false);
       setWithdrawProof("");
@@ -221,7 +221,7 @@ const SavingsScreen = () => {
           ) : (
             pools.map((pool) => (
               <SavingsPoolCard
-                key={pool.id}
+                key={pool.savingsPoolId}
                 pool={pool}
                 onPress={() => {}}
                 onDeposit={() => openDepositModal(pool)}

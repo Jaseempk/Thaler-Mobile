@@ -107,7 +107,7 @@ export default function SavingsScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push({
       pathname: "/savings/[id]",
-      params: { id: pool.id },
+      params: { id: pool.savingsPoolId },
     });
   };
 
@@ -128,12 +128,16 @@ export default function SavingsScreen() {
                 if (pool.isEth) {
                   router.push({
                     pathname: "/savings/deposit",
-                    params: { id: pool.id, amount, token: "ETH" },
+                    params: { id: pool.savingsPoolId, amount, token: "ETH" },
                   });
                 } else {
                   router.push({
                     pathname: "/savings/deposit",
-                    params: { id: pool.id, amount, token: pool.tokenSymbol },
+                    params: {
+                      id: pool.savingsPoolId,
+                      amount,
+                      token: pool.tokenSymbol,
+                    },
                   });
                 }
               } catch (error) {
@@ -152,7 +156,10 @@ export default function SavingsScreen() {
       // For Android, navigate to a dedicated deposit screen
       router.push({
         pathname: "/savings/deposit-amount",
-        params: { id: pool.id, token: pool.isEth ? "ETH" : pool.tokenSymbol },
+        params: {
+          id: pool.savingsPoolId,
+          token: pool.isEth ? "ETH" : pool.tokenSymbol,
+        },
       });
     }
   };
@@ -171,7 +178,7 @@ export default function SavingsScreen() {
             onPress: () => {
               router.push({
                 pathname: "/savings/early-withdrawal",
-                params: { id: pool.id, early: "true" },
+                params: { id: pool.savingsPoolId, early: "true" },
               });
             },
           },
@@ -180,7 +187,7 @@ export default function SavingsScreen() {
     } else {
       router.push({
         pathname: "/savings/withdraw",
-        params: { id: pool.id },
+        params: { id: pool.savingsPoolId },
       });
     }
   };
@@ -663,7 +670,7 @@ export default function SavingsScreen() {
 
               {pools.map((pool, index) => (
                 <MotiView
-                  key={pool.id}
+                  key={pool.savingsPoolId}
                   from={{ opacity: 0, translateY: 20 }}
                   animate={{ opacity: 1, translateY: 0 }}
                   transition={{

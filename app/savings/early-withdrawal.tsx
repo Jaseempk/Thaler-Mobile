@@ -30,6 +30,7 @@ import { MotiView } from "moti";
 import Slider from "@react-native-community/slider";
 import { BlurView } from "expo-blur";
 import { SavingsPool } from "../../models/savings";
+import StatusModal from "../../components/modals/StatusModal";
 
 const { width } = Dimensions.get("window");
 
@@ -102,10 +103,33 @@ export default function EarlyWithdrawalScreen() {
   const [minimumDonationPercentage, setMinimumDonationPercentage] = useState(0);
   const [minimumDonationAmount, setMinimumDonationAmount] = useState(0);
 
+  // Status modal state
+  const [statusModal, setStatusModal] = useState<{
+    visible: boolean;
+    type: 'success' | 'error' | 'info' | 'warning';
+    title: string;
+    message: string;
+    amount: string;
+    amountLabel: string;
+    transactionHash: string;
+    timestamp: Date;
+    actionButtons: Array<{ label: string; onPress: () => void; primary?: boolean }>;
+  }>({
+    visible: false,
+    type: 'success',
+    title: '',
+    message: '',
+    amount: '',
+    amountLabel: '',
+    transactionHash: '',
+    timestamp: new Date(),
+    actionButtons: [],
+  });
+
   // Find the pool based on the ID
   useEffect(() => {
     if (pools && pools.length > 0 && id) {
-      const foundPool = pools.find((p) => p.id === id);
+      const foundPool = pools.find((p) => p.savingsPoolId === id);
       if (foundPool) {
         setPool(foundPool);
 
@@ -113,14 +137,14 @@ export default function EarlyWithdrawalScreen() {
         const totalDuration = foundPool.endDate - foundPool.startDate;
         const currentTime = Date.now();
         const elapsed = currentTime - foundPool.startDate;
-        
+
         // Calculate progress as percentage (0-100)
         const progressPercentage = (elapsed / totalDuration) * 100;
-        
+
         // For display purposes, ensure the progress is at least 1% to show on timeline
         // but for calculation purposes, use the actual progress
         foundPool.progress = Math.max(progressPercentage, 1);
-        
+
         // Set minimum donation percentage based on actual progress
         // If less than 50% through the savings cycle, donation is 25%
         // Otherwise, donation is 12.5%
@@ -268,29 +292,85 @@ export default function EarlyWithdrawalScreen() {
     setIsLoading(true);
 
     try {
+      console.log("poolisETh:", pool.isEth);
+      let txHash = '';
+      
       // Call the appropriate withdrawal function based on pool type
       if (pool.isEth) {
-        await withdrawFromEthPool(
-          pool.id,
-          selectedCharity.address,
-          [] // Empty array for the updated contract that doesn't need ZK proofs
+        txHash = await withdrawFromEthPool(
+          pool.savingsPoolId,
+          selectedCharity.address
         );
       } else {
-        await withdrawFromERC20Pool(
-          pool.id,
-          selectedCharity.address,
-          [] // Empty array for the updated contract that doesn't need ZK proofs
+        txHash = await withdrawFromERC20Pool(
+          pool.savingsPoolId,
+          selectedCharity.address
         );
       }
       
-      setIsLoading(false);
-      router.replace({
-        pathname: "/tabs/savings",
+      // Show success modal
+      setStatusModal({
+        visible: true,
+        type: 'success',
+        title: 'Transaction Success',
+        message: `You've successfully withdrawn from your savings pool with a ${donationPercentage}% donation to ${selectedCharity.name}.`,
+        amount: pool.totalSaved,
+        amountLabel: pool.isEth ? 'ETH' : pool.tokenSymbol || 'Tokens',
+        transactionHash: txHash,
+        timestamp: new Date(),
+        actionButtons: [
+          {
+            label: 'View Details',
+            onPress: () => {
+              // Handle viewing transaction details
+              setStatusModal(prev => ({ ...prev, visible: false }));
+            },
+            primary: false
+          },
+          {
+            label: 'Share Receipt',
+            onPress: () => {
+              // Handle sharing receipt
+              setStatusModal(prev => ({ ...prev, visible: false }));
+            },
+            primary: false
+          },
+          {
+            label: 'Go to Dashboard',
+            onPress: () => {
+              setStatusModal(prev => ({ ...prev, visible: false }));
+              router.replace('/tabs');
+            },
+            primary: true
+          }
+        ]
       });
+      
+      setIsLoading(false);
     } catch (error) {
       console.error("Error processing withdrawal:", error);
       setIsLoading(false);
-      Alert.alert("Error", "Failed to process withdrawal. Please try again.");
+      
+      // Show error modal
+      setStatusModal({
+        visible: true,
+        type: 'error',
+        title: 'Transaction Failed',
+        message: 'Failed to process withdrawal. Please try again.',
+        amount: '',
+        amountLabel: '',
+        transactionHash: '',
+        timestamp: new Date(),
+        actionButtons: [
+          {
+            label: 'Try Again',
+            onPress: () => {
+              setStatusModal(prev => ({ ...prev, visible: false }));
+            },
+            primary: true
+          }
+        ]
+      });
     }
   };
 
@@ -305,10 +385,7 @@ export default function EarlyWithdrawalScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors[activeTheme].primary} />
           <Text
-            style={[
-              styles.loadingText,
-              { color: Colors[activeTheme].text },
-            ]}
+            style={[styles.loadingText, { color: Colors[activeTheme].text }]}
           >
             Loading pool details...
           </Text>
@@ -450,17 +527,21 @@ export default function EarlyWithdrawalScreen() {
                       <View style={[styles.timelineMarker, { left: "100%" }]}>
                         <Text style={styles.timelineMarkerLabel}>End</Text>
                       </View>
-                      
+
                       {/* Position the current marker based on actual progress */}
                       <View
                         style={[
                           styles.timelineCurrentMarker,
-                          { 
+                          {
                             // Snap to key points if close to them
-                            left: pool.progress < 5 ? "0%" : 
-                                  (pool.progress > 45 && pool.progress < 55) ? "50%" :
-                                  pool.progress > 95 ? "100%" :
-                                  `${pool.progress}%` 
+                            left:
+                              pool.progress < 5
+                                ? "0%"
+                                : pool.progress > 45 && pool.progress < 55
+                                ? "50%"
+                                : pool.progress > 95
+                                ? "100%"
+                                : `${pool.progress}%`,
                           },
                         ]}
                       >
@@ -884,6 +965,21 @@ export default function EarlyWithdrawalScreen() {
           )}
         </Animated.View>
       </ScrollView>
+      
+      {/* Status Modal */}
+      <StatusModal
+        visible={statusModal.visible}
+        onClose={() => setStatusModal(prev => ({ ...prev, visible: false }))}
+        type={statusModal.type}
+        title={statusModal.title}
+        message={statusModal.message}
+        amount={statusModal.amount}
+        amountLabel={statusModal.amountLabel}
+        transactionHash={statusModal.transactionHash}
+        timestamp={statusModal.timestamp}
+        actionButtons={statusModal.actionButtons}
+        theme={activeTheme}
+      />
     </SafeAreaView>
   );
 }
