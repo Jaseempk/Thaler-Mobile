@@ -106,26 +106,22 @@ export default function EarlyWithdrawalScreen() {
   // Status modal state
   const [statusModal, setStatusModal] = useState<{
     visible: boolean;
-    type: "success" | "error" | "info" | "warning";
+    type: 'success' | 'error' | 'info' | 'warning';
     title: string;
     message: string;
     amount: string;
     amountLabel: string;
     transactionHash: string;
     timestamp: Date;
-    actionButtons: Array<{
-      label: string;
-      onPress: () => void;
-      primary?: boolean;
-    }>;
+    actionButtons: Array<{ label: string; onPress: () => void; primary?: boolean }>;
   }>({
     visible: false,
-    type: "success",
-    title: "",
-    message: "",
-    amount: "",
-    amountLabel: "",
-    transactionHash: "",
+    type: 'success',
+    title: '',
+    message: '',
+    amount: '',
+    amountLabel: '',
+    transactionHash: '',
     timestamp: new Date(),
     actionButtons: [],
   });
@@ -297,8 +293,8 @@ export default function EarlyWithdrawalScreen() {
 
     try {
       console.log("poolisETh:", pool.isEth);
-      let txHash = "";
-
+      let txHash = '';
+      
       // Call the appropriate withdrawal function based on pool type
       if (pool.isEth) {
         txHash = await withdrawFromEthPool(
@@ -311,69 +307,69 @@ export default function EarlyWithdrawalScreen() {
           selectedCharity.address
         );
       }
-
+      
       // Show success modal
       setStatusModal({
         visible: true,
-        type: "success",
-        title: "Transaction Success",
+        type: 'success',
+        title: 'Transaction Success',
         message: `You've successfully withdrawn from your savings pool with a ${donationPercentage}% donation to ${selectedCharity.name}.`,
         amount: pool.totalSaved,
-        amountLabel: pool.isEth ? "ETH" : pool.tokenSymbol || "Tokens",
+        amountLabel: pool.isEth ? 'ETH' : pool.tokenSymbol || 'Tokens',
         transactionHash: txHash,
         timestamp: new Date(),
         actionButtons: [
           {
-            label: "View Details",
+            label: 'View Details',
             onPress: () => {
               // Handle viewing transaction details
-              setStatusModal((prev) => ({ ...prev, visible: false }));
+              setStatusModal(prev => ({ ...prev, visible: false }));
             },
-            primary: false,
+            primary: false
           },
           {
-            label: "Share Receipt",
+            label: 'Share Receipt',
             onPress: () => {
               // Handle sharing receipt
-              setStatusModal((prev) => ({ ...prev, visible: false }));
+              setStatusModal(prev => ({ ...prev, visible: false }));
             },
-            primary: false,
+            primary: false
           },
           {
-            label: "Go to Home",
+            label: 'Go to Dashboard',
             onPress: () => {
-              setStatusModal((prev) => ({ ...prev, visible: false }));
-              router.replace("/tabs");
+              setStatusModal(prev => ({ ...prev, visible: false }));
+              router.replace('/tabs');
             },
-            primary: true,
-          },
-        ],
+            primary: true
+          }
+        ]
       });
-
+      
       setIsLoading(false);
     } catch (error) {
       console.error("Error processing withdrawal:", error);
       setIsLoading(false);
-
+      
       // Show error modal
       setStatusModal({
         visible: true,
-        type: "error",
-        title: "Transaction Failed",
-        message: "Failed to process withdrawal. Please try again.",
-        amount: "",
-        amountLabel: "",
-        transactionHash: "",
+        type: 'error',
+        title: 'Transaction Failed',
+        message: 'Failed to process withdrawal. Please try again.',
+        amount: '',
+        amountLabel: '',
+        transactionHash: '',
         timestamp: new Date(),
         actionButtons: [
           {
-            label: "Try Again",
+            label: 'Try Again',
             onPress: () => {
-              setStatusModal((prev) => ({ ...prev, visible: false }));
+              setStatusModal(prev => ({ ...prev, visible: false }));
             },
-            primary: true,
-          },
-        ],
+            primary: true
+          }
+        ]
       });
     }
   };
@@ -969,11 +965,11 @@ export default function EarlyWithdrawalScreen() {
           )}
         </Animated.View>
       </ScrollView>
-
+      
       {/* Status Modal */}
       <StatusModal
         visible={statusModal.visible}
-        onClose={() => setStatusModal((prev) => ({ ...prev, visible: false }))}
+        onClose={() => setStatusModal(prev => ({ ...prev, visible: false }))}
         type={statusModal.type}
         title={statusModal.title}
         message={statusModal.message}

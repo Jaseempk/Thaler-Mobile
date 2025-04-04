@@ -46,7 +46,7 @@ const ethLogo = require("../../assets/images/ethereum.png");
 const usdcLogo = require("../../assets/images/usdc.png");
 
 // Constants for measurements and animations
-const TOGGLE_PADDING = 2;
+const TOGGLE_PADDING = 4;
 const TOGGLE_HEIGHT = 48;
 const TOGGLE_BORDER_RADIUS = 16;
 const TOGGLE_TEXT_SIZE = 16;
@@ -64,6 +64,8 @@ const ANIMATION_CONFIG = {
     easing: Easing.bezier(0.4, 0.0, 0.2, 1),
   },
 };
+
+const ANIMATION_DURATION = 250;
 
 // Add token interface with logo
 interface Token {
@@ -146,8 +148,8 @@ export default function CreateSavingsScreen() {
   // Calculate precise measurements
   const containerPadding = 20; // Form section padding
   const containerWidth = width - containerPadding * 2; // Available width minus padding
-  const TOKEN_BUTTON_WIDTH = containerWidth / 2;
-  const DURATION_BUTTON_WIDTH = containerWidth / 3;
+  const [tokenButtonWidth, setTokenButtonWidth] = useState(0);
+  const [durationButtonWidth, setDurationButtonWidth] = useState(0);
 
   const styles = StyleSheet.create({
     container: {
@@ -161,7 +163,7 @@ export default function CreateSavingsScreen() {
       padding: 20,
       paddingTop: Platform.OS === "ios" ? 50 : 20,
       paddingBottom: 20,
-      backgroundColor: "#2ECC71",
+      backgroundColor: "rgba(42, 87, 65, 0.9)",
       borderBottomLeftRadius: 24,
       borderBottomRightRadius: 24,
       shadowColor: "#000",
@@ -218,29 +220,34 @@ export default function CreateSavingsScreen() {
       backgroundColor: Colors[activeTheme].secondaryLight,
       borderRadius: TOGGLE_BORDER_RADIUS,
       height: TOGGLE_HEIGHT,
-      padding: TOGGLE_PADDING,
       overflow: "hidden",
+      padding: 2,
     },
     tokenTypeButton: {
       flex: 1,
-      height: TOGGLE_HEIGHT - TOGGLE_PADDING * 2,
+      height: TOGGLE_HEIGHT - 4,
       justifyContent: "center",
       alignItems: "center",
       zIndex: 1,
     },
+    tokenTypeSliderContainer: {
+      position: 'absolute',
+      top: 2,
+      left: 2,
+      right: 2,
+      bottom: 2,
+    },
     tokenTypeSlider: {
       position: "absolute",
       width: "50%",
-      height: TOGGLE_HEIGHT - TOGGLE_PADDING * 2,
-      backgroundColor: "#2ECC71",
-      borderRadius: TOGGLE_BORDER_RADIUS - TOGGLE_PADDING / 2,
-      top: TOGGLE_PADDING,
-      left: TOGGLE_PADDING,
+      height: "100%",
+      backgroundColor: "rgba(42, 87, 65, 0.85)",
+      borderRadius: TOGGLE_BORDER_RADIUS - 2,
       shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.2,
+      shadowRadius: 1.5,
+      elevation: 2,
     },
     tokenTypeText: {
       fontSize: 16,
@@ -313,30 +320,35 @@ export default function CreateSavingsScreen() {
       backgroundColor: Colors[activeTheme].secondaryLight,
       borderRadius: TOGGLE_BORDER_RADIUS,
       height: TOGGLE_HEIGHT,
-      padding: TOGGLE_PADDING,
       overflow: "hidden",
       marginBottom: 20,
+      padding: 2,
     },
     durationButton: {
       flex: 1,
-      height: TOGGLE_HEIGHT - TOGGLE_PADDING * 2,
+      height: TOGGLE_HEIGHT - 4,
       justifyContent: "center",
       alignItems: "center",
       zIndex: 1,
     },
+    durationSliderContainer: {
+      position: 'absolute',
+      top: 2,
+      left: 2,
+      right: 2,
+      bottom: 2,
+    },
     durationSlider: {
       position: "absolute",
-      width: `${100 / 3}%`,
-      height: TOGGLE_HEIGHT - TOGGLE_PADDING * 2,
-      backgroundColor: "#2ECC71",
-      borderRadius: TOGGLE_BORDER_RADIUS - TOGGLE_PADDING / 2,
-      top: TOGGLE_PADDING,
-      left: TOGGLE_PADDING,
+      width: "33.33%",
+      height: "100%",
+      backgroundColor: "rgba(42, 87, 65, 0.85)",
+      borderRadius: TOGGLE_BORDER_RADIUS - 2,
       shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.2,
+      shadowRadius: 1.5,
+      elevation: 2,
     },
     durationText: {
       fontSize: 15,
@@ -376,13 +388,13 @@ export default function CreateSavingsScreen() {
       color: Colors[activeTheme].text,
     },
     createButton: {
-      backgroundColor: "#2ECC71",
+      backgroundColor: "rgba(42, 87, 65, 0.9)",
       borderRadius: 16,
       paddingVertical: 16,
       alignItems: "center",
       marginBottom: 24,
       marginHorizontal: 16,
-      shadowColor: "#2ECC71",
+      shadowColor: "rgba(42, 87, 65, 0.5)",
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.2,
       shadowRadius: 8,
@@ -566,7 +578,7 @@ export default function CreateSavingsScreen() {
     },
     addTokenButtonText: {
       fontSize: 16,
-      color: "#2ECC71",
+      color: "#2A5741",
       marginLeft: 8,
     },
     calculatedDepositContainer: {
@@ -575,7 +587,7 @@ export default function CreateSavingsScreen() {
       borderRadius: 14,
       padding: 16,
       borderWidth: 1,
-      borderColor: "rgba(46, 204, 113, 0.2)",
+      borderColor: "rgba(30, 59, 47, 0.2)",
     },
     calculatedDepositNote: {
       fontSize: 12,
@@ -587,7 +599,7 @@ export default function CreateSavingsScreen() {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      backgroundColor: "rgba(46, 204, 113, 0.08)",
+      backgroundColor: "rgba(42, 87, 65, 0.2)",
       borderRadius: 12,
       paddingHorizontal: 14,
       paddingVertical: 10,
@@ -625,6 +637,17 @@ export default function CreateSavingsScreen() {
   const [newTokenName, setNewTokenName] = useState("");
   const [isCreatingPool, setIsCreatingPool] = useState(false);
 
+  // Animation values
+  const tokenTypeAnimatedValue = useRef(new Animated.Value(tokenType === "ETH" ? 0 : 1)).current;
+  const durationAnimatedValue = useRef(new Animated.Value(duration === 90 ? 0 : duration === 180 ? 1 : 2)).current;
+
+  // Animation configurations
+  const animationConfig = {
+    duration: 300,
+    easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+    useNativeDriver: true
+  };
+
   // Calculate initial deposit based on total amount and intervals
   const calculateInitialDeposit = useCallback(() => {
     if (!amountToSave || parseFloat(amountToSave) <= 0 || intervals <= 0) {
@@ -639,35 +662,17 @@ export default function CreateSavingsScreen() {
   // Get initial deposit value
   const initialDeposit = calculateInitialDeposit();
 
-  // Animation values
-  const tokenTypeAnimation = useRef(new Animated.Value(0)).current;
-  const durationAnimation = useRef(new Animated.Value(0)).current;
-
-  // Calculate animated positions with precise measurements
-  const tokenTypeTranslateX = tokenTypeAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, TOKEN_BUTTON_WIDTH],
-  });
-
-  const durationTranslateX = durationAnimation.interpolate({
-    inputRange: [0, 1, 2],
-    outputRange: [
-      0,
-      (containerWidth - TOGGLE_PADDING * 2) / 3,
-      ((containerWidth - TOGGLE_PADDING * 2) / 3) * 2,
-    ],
-  });
-
-  // Handle token type selection with improved animation
+  // Handle token type selection
   const handleTokenTypeSelect = (type: "ETH" | "ERC20") => {
-    Animated.spring(tokenTypeAnimation, {
-      toValue: type === "ETH" ? 0 : 1,
-      useNativeDriver: true,
-      stiffness: 180,
-      damping: 20,
-      mass: 1,
+    const toValue = type === "ETH" ? 0 : 1;
+    
+    Animated.spring(tokenTypeAnimatedValue, {
+      toValue,
+      friction: 12,
+      tension: 80,
+      useNativeDriver: true
     }).start();
-
+    
     setTokenType(type);
     if (type === "ETH") {
       setTokenSymbol("ETH");
@@ -679,16 +684,15 @@ export default function CreateSavingsScreen() {
 
   // Handle duration selection
   const handleDurationSelect = (months: number) => {
-    const durationValue = months === 3 ? 0 : months === 6 ? 1 : 2;
-
-    Animated.spring(durationAnimation, {
-      toValue: durationValue,
-      useNativeDriver: true,
-      stiffness: 180,
-      damping: 20,
-      mass: 1,
+    const toValue = months === 3 ? 0 : months === 6 ? 1 : 2;
+    
+    Animated.spring(durationAnimatedValue, {
+      toValue,
+      friction: 12,
+      tension: 80,
+      useNativeDriver: true
     }).start();
-
+    
     // Use 365 days for 12 months instead of 360 days
     if (months === 12) {
       setDuration(365); // 365 days for 12 months
@@ -1128,46 +1132,58 @@ export default function CreateSavingsScreen() {
         >
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Token Type</Text>
-            <View style={styles.tokenTypeContainer}>
-              <Animated.View
-                style={[
-                  styles.tokenTypeSlider,
-                  {
-                    transform: [{ translateX: tokenTypeTranslateX }],
-                  },
-                ]}
-              />
+            <View 
+              style={styles.tokenTypeContainer}
+              onLayout={(e) => setTokenButtonWidth(e.nativeEvent.layout.width / 2 - 2)}
+            >
               <TouchableOpacity
-                style={styles.tokenTypeButton}
+                style={[
+                  styles.tokenTypeButton,
+                ]}
                 onPress={() => handleTokenTypeSelect("ETH")}
               >
-                <View style={styles.tokenTypeTextContainer}>
-                  <Text
-                    style={[
-                      styles.tokenTypeText,
-                      tokenType === "ETH" && styles.tokenTypeTextActive,
-                    ]}
-                  >
-                    ETH
-                  </Text>
-                </View>
+                <Text
+                  style={[
+                    styles.tokenTypeText,
+                    tokenType === "ETH" && styles.tokenTypeTextActive,
+                  ]}
+                >
+                  ETH
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.tokenTypeButton}
+                style={[
+                  styles.tokenTypeButton,
+                ]}
                 onPress={() => handleTokenTypeSelect("ERC20")}
               >
-                <View style={styles.tokenTypeTextContainer}>
-                  <Text
-                    style={[
-                      styles.tokenTypeText,
-                      tokenType === "ERC20" && styles.tokenTypeTextActive,
-                    ]}
-                  >
-                    ERC20
-                  </Text>
-                </View>
+                <Text
+                  style={[
+                    styles.tokenTypeText,
+                    tokenType === "ERC20" && styles.tokenTypeTextActive,
+                  ]}
+                >
+                  ERC20
+                </Text>
               </TouchableOpacity>
+              <View style={styles.tokenTypeSliderContainer}>
+                <Animated.View
+                  style={[
+                    styles.tokenTypeSlider,
+                    {
+                      transform: [
+                        {
+                          translateX: tokenTypeAnimatedValue.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0, tokenButtonWidth],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                />
+              </View>
             </View>
 
             {renderBalanceCard()}
@@ -1192,17 +1208,14 @@ export default function CreateSavingsScreen() {
             </View>
 
             <Text style={styles.inputLabel}>Duration</Text>
-            <View style={styles.durationContainer}>
-              <Animated.View
-                style={[
-                  styles.durationSlider,
-                  {
-                    transform: [{ translateX: durationTranslateX }],
-                  },
-                ]}
-              />
+            <View 
+              style={styles.durationContainer}
+              onLayout={(e) => setDurationButtonWidth(e.nativeEvent.layout.width / 3 - 2)}
+            >
               <TouchableOpacity
-                style={styles.durationButton}
+                style={[
+                  styles.durationButton,
+                ]}
                 onPress={() => handleDurationSelect(3)}
               >
                 <Text
@@ -1216,7 +1229,9 @@ export default function CreateSavingsScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.durationButton}
+                style={[
+                  styles.durationButton,
+                ]}
                 onPress={() => handleDurationSelect(6)}
               >
                 <Text
@@ -1230,7 +1245,9 @@ export default function CreateSavingsScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.durationButton}
+                style={[
+                  styles.durationButton,
+                ]}
                 onPress={() => handleDurationSelect(12)}
               >
                 <Text
@@ -1242,6 +1259,23 @@ export default function CreateSavingsScreen() {
                   12 Months
                 </Text>
               </TouchableOpacity>
+              <View style={styles.durationSliderContainer}>
+                <Animated.View
+                  style={[
+                    styles.durationSlider,
+                    {
+                      transform: [
+                        {
+                          translateX: durationAnimatedValue.interpolate({
+                            inputRange: [0, 1, 2],
+                            outputRange: [0, durationButtonWidth, durationButtonWidth * 2],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                />
+              </View>
             </View>
 
             <View
@@ -1324,7 +1358,7 @@ export default function CreateSavingsScreen() {
             disabled={isCreatingPool}
           >
             <LinearGradient
-              colors={["#2ECC71", "#27AE60"]}
+              colors={["#2A5741", "#1E3B2F"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.createButtonGradient}

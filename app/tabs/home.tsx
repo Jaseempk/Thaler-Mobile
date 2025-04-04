@@ -714,8 +714,8 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   walletAddressSection: {
-    marginTop: 6,
-    paddingTop: 6,
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "rgba(255, 255, 255, 0.2)",
     minHeight: 80, // Increased minimum height to fit content
@@ -724,6 +724,7 @@ const styles = StyleSheet.create({
   walletHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
+    marginTop: 8,
     marginBottom: 12,
   },
   walletIconContainer: {
@@ -790,6 +791,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#FFFFFF",
     fontWeight: "600",
+    marginBottom: 6,
   },
   createPoolButton: {
     transform: [{ scale: 1.15 }],
