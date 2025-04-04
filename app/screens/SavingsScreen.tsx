@@ -61,6 +61,7 @@ const SavingsScreen = () => {
   const handleCreatePool = async () => {
     try {
       if (tokenType === "ETH") {
+        console.log("Duaration:", duration);
         await createEthSavingsPool(
           amountToSave,
           parseInt(duration) * 86400, // Convert days to seconds

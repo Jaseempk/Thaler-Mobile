@@ -1,6 +1,6 @@
 // Contract addresses - these would be updated based on deployment environment
 export const THALER_SAVINGS_POOL_ADDRESS =
-  "0x0ed7AF49d7C2C49b95B9204BE8fEA9530CaF0019"; // Placeholder
+  "0x2473824e1989F7e4FEA28F04D627399928945ea0"; // Placeholder
 
 // Time constants from the contract (in seconds)
 export const TIME_CONSTANTS = {

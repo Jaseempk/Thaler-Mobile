@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from "react";
 import {
   Modal,
   View,
@@ -10,19 +10,19 @@ import {
   Platform,
   Clipboard,
   Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import Colors from '../../constants/Colors';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useColorScheme } from 'react-native';
-import { formatDistanceToNow } from 'date-fns';
-import { router } from 'expo-router';
-import { Easing } from 'react-native';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import Colors from "../../constants/Colors";
+import { LinearGradient } from "expo-linear-gradient";
+import { useColorScheme } from "react-native";
+import { formatDistanceToNow } from "date-fns";
+import { router } from "expo-router";
+import { Easing } from "react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 // Define the types of status modals
-export type StatusType = 'success' | 'error' | 'info' | 'warning';
+export type StatusType = "success" | "error" | "info" | "warning";
 
 // Define the action button type
 interface ActionButton {
@@ -42,7 +42,7 @@ interface StatusModalProps {
   transactionHash?: string;
   timestamp?: Date;
   actionButtons?: ActionButton[];
-  theme?: 'light' | 'dark';
+  theme?: "light" | "dark";
 }
 
 export default function StatusModal({
@@ -59,18 +59,19 @@ export default function StatusModal({
   theme: themeProp,
 }: StatusModalProps) {
   const systemTheme = useColorScheme();
-  const theme = themeProp || systemTheme || 'dark';
-  const isDarkMode = theme === 'dark';
+  const theme = themeProp || systemTheme || "dark";
+  const isDarkMode = theme === "dark";
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current; // Separate animation for pulse effect
   const particleAnim1 = useRef(new Animated.Value(0)).current;
   const particleAnim2 = useRef(new Animated.Value(0)).current;
   const particleAnim3 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     let animations = [];
-    
+
     if (visible) {
       // Fade and scale in animation
       const fadeInAnimation = Animated.parallel([
@@ -86,9 +87,9 @@ export default function StatusModal({
           useNativeDriver: true,
         }),
       ]);
-      
+
       fadeInAnimation.start();
-      
+
       // Simplified particle animations - only use one particle animation to reduce load
       const particleAnimation = Animated.loop(
         Animated.sequence([
@@ -104,107 +105,115 @@ export default function StatusModal({
           }),
         ])
       );
-      
+
       particleAnimation.start();
       animations.push(particleAnimation);
-      
-      // Add a subtle pulse animation to the icon - simplified
-      const pulseAnimation = Animated.loop(
+
+      // Create a smooth continuous pulse animation with proper easing
+      // This will create a more natural, continuous breathing effect
+      const createSmoothPulseAnimation = () => {
         Animated.sequence([
-          Animated.timing(scaleAnim, {
-            toValue: 1.05,
+          // Pulse out (grow)
+          Animated.timing(pulseAnim, {
+            toValue: 1.15,
             duration: 1500,
+            easing: Easing.inOut(Easing.sin), // Sine easing for natural breathing
             useNativeDriver: true,
-            easing: Easing.inOut(Easing.ease),
           }),
-          Animated.timing(scaleAnim, {
+          // Pulse in (shrink)
+          Animated.timing(pulseAnim, {
             toValue: 1,
             duration: 1500,
+            easing: Easing.inOut(Easing.sin), // Sine easing for natural breathing
             useNativeDriver: true,
-            easing: Easing.inOut(Easing.ease),
           }),
-        ])
-      );
-      
-      // Start the pulse animation after a short delay to prevent conflicts
-      setTimeout(() => {
-        pulseAnimation.start();
-        animations.push(pulseAnimation);
-      }, 500);
+        ]).start(({ finished }) => {
+          // Only restart if the component is still mounted and visible
+          if (finished && visible) {
+            createSmoothPulseAnimation();
+          }
+        });
+      };
+
+      // Start the smooth pulse animation
+      createSmoothPulseAnimation();
     } else {
       // Reset animations
       fadeAnim.setValue(0);
       scaleAnim.setValue(0.95);
+      pulseAnim.setValue(1);
       particleAnim1.setValue(0);
       particleAnim2.setValue(0);
       particleAnim3.setValue(0);
     }
-    
+
     // Cleanup function to stop all animations when component unmounts or visibility changes
     return () => {
-      animations.forEach(anim => anim.stop());
+      animations.forEach((anim) => anim.stop());
+      // Stop the pulse animation by setting the value back to 1
+      pulseAnim.setValue(1);
     };
   }, [visible]);
 
   const getIconName = () => {
     switch (type) {
-      case 'success':
-        return 'checkmark';
-      case 'error':
-        return 'close';
-      case 'warning':
-        return 'warning';
-      case 'info':
-        return 'information';
+      case "success":
+        return "checkmark";
+      case "error":
+        return "close";
+      case "warning":
+        return "warning";
+      case "info":
+        return "information";
       default:
-        return 'checkmark';
+        return "checkmark";
     }
   };
 
   const getIconColor = () => {
     switch (type) {
-      case 'success':
-        return 'rgba(74, 222, 128, 0.8)';
-      case 'error':
-        return 'rgba(248, 113, 113, 0.8)';
-      case 'warning':
-        return 'rgba(251, 191, 36, 0.8)';
-      case 'info':
-        return 'rgba(96, 165, 250, 0.8)';
+      case "success":
+        return "rgba(74, 222, 128, 0.8)";
+      case "error":
+        return "rgba(248, 113, 113, 0.8)";
+      case "warning":
+        return "rgba(251, 191, 36, 0.8)";
+      case "info":
+        return "rgba(96, 165, 250, 0.8)";
       default:
-        return 'rgba(74, 222, 128, 0.8)';
+        return "rgba(74, 222, 128, 0.8)";
     }
   };
 
   const getIconGlowColor = () => {
     switch (type) {
-      case 'success':
-        return 'rgba(74, 222, 128, 0.4)';
-      case 'error':
-        return 'rgba(248, 113, 113, 0.4)';
-      case 'warning':
-        return 'rgba(251, 191, 36, 0.4)';
-      case 'info':
-        return 'rgba(96, 165, 250, 0.4)';
+      case "success":
+        return "rgba(74, 222, 128, 0.4)";
+      case "error":
+        return "rgba(248, 113, 113, 0.4)";
+      case "warning":
+        return "rgba(251, 191, 36, 0.4)";
+      case "info":
+        return "rgba(96, 165, 250, 0.4)";
       default:
-        return 'rgba(74, 222, 128, 0.4)';
+        return "rgba(74, 222, 128, 0.4)";
     }
   };
 
   const getBackgroundColor = () => {
-    return isDarkMode ? '#121826' : '#FFFFFF';
+    return isDarkMode ? "#121826" : "#FFFFFF";
   };
 
   const getTextColor = () => {
-    return isDarkMode ? '#FFFFFF' : '#1F2937';
+    return isDarkMode ? "#FFFFFF" : "#1F2937";
   };
 
   const getSecondaryTextColor = () => {
-    return isDarkMode ? '#9CA3AF' : '#6B7280';
+    return isDarkMode ? "#9CA3AF" : "#6B7280";
   };
 
   const formatTimestamp = () => {
-    if (!timestamp) return '';
+    if (!timestamp) return "";
 
     // If today, show time
     const today = new Date();
@@ -214,8 +223,8 @@ export default function StatusModal({
       timestamp.getFullYear() === today.getFullYear()
     ) {
       return `Today, ${timestamp.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
+        hour: "2-digit",
+        minute: "2-digit",
       })}`;
     }
 
@@ -225,7 +234,7 @@ export default function StatusModal({
 
   // Format transaction hash for display
   const formatHash = (hash: string) => {
-    if (!hash) return '';
+    if (!hash) return "";
     if (hash.length <= 12) return hash;
     return `${hash.substring(0, 6)}...${hash.substring(hash.length - 4)}`;
   };
@@ -243,9 +252,9 @@ export default function StatusModal({
           style={[
             styles.particle,
             {
-              top: '10%',
-              left: '20%',
-              backgroundColor: '#3B82F6',
+              top: "10%",
+              left: "20%",
+              backgroundColor: "#3B82F6",
               transform: [
                 {
                   translateX: particleAnim1.interpolate({
@@ -262,7 +271,7 @@ export default function StatusModal({
                 {
                   rotate: particleAnim1.interpolate({
                     inputRange: [0, 1],
-                    outputRange: ['0deg', '360deg'],
+                    outputRange: ["0deg", "360deg"],
                   }),
                 },
               ],
@@ -273,9 +282,9 @@ export default function StatusModal({
           style={[
             styles.particle,
             {
-              top: '30%',
-              right: '15%',
-              backgroundColor: '#F59E0B',
+              top: "30%",
+              right: "15%",
+              backgroundColor: "#F59E0B",
               transform: [
                 {
                   translateX: particleAnim1.interpolate({
@@ -292,7 +301,7 @@ export default function StatusModal({
                 {
                   rotate: particleAnim1.interpolate({
                     inputRange: [0, 1],
-                    outputRange: ['0deg', '-360deg'],
+                    outputRange: ["0deg", "-360deg"],
                   }),
                 },
               ],
@@ -303,9 +312,9 @@ export default function StatusModal({
           style={[
             styles.particle,
             {
-              top: '20%',
-              right: '25%',
-              backgroundColor: '#10B981',
+              bottom: "25%",
+              left: "30%",
+              backgroundColor: "#10B981",
               transform: [
                 {
                   translateX: particleAnim1.interpolate({
@@ -322,20 +331,22 @@ export default function StatusModal({
                 {
                   rotate: particleAnim1.interpolate({
                     inputRange: [0, 1],
-                    outputRange: ['0deg', '180deg'],
+                    outputRange: ["0deg", "180deg"],
                   }),
                 },
               ],
             },
           ]}
         />
+
+        {/* Additional particles for a richer effect */}
         <Animated.View
           style={[
-            styles.particle,
+            styles.smallParticle,
             {
-              bottom: '45%',
-              left: '25%',
-              backgroundColor: '#8B5CF6',
+              top: "45%",
+              right: "25%",
+              backgroundColor: "#8B5CF6",
               transform: [
                 {
                   translateX: particleAnim1.interpolate({
@@ -357,9 +368,9 @@ export default function StatusModal({
           style={[
             styles.smallParticle,
             {
-              bottom: '35%',
-              right: '20%',
-              backgroundColor: '#EC4899',
+              bottom: "35%",
+              right: "20%",
+              backgroundColor: "#EC4899",
               transform: [
                 {
                   translateX: particleAnim1.interpolate({
@@ -397,9 +408,9 @@ export default function StatusModal({
                   backgroundColor: getIconGlowColor(),
                   transform: [
                     {
-                      scale: scaleAnim.interpolate({
-                        inputRange: [0.95, 1, 1.05],
-                        outputRange: [0.9, 1.1, 1.2],
+                      scale: pulseAnim.interpolate({
+                        inputRange: [1, 1.15],
+                        outputRange: [1.2, 1.5],
                       }),
                     },
                   ],
@@ -413,20 +424,16 @@ export default function StatusModal({
                   backgroundColor: getIconColor(),
                   transform: [
                     {
-                      scale: scaleAnim.interpolate({
-                        inputRange: [0.95, 1, 1.05],
-                        outputRange: [0.95, 1, 1.05],
+                      scale: pulseAnim.interpolate({
+                        inputRange: [1, 1.15],
+                        outputRange: [1, 1.05],
                       }),
                     },
                   ],
                 },
               ]}
             >
-              <Ionicons
-                name={getIconName()}
-                size={32}
-                color="#FFFFFF"
-              />
+              <Ionicons name={getIconName()} size={32} color="#FFFFFF" />
             </Animated.View>
           </View>
 
@@ -483,10 +490,7 @@ export default function StatusModal({
               }}
             >
               <Text
-                style={[
-                  styles.hashText,
-                  { color: getSecondaryTextColor() },
-                ]}
+                style={[styles.hashText, { color: getSecondaryTextColor() }]}
               >
                 {formatHash(transactionHash)}
               </Text>
@@ -551,12 +555,13 @@ export default function StatusModal({
                     style={[
                       styles.fullWidthButton,
                       {
-                        backgroundColor:
-                          actionButtons[0].primary ? '#4F46E5' : 'transparent',
+                        backgroundColor: actionButtons[0].primary
+                          ? "#4F46E5"
+                          : "transparent",
                       },
                       !actionButtons[0].primary && {
                         borderWidth: 1,
-                        borderColor: isDarkMode ? '#374151' : '#E5E7EB',
+                        borderColor: isDarkMode ? "#374151" : "#E5E7EB",
                       },
                     ]}
                     onPress={actionButtons[0].onPress}
@@ -567,7 +572,7 @@ export default function StatusModal({
                         styles.buttonText,
                         {
                           color: actionButtons[0].primary
-                            ? '#FFFFFF'
+                            ? "#FFFFFF"
                             : getTextColor(),
                         },
                       ]}
@@ -584,12 +589,13 @@ export default function StatusModal({
                           style={[
                             styles.button,
                             {
-                              backgroundColor:
-                                button.primary ? '#4F46E5' : 'transparent',
+                              backgroundColor: button.primary
+                                ? "#4F46E5"
+                                : "transparent",
                             },
                             !button.primary && {
                               borderWidth: 1,
-                              borderColor: isDarkMode ? '#374151' : '#E5E7EB',
+                              borderColor: isDarkMode ? "#374151" : "#E5E7EB",
                             },
                             index === 0 && { marginRight: 8 },
                           ]}
@@ -601,7 +607,7 @@ export default function StatusModal({
                               styles.buttonText,
                               {
                                 color: button.primary
-                                  ? '#FFFFFF'
+                                  ? "#FFFFFF"
                                   : getTextColor(),
                               },
                             ]}
@@ -616,13 +622,14 @@ export default function StatusModal({
                         style={[
                           styles.fullWidthButton,
                           {
-                            backgroundColor:
-                              actionButtons[2].primary ? '#4F46E5' : 'transparent',
+                            backgroundColor: actionButtons[2].primary
+                              ? "#4F46E5"
+                              : "transparent",
                             marginTop: 12,
                           },
                           !actionButtons[2].primary && {
                             borderWidth: 1,
-                            borderColor: isDarkMode ? '#374151' : '#E5E7EB',
+                            borderColor: isDarkMode ? "#374151" : "#E5E7EB",
                           },
                         ]}
                         onPress={actionButtons[2].onPress}
@@ -633,7 +640,7 @@ export default function StatusModal({
                             styles.buttonText,
                             {
                               color: actionButtons[2].primary
-                                ? '#FFFFFF'
+                                ? "#FFFFFF"
                                 : getTextColor(),
                             },
                           ]}
@@ -648,14 +655,14 @@ export default function StatusModal({
             ) : (
               // Default close button if no custom buttons provided
               <TouchableOpacity
-                style={[styles.fullWidthButton, { backgroundColor: '#4F46E5' }]}
+                style={[styles.fullWidthButton, { backgroundColor: "#4F46E5" }]}
                 onPress={() => {
                   onClose();
-                  router.replace('/tabs');
+                  router.replace("/tabs");
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>
+                <Text style={[styles.buttonText, { color: "#FFFFFF" }]}>
                   Close
                 </Text>
               </TouchableOpacity>
@@ -670,18 +677,18 @@ export default function StatusModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
     width: width - 48,
     borderRadius: 24,
     padding: 24,
-    alignItems: 'center',
+    alignItems: "center",
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.3,
         shadowRadius: 20,
@@ -692,14 +699,14 @@ const styles = StyleSheet.create({
     }),
   },
   particle: {
-    position: 'absolute',
+    position: "absolute",
     width: 12,
     height: 12,
     borderRadius: 6,
     opacity: 0.6,
   },
   smallParticle: {
-    position: 'absolute',
+    position: "absolute",
     width: 8,
     height: 8,
     borderRadius: 4,
@@ -707,42 +714,40 @@ const styles = StyleSheet.create({
   },
   iconWrapper: {
     marginBottom: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    width: 72,
-    height: 72,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
   },
   iconGlow: {
-    position: 'absolute',
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    position: "absolute",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     opacity: 0.6,
   },
   iconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
-    backgroundColor: 'rgba(74, 222, 128, 0.8)',
+    backgroundColor: "rgba(74, 222, 128, 0.8)",
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontWeight: "700",
+    textAlign: "center",
     marginBottom: 8,
   },
   amount: {
     fontSize: 40,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontWeight: "700",
+    textAlign: "center",
     marginBottom: 8,
   },
   hashContainer: {
@@ -750,13 +755,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    flexDirection: "row",
+    alignItems: "center",
   },
   hashText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginRight: 8,
   },
   copyIcon: {
@@ -768,35 +773,35 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 24,
     lineHeight: 24,
   },
   buttonsContainer: {
-    width: '100%',
+    width: "100%",
     marginTop: 8,
   },
   buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   button: {
     flex: 1,
     height: 48,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   fullWidthButton: {
-    width: '100%',
+    width: "100%",
     height: 48,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 8,
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

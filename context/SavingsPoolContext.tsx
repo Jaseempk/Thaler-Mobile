@@ -292,15 +292,17 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       // Encode function data using viem
       const data = encodeFunctionData({
         abi: THALER_SAVINGS_POOL_ABI,
-        functionName: "createSavingsPoolETH",
+        functionName: "createSavingsPoolEth",
         args: [amountToSaveWei, duration, initialDepositWei, totalIntervals],
       });
+
+      console.log("dey");
 
       // Prepare transaction request
       const transactionRequest = {
         to: THALER_SAVINGS_POOL_ADDRESS,
         data: data,
-        value: `0x${amountToSaveWei.toString(16)}`,
+        value: `0x${initialDepositWei.toString(16)}`,
       };
 
       // Send transaction
