@@ -53,8 +53,8 @@ interface SavingsPoolContextType {
     initialDeposit: string,
     totalIntervals: number
   ) => Promise<string>;
-  depositToEthPool: (poolId: string, amount: string) => Promise<void>;
-  depositToERC20Pool: (poolId: string, amount: string) => Promise<void>;
+  depositToEthPool: (poolId: string, amount: string) => Promise<string>;
+  depositToERC20Pool: (poolId: string, amount: string) => Promise<string>;
   withdrawFromEthPool: (
     poolId: string,
     charityAddress: string
@@ -461,7 +461,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   };
 
   // Deposit to ETH pool
-  const depositToEthPool = async (poolId: string, amount: string) => {
+  const depositToEthPool = async (poolId: string, amount: string): Promise<string> => {
     if (!address || !contract) throw new Error("Wallet not connected");
 
     setIsLoading(true);
@@ -479,18 +479,24 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
         args: [poolId, depositAmountWei],
       });
 
+      // Prepare transaction request
+      const transactionRequest = {
+        to: THALER_SAVINGS_POOL_ADDRESS,
+        data: data,
+        value: `0x${depositAmountWei.toString(16)}`,
+      };
+
+      // Send transaction
       const txHash = await provider.request({
         method: "eth_sendTransaction",
-        params: [
-          {
-            to: THALER_SAVINGS_POOL_ADDRESS,
-            data: data,
-            value: `0x${depositAmountWei.toString(16)}`,
-          },
-        ],
+        params: [transactionRequest],
       });
 
+      // Wait for transaction to be mined
       await new Promise((resolve) => setTimeout(resolve, 5000));
+
+      // Return the transaction hash
+      return txHash as string;
     } catch (error) {
       console.error("Error depositing to ETH pool:", error);
       setError("Failed to deposit to ETH pool");
@@ -501,7 +507,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   };
 
   // Deposit to ERC20 pool
-  const depositToERC20Pool = async (poolId: string, amount: string) => {
+  const depositToERC20Pool = async (poolId: string, amount: string): Promise<string> => {
     if (!address || !contract) throw new Error("Wallet not connected");
 
     setIsLoading(true);
@@ -520,24 +526,25 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
 
       // First approve token spending
       const approveData = encodeFunctionData({
-        abi: [
-          "function approve(address spender, uint256 amount) returns (bool)",
-        ],
+        abi: erc20Abi,
         functionName: "approve",
         args: [THALER_SAVINGS_POOL_ADDRESS, depositAmountWei],
       });
 
-      const approveTx = await provider.request({
+      // Prepare approval transaction request
+      const approveRequest = {
+        to: tokenAddress,
+        data: approveData,
+        value: "0x0",
+      };
+
+      // Send approval transaction
+      const approveTxHash = await provider.request({
         method: "eth_sendTransaction",
-        params: [
-          {
-            to: tokenAddress,
-            data: approveData,
-            value: "0x0",
-          },
-        ],
+        params: [approveRequest],
       });
 
+      // Wait for approval transaction to be mined
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
       // Then deposit
@@ -547,18 +554,24 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
         args: [poolId, depositAmountWei],
       });
 
-      const depositTx = await provider.request({
+      // Prepare deposit transaction request
+      const depositRequest = {
+        to: THALER_SAVINGS_POOL_ADDRESS,
+        data: depositData,
+        value: "0x0",
+      };
+
+      // Send deposit transaction
+      const depositTxHash = await provider.request({
         method: "eth_sendTransaction",
-        params: [
-          {
-            to: THALER_SAVINGS_POOL_ADDRESS,
-            data: depositData,
-            value: "0x0",
-          },
-        ],
+        params: [depositRequest],
       });
 
+      // Wait for deposit transaction to be mined
       await new Promise((resolve) => setTimeout(resolve, 5000));
+
+      // Return the transaction hash
+      return depositTxHash as string;
     } catch (error) {
       console.error("Error depositing to ERC20 pool:", error);
       setError("Failed to deposit to ERC20 pool");

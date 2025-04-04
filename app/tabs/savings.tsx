@@ -28,6 +28,7 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
 import LottieView from "lottie-react-native";
+import StatusModal from "../../components/modals/StatusModal";
 
 const { width } = Dimensions.get("window");
 
@@ -35,13 +36,22 @@ export default function SavingsScreen() {
   const router = useRouter();
   const { user } = usePrivy();
   const { address: walletAddress, isConnected } = useWallet();
-  const { pools, isLoading, error, refreshPools } = useSavingsPool();
+  const { pools, isLoading, error, refreshPools, depositToEthPool, depositToERC20Pool } = useSavingsPool();
   const { activeTheme } = useTheme();
   const isDarkMode = activeTheme === "dark";
   const [refreshing, setRefreshing] = useState(false);
   const [ethPrice, setEthPrice] = useState<number>(0);
   const [eerror, setError] = useState<string | null>(null);
   const scrollY = React.useRef(new Animated.Value(0)).current;
+
+  // Status modal state
+  const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [statusModalType, setStatusModalType] = useState<"success" | "error" | "info" | "warning">("success");
+  const [statusModalTitle, setStatusModalTitle] = useState("");
+  const [statusModalMessage, setStatusModalMessage] = useState("");
+  const [statusModalAmount, setStatusModalAmount] = useState("");
+  const [statusModalAmountLabel, setStatusModalAmountLabel] = useState("");
+  const [statusModalTxHash, setStatusModalTxHash] = useState("");
 
   // Import token logos
   const ethLogo = require("../../assets/images/ethereum.png");
@@ -113,7 +123,20 @@ export default function SavingsScreen() {
 
   const handleDeposit = (pool: SavingsPool) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    // Check if it's too early to deposit
+    const now = Date.now();
+    if (now < pool.nextDepositDate) {
+      // It's too early to deposit
+      Alert.alert(
+        "Early Deposit",
+        `Your next scheduled deposit is on ${new Date(pool.nextDepositDate).toLocaleDateString()}. You cannot deposit before this date according to your savings schedule.`,
+        [{ text: "OK", style: "cancel" }]
+      );
+      return;
+    }
 
+    // Proceed with deposit
     if (Platform.OS === "ios") {
       Alert.prompt(
         `Deposit to ${pool.isEth ? "ETH" : "ERC20"} Savings Pool`,
@@ -122,29 +145,48 @@ export default function SavingsScreen() {
           { text: "Cancel", style: "cancel" },
           {
             text: "Deposit",
-            onPress: (amount) => {
+            onPress: async (amount) => {
               if (!amount) return;
+              
               try {
+                // Use the initial deposit amount from the pool
+                const depositAmount = pool.initialDeposit;
+                
+                // Show loading indicator or some feedback
+                setStatusModalVisible(true);
+                setStatusModalType("info");
+                setStatusModalTitle("Processing Deposit");
+                setStatusModalMessage("Your deposit is being processed. Please wait...");
+                setStatusModalAmount(depositAmount);
+                setStatusModalAmountLabel(pool.tokenSymbol);
+                
+                // Call the appropriate deposit function
+                let txHash;
                 if (pool.isEth) {
-                  router.push({
-                    pathname: "/savings/deposit",
-                    params: { id: pool.savingsPoolId, amount, token: "ETH" },
-                  });
+                  txHash = await depositToEthPool(pool.savingsPoolId, depositAmount);
                 } else {
-                  router.push({
-                    pathname: "/savings/deposit",
-                    params: {
-                      id: pool.savingsPoolId,
-                      amount,
-                      token: pool.tokenSymbol,
-                    },
-                  });
+                  txHash = await depositToERC20Pool(pool.savingsPoolId, depositAmount);
                 }
+                
+                // Show success modal
+                setStatusModalType("success");
+                setStatusModalTitle("Deposit Successful");
+                setStatusModalMessage("Your deposit has been successfully processed.");
+                setStatusModalTxHash(txHash);
+                
+                // Refresh pools data
+                refreshPools();
               } catch (error) {
-                console.error("Error initiating deposit:", error);
+                console.error("Error processing deposit:", error);
+                
+                // Show error modal
+                setStatusModalType("error");
+                setStatusModalTitle("Deposit Failed");
+                setStatusModalMessage("There was an error processing your deposit. Please try again.");
+                
                 Alert.alert(
                   "Error",
-                  "Failed to initiate deposit. Please try again."
+                  "Failed to process deposit. Please try again."
                 );
               }
             },
@@ -153,14 +195,64 @@ export default function SavingsScreen() {
         "plain-text"
       );
     } else {
-      // For Android, navigate to a dedicated deposit screen
-      router.push({
-        pathname: "/savings/deposit-amount",
-        params: {
-          id: pool.savingsPoolId,
-          token: pool.isEth ? "ETH" : pool.tokenSymbol,
-        },
-      });
+      // For Android, use a different approach
+      try {
+        // Use the initial deposit amount from the pool
+        const depositAmount = pool.initialDeposit;
+        
+        // Show confirmation dialog
+        Alert.alert(
+          `Deposit to ${pool.isEth ? "ETH" : "ERC20"} Savings Pool`,
+          `Would you like to deposit ${depositAmount} ${pool.tokenSymbol}?`,
+          [
+            { text: "Cancel", style: "cancel" },
+            { 
+              text: "Deposit",
+              onPress: async () => {
+                try {
+                  // Show loading indicator or some feedback
+                  setStatusModalVisible(true);
+                  setStatusModalType("info");
+                  setStatusModalTitle("Processing Deposit");
+                  setStatusModalMessage("Your deposit is being processed. Please wait...");
+                  setStatusModalAmount(depositAmount);
+                  setStatusModalAmountLabel(pool.tokenSymbol);
+                  
+                  // Call the appropriate deposit function
+                  let txHash;
+                  if (pool.isEth) {
+                    txHash = await depositToEthPool(pool.savingsPoolId, depositAmount);
+                  } else {
+                    txHash = await depositToERC20Pool(pool.savingsPoolId, depositAmount);
+                  }
+                  
+                  // Show success modal
+                  setStatusModalType("success");
+                  setStatusModalTitle("Deposit Successful");
+                  setStatusModalMessage("Your deposit has been successfully processed.");
+                  setStatusModalTxHash(txHash);
+                  
+                  // Refresh pools data
+                  refreshPools();
+                } catch (error) {
+                  console.error("Error processing deposit:", error);
+                  
+                  // Show error modal
+                  setStatusModalType("error");
+                  setStatusModalTitle("Deposit Failed");
+                  setStatusModalMessage("There was an error processing your deposit. Please try again.");
+                }
+              }
+            }
+          ]
+        );
+      } catch (error) {
+        console.error("Error initiating deposit:", error);
+        Alert.alert(
+          "Error",
+          "Failed to initiate deposit. Please try again."
+        );
+      }
     }
   };
 
@@ -457,6 +549,26 @@ export default function SavingsScreen() {
       ]}
     >
       <ThemedStatusBar />
+
+      {/* Status Modal */}
+      <StatusModal
+        visible={statusModalVisible}
+        onClose={() => setStatusModalVisible(false)}
+        type={statusModalType}
+        title={statusModalTitle}
+        message={statusModalMessage}
+        amount={statusModalAmount}
+        amountLabel={statusModalAmountLabel}
+        transactionHash={statusModalTxHash}
+        theme={activeTheme}
+        actionButtons={[
+          {
+            label: "Close",
+            onPress: () => setStatusModalVisible(false),
+            primary: true,
+          },
+        ]}
+      />
 
       {/* Animated Header with Balance */}
       <Animated.View style={[styles.headerContainer, { height: headerHeight }]}>
