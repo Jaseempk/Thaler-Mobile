@@ -462,8 +462,7 @@ export default function SavingsScreen() {
       <Animated.View style={[styles.headerContainer, { height: headerHeight }]}>
         <LinearGradient
           colors={[
-            Colors[activeTheme].primary,
-            Colors[activeTheme].primaryLight,
+            "#1E3B2F", "#2A5741"
           ]}
           style={styles.headerGradient}
           start={{ x: 0, y: 0 }}

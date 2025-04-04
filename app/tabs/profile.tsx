@@ -245,8 +245,8 @@ export default function ProfileScreen() {
         <LinearGradient
           colors={
             activeTheme === "dark"
-              ? ["#1A237E", "#303F9F", "#3949AB"]
-              : ["#3F51B5", "#5C6BC0", "#7986CB"]
+              ? ["#1E3B2F", "#2A5741"] // Dark green gradient from screenshot (dark mode)
+              : ["#1E3B2F", "#2A5741"] // Same dark green for light mode to match screenshot
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
@@ -289,8 +289,8 @@ export default function ProfileScreen() {
             <LinearGradient
               colors={
                 activeTheme === "dark"
-                  ? ["#5C6BC0", "#3F51B5"]
-                  : ["#7986CB", "#5C6BC0"]
+                  ? ["#2A5741", "#1E3B2F"] // Reversed dark green gradient from screenshot
+                  : ["#2A5741", "#1E3B2F"] // Same for light mode to match screenshot
               }
               style={styles.profileImageGradient}
             >
@@ -323,8 +323,8 @@ export default function ProfileScreen() {
                   {
                     backgroundColor:
                       activeTheme === "dark"
-                        ? "rgba(92, 107, 192, 0.2)"
-                        : "rgba(63, 81, 181, 0.1)",
+                        ? "rgba(58, 170, 100, 0.2)" // Dark mode green with transparency
+                        : "rgba(102, 187, 106, 0.1)" // Light mode green with transparency
                   },
                 ]}
                 onPress={handleWalletDetails}
@@ -368,7 +368,7 @@ export default function ProfileScreen() {
             style={[
               styles.statsCard,
               {
-                backgroundColor: activeTheme === "dark" ? "#303F9F" : "#5C6BC0",
+                backgroundColor: activeTheme === "dark" ? "#2A5741" : "#2A5741",
               },
             ]}
           >
@@ -387,7 +387,7 @@ export default function ProfileScreen() {
             style={[
               styles.statsCard,
               {
-                backgroundColor: activeTheme === "dark" ? "#1A237E" : "#3F51B5",
+                backgroundColor: activeTheme === "dark" ? "#2A5741" : "#2A5741",
               },
             ]}
           >
@@ -406,7 +406,7 @@ export default function ProfileScreen() {
             style={[
               styles.statsCard,
               {
-                backgroundColor: activeTheme === "dark" ? "#283593" : "#7986CB",
+                backgroundColor: activeTheme === "dark" ? "#2A5741" : "#2A5741",
               },
             ]}
           >

@@ -32,6 +32,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../navigation/types";
 import { useRouter } from "expo-router";
 import { useTokenBalances } from "../../hooks/useTokenBalances";
+import * as Font from "expo-font";
 
 const { width } = Dimensions.get("window");
 
@@ -217,7 +218,9 @@ export default function HomeScreen() {
         <View style={styles.balanceContainer}>
           <LinearGradient
             colors={
-              isDarkMode ? ["#2E7D32", "#1A237E"] : ["#4CAF50", "#1E88E5"]
+              isDarkMode 
+                ? ["#1E3B2F", "#2A5741"] // Dark green gradient for dark mode
+                : ["#1E3B2F", "#2A5741"] // Same dark green for light mode
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -226,48 +229,24 @@ export default function HomeScreen() {
             <View style={styles.balanceContent}>
               <View style={styles.balanceTopRow}>
                 <View>
-                  <Text style={styles.balanceLabelLight}>Total Balance</Text>
                   <View style={styles.balanceRow}>
-                    <Text style={styles.balanceAmountLight}>
-                      $
-                      {isConnected
-                        ? isBalanceVisible
-                          ? totalBalanceUSD
-                          : "••••••"
-                        : "---"}
-                    </Text>
                     <TouchableOpacity
-                      style={styles.eyeButton}
                       onPress={() => setIsBalanceVisible(!isBalanceVisible)}
                     >
-                      <Ionicons
-                        name={
-                          isBalanceVisible ? "eye-outline" : "eye-off-outline"
-                        }
-                        size={24}
-                        color="#FFFFFF"
-                      />
+                      <Text style={styles.balanceAmountLight}>
+                        $
+                        {isConnected
+                          ? isBalanceVisible
+                            ? totalBalanceUSD
+                            : "••••••"
+                          : "---"}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
 
                 {isConnected ? (
-                  <TouchableOpacity
-                    style={styles.refreshButton}
-                    onPress={refreshBalances}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Ionicons
-                        name="refresh-outline"
-                        size={18}
-                        color="#FFFFFF"
-                      />
-                    )}
-                    <Text style={styles.refreshText}>Refresh</Text>
-                  </TouchableOpacity>
+                  <View />
                 ) : (
                   <TouchableOpacity
                     style={styles.connectButton}
@@ -313,20 +292,6 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  <View style={styles.statusContainer}>
-                    <View
-                      style={[
-                        styles.statusIndicator,
-                        {
-                          backgroundColor: isConnected ? "#4CD964" : "#FF3B30",
-                        },
-                      ]}
-                    />
-                    <Text style={styles.statusText}>
-                      {isConnected ? "Connected" : "Disconnected"}
-                    </Text>
-                  </View>
-
                   {/* Wallet Action Buttons */}
                   <View style={styles.walletActionButtonsContainer}>
                     <TouchableOpacity
@@ -352,8 +317,8 @@ export default function HomeScreen() {
                     >
                       <View style={styles.walletActionButtonIcon}>
                         <MaterialCommunityIcons
-                          name="piggy-bank"
-                          size={24}
+                          name="bank-plus"
+                          size={22}
                           color="#fff"
                         />
                       </View>
@@ -710,8 +675,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   balanceAmountLight: {
-    fontSize: 30,
-    fontWeight: "bold",
+    fontSize: 40,
+    fontWeight: "600",
     color: "#FFFFFF",
   },
   eyeButton: {
@@ -798,20 +763,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-  },
-  statusContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  statusIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  statusText: {
-    fontSize: 12,
-    color: "rgba(255, 255, 255, 0.8)",
   },
   walletActionButtonsContainer: {
     flexDirection: "row",
