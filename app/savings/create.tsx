@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import {
   Modal,
   Image,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -157,11 +158,21 @@ export default function CreateSavingsScreen() {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      padding: 16,
+      padding: 20,
+      paddingTop: Platform.OS === "ios" ? 50 : 20,
+      paddingBottom: 20,
       backgroundColor: "#2ECC71",
+      borderBottomLeftRadius: 24,
+      borderBottomRightRadius: 24,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 5,
+      marginBottom: 16,
     },
     headerTitle: {
-      fontSize: 20,
+      fontSize: 22,
       fontWeight: "bold",
       color: "#FFFFFF",
     },
@@ -171,6 +182,7 @@ export default function CreateSavingsScreen() {
       borderRadius: 20,
       justifyContent: "center",
       alignItems: "center",
+      backgroundColor: "rgba(255, 255, 255, 0.2)",
     },
     placeholder: {
       width: 40,
@@ -184,14 +196,14 @@ export default function CreateSavingsScreen() {
     },
     formSection: {
       backgroundColor: Colors[activeTheme].card,
-      borderRadius: 16,
+      borderRadius: 20,
       padding: 20,
       marginBottom: 20,
       shadowColor: Colors[activeTheme].shadow,
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
+      shadowOpacity: 0.08,
       shadowRadius: 8,
-      elevation: 5,
+      elevation: 4,
     },
     sectionTitle: {
       fontSize: 20,
@@ -224,6 +236,11 @@ export default function CreateSavingsScreen() {
       borderRadius: TOGGLE_BORDER_RADIUS - TOGGLE_PADDING / 2,
       top: TOGGLE_PADDING,
       left: TOGGLE_PADDING,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
     },
     tokenTypeText: {
       fontSize: 16,
@@ -250,17 +267,17 @@ export default function CreateSavingsScreen() {
       marginBottom: 16,
     },
     inputLabel: {
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: "600",
       color: Colors[activeTheme].text,
-      marginBottom: 10,
+      marginBottom: 8,
       letterSpacing: 0.3,
     },
     input: {
       backgroundColor: Colors[activeTheme].secondaryLight,
-      borderRadius: 12,
+      borderRadius: 14,
       paddingHorizontal: 16,
-      paddingVertical: 14,
+      paddingVertical: 12,
       fontSize: 16,
       color: Colors[activeTheme].text,
       marginBottom: 16,
@@ -271,15 +288,16 @@ export default function CreateSavingsScreen() {
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: Colors[activeTheme].secondaryLight,
-      borderRadius: 12,
+      borderRadius: 14,
       paddingHorizontal: 16,
       marginBottom: 20,
       borderWidth: 1,
       borderColor: Colors[activeTheme].border,
+      height: 56,
     },
     amountInput: {
       flex: 1,
-      paddingVertical: 14,
+      paddingVertical: 12,
       fontSize: 18,
       color: Colors[activeTheme].text,
       fontWeight: "600",
@@ -297,6 +315,7 @@ export default function CreateSavingsScreen() {
       height: TOGGLE_HEIGHT,
       padding: TOGGLE_PADDING,
       overflow: "hidden",
+      marginBottom: 20,
     },
     durationButton: {
       flex: 1,
@@ -313,6 +332,11 @@ export default function CreateSavingsScreen() {
       borderRadius: TOGGLE_BORDER_RADIUS - TOGGLE_PADDING / 2,
       top: TOGGLE_PADDING,
       left: TOGGLE_PADDING,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
     },
     durationText: {
       fontSize: 15,
@@ -326,19 +350,19 @@ export default function CreateSavingsScreen() {
     },
     summarySection: {
       backgroundColor: Colors[activeTheme].card,
-      borderRadius: 16,
+      borderRadius: 20,
       padding: 20,
-      marginBottom: 24,
+      marginBottom: 20,
       shadowColor: Colors[activeTheme].shadow,
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
+      shadowOpacity: 0.08,
       shadowRadius: 8,
-      elevation: 5,
+      elevation: 4,
     },
     summaryItem: {
       flexDirection: "row",
       justifyContent: "space-between",
-      marginBottom: 16,
+      marginBottom: 12,
       paddingVertical: 4,
     },
     summaryLabel: {
@@ -353,15 +377,24 @@ export default function CreateSavingsScreen() {
     },
     createButton: {
       backgroundColor: "#2ECC71",
-      borderRadius: 14,
-      paddingVertical: 18,
+      borderRadius: 16,
+      paddingVertical: 16,
       alignItems: "center",
-      marginBottom: 32,
+      marginBottom: 24,
+      marginHorizontal: 16,
       shadowColor: "#2ECC71",
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
+      shadowOpacity: 0.2,
       shadowRadius: 8,
-      elevation: 5,
+      elevation: 4,
+      overflow: "hidden",
+    },
+    createButtonGradient: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
     },
     createButtonText: {
       fontSize: 18,
@@ -400,14 +433,15 @@ export default function CreateSavingsScreen() {
     },
     tokenDropdown: {
       backgroundColor: Colors[activeTheme].secondaryLight,
-      borderRadius: 16,
-      padding: 16,
+      borderRadius: 14,
+      padding: 14,
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       marginBottom: 16,
       borderWidth: 1,
       borderColor: Colors[activeTheme].border,
+      height: 56,
     },
     tokenDropdownContent: {
       flexDirection: "row",
@@ -439,33 +473,34 @@ export default function CreateSavingsScreen() {
     },
     modalContent: {
       backgroundColor: Colors[activeTheme].card,
-      borderRadius: 24,
+      borderRadius: 20,
       padding: 20,
-      width: "90%",
+      width: "85%",
       maxHeight: "80%",
     },
     modalTitle: {
       fontSize: 20,
       fontWeight: "700",
       color: Colors[activeTheme].text,
-      marginBottom: 20,
+      marginBottom: 16,
     },
     tokenOption: {
       flexDirection: "row",
       alignItems: "center",
-      padding: 16,
+      padding: 14,
       borderBottomWidth: 1,
       borderBottomColor: Colors[activeTheme].border,
-      borderRadius: 16,
+      borderRadius: 12,
+      marginBottom: 8,
     },
     tokenOptionSelected: {
       backgroundColor: Colors[activeTheme].secondaryLight,
     },
     tokenOptionLogo: {
-      width: 32,
-      height: 32,
+      width: 28,
+      height: 28,
       marginRight: 12,
-      borderRadius: 16,
+      borderRadius: 14,
       backgroundColor: "rgba(255, 255, 255, 0.25)",
       padding: 6,
     },
@@ -479,20 +514,23 @@ export default function CreateSavingsScreen() {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 20,
+      marginBottom: 16,
     },
     modalCloseButton: {
       padding: 8,
+      backgroundColor: Colors[activeTheme].secondaryLight,
+      borderRadius: 12,
     },
     modalInput: {
       backgroundColor: Colors[activeTheme].secondaryLight,
-      borderRadius: 12,
-      padding: 16,
+      borderRadius: 14,
+      padding: 14,
       marginBottom: 16,
       fontSize: 16,
       color: Colors[activeTheme].text,
       borderWidth: 1,
       borderColor: Colors[activeTheme].border,
+      height: 50,
     },
     modalInputError: {
       borderColor: Colors[activeTheme].error,
@@ -507,11 +545,11 @@ export default function CreateSavingsScreen() {
     modalButtons: {
       flexDirection: "row",
       justifyContent: "flex-end",
-      marginTop: 20,
+      marginTop: 16,
     },
     modalButton: {
-      padding: 12,
-      borderRadius: 8,
+      padding: 10,
+      borderRadius: 12,
       marginLeft: 12,
     },
     modalButtonText: {
@@ -521,7 +559,7 @@ export default function CreateSavingsScreen() {
     addTokenButton: {
       flexDirection: "row",
       alignItems: "center",
-      padding: 16,
+      padding: 14,
       backgroundColor: Colors[activeTheme].secondaryLight,
       borderRadius: 12,
       marginTop: 12,
@@ -531,52 +569,43 @@ export default function CreateSavingsScreen() {
       color: "#2ECC71",
       marginLeft: 8,
     },
-    ethBalanceContainer: {
+    calculatedDepositContainer: {
+      marginBottom: 0,
       backgroundColor: Colors[activeTheme].secondaryLight,
-      borderRadius: 16,
+      borderRadius: 14,
       padding: 16,
-      marginTop: 16,
-      marginBottom: 20,
       borderWidth: 1,
-      borderColor: Colors[activeTheme].border,
+      borderColor: "rgba(46, 204, 113, 0.2)",
     },
-    ethBalanceHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginBottom: 8,
-    },
-    ethBalanceIcon: {
-      width: 24,
-      height: 24,
-      marginRight: 8,
-      resizeMode: "contain",
-    },
-    ethBalanceTitle: {
-      fontSize: 16,
-      fontWeight: "600",
+    calculatedDepositNote: {
+      fontSize: 12,
       color: Colors[activeTheme].textSecondary,
+      marginTop: 8,
+      fontStyle: "italic",
     },
-    ethBalanceRow: {
+    calculatedValueContainer: {
       flexDirection: "row",
-      justifyContent: "space-between",
       alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: "rgba(46, 204, 113, 0.08)",
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      marginTop: 8,
     },
-    ethBalanceAmount: {
-      fontSize: 24,
+    calculatedValue: {
+      fontSize: 20,
       fontWeight: "700",
       color: Colors[activeTheme].text,
     },
-    ethBalanceUSD: {
-      fontSize: 14,
+    calculatedSymbol: {
+      fontSize: 16,
+      fontWeight: "600",
       color: Colors[activeTheme].textSecondary,
+      marginLeft: 8,
     },
-    refreshButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: Colors[activeTheme].primary,
-      justifyContent: "center",
-      alignItems: "center",
+    sectionSeparator: {
+      height: 16,
     },
   });
 
@@ -586,7 +615,6 @@ export default function CreateSavingsScreen() {
   const [tokenAddress, setTokenAddress] = useState("");
   const [tokenSymbol, setTokenSymbol] = useState("");
   const [amountToSave, setAmountToSave] = useState("");
-  const [initialDeposit, setInitialDeposit] = useState("");
   const [duration, setDuration] = useState<number>(90); // 3 months in days
   const [intervals, setIntervals] = useState<number>(3); // 3 deposits
   const [showTokenModal, setShowTokenModal] = useState(false);
@@ -596,6 +624,20 @@ export default function CreateSavingsScreen() {
   const [newTokenSymbol, setNewTokenSymbol] = useState("");
   const [newTokenName, setNewTokenName] = useState("");
   const [isCreatingPool, setIsCreatingPool] = useState(false);
+
+  // Calculate initial deposit based on total amount and intervals
+  const calculateInitialDeposit = useCallback(() => {
+    if (!amountToSave || parseFloat(amountToSave) <= 0 || intervals <= 0) {
+      return "0";
+    }
+
+    // Initial deposit is the monthly amount (total / number of months)
+    const monthlyAmount = parseFloat(amountToSave) / intervals;
+    return monthlyAmount.toFixed(4);
+  }, [amountToSave, intervals]);
+
+  // Get initial deposit value
+  const initialDeposit = calculateInitialDeposit();
 
   // Animation values
   const tokenTypeAnimation = useRef(new Animated.Value(0)).current;
@@ -653,7 +695,7 @@ export default function CreateSavingsScreen() {
     } else {
       setDuration(months * 30); // 30 days per month for 3 and 6 months
     }
-    
+
     if (months === 3) setIntervals(3);
     else if (months === 6) setIntervals(6);
     else setIntervals(12);
@@ -906,7 +948,7 @@ export default function CreateSavingsScreen() {
     );
   };
 
-  // Replace the ETH balance display with the new component
+  // Update the CreateTokenBalanceCard component call to remove onRefresh prop
   const renderBalanceCard = () => {
     if (tokenType === "ETH" && cachedBalances.ETH) {
       return (
@@ -917,7 +959,6 @@ export default function CreateSavingsScreen() {
             price: cachedBalances.ETH.price || undefined,
             logo: ethLogo,
           }}
-          onRefresh={refreshBalances}
         />
       );
     }
@@ -935,7 +976,6 @@ export default function CreateSavingsScreen() {
             price: cachedBalances.USDC.price || undefined,
             logo: usdcLogo,
           }}
-          onRefresh={refreshBalances}
         />
       );
     }
@@ -950,15 +990,10 @@ export default function CreateSavingsScreen() {
       return false;
     }
 
-    if (!initialDeposit || parseFloat(initialDeposit) <= 0) {
-      Alert.alert("Error", "Please enter a valid initial deposit amount");
-      return false;
-    }
-
-    if (parseFloat(initialDeposit) > parseFloat(amountToSave)) {
+    if (parseFloat(initialDeposit) <= 0) {
       Alert.alert(
         "Error",
-        "Initial deposit cannot be greater than the total amount to save"
+        "The calculated deposit amount is invalid. Please enter a higher total amount."
       );
       return false;
     }
@@ -974,7 +1009,7 @@ export default function CreateSavingsScreen() {
   // Create savings pool
   const handleCreateSavingsPool = async () => {
     if (!validateForm()) return;
-    
+
     if (!walletAddress) {
       Alert.alert(
         "Wallet Not Connected",
@@ -984,7 +1019,7 @@ export default function CreateSavingsScreen() {
     }
 
     setIsCreatingPool(true);
-    
+
     try {
       // Convert duration from days to seconds
       const durationInSeconds = duration * 24 * 60 * 60;
@@ -997,7 +1032,7 @@ export default function CreateSavingsScreen() {
           initialDeposit,
           intervals
         );
-        
+
         setTimeout(() => {
           setStatusModal({
             visible: true,
@@ -1017,13 +1052,15 @@ export default function CreateSavingsScreen() {
           initialDeposit,
           intervals
         );
-        
+
         setTimeout(() => {
           setStatusModal({
             visible: true,
             type: "success",
             title: "Transaction Successful",
-            message: `${tokenSymbol || 'ERC20'} Savings Pool Created Successfully`,
+            message: `${
+              tokenSymbol || "ERC20"
+            } Savings Pool Created Successfully`,
             transactionHash: txHash,
           });
           setIsCreatingPool(false);
@@ -1031,7 +1068,7 @@ export default function CreateSavingsScreen() {
       }
     } catch (error) {
       console.error("Error creating savings pool:", error);
-      
+
       setTimeout(() => {
         setStatusModal({
           visible: true,
@@ -1141,7 +1178,7 @@ export default function CreateSavingsScreen() {
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Savings Plan</Text>
 
-            <Text style={styles.inputLabel}>Amount to Save</Text>
+            <Text style={styles.inputLabel}>Total Amount to Save</Text>
             <View style={styles.amountInputContainer}>
               <TextInput
                 style={styles.amountInput}
@@ -1149,19 +1186,6 @@ export default function CreateSavingsScreen() {
                 placeholderTextColor={Colors.light.textSecondary}
                 value={amountToSave}
                 onChangeText={setAmountToSave}
-                keyboardType="numeric"
-              />
-              <Text style={styles.amountSymbol}>{tokenSymbol}</Text>
-            </View>
-
-            <Text style={styles.inputLabel}>Initial Deposit</Text>
-            <View style={styles.amountInputContainer}>
-              <TextInput
-                style={styles.amountInput}
-                placeholder="0.0"
-                placeholderTextColor={Colors.light.textSecondary}
-                value={initialDeposit}
-                onChangeText={setInitialDeposit}
                 keyboardType="numeric"
               />
               <Text style={styles.amountSymbol}>{tokenSymbol}</Text>
@@ -1219,7 +1243,24 @@ export default function CreateSavingsScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
+
+            <View
+              style={[styles.calculatedDepositContainer, { marginTop: 20 }]}
+            >
+              <Text style={styles.inputLabel}>Monthly Deposit</Text>
+              <View style={styles.calculatedValueContainer}>
+                <Text style={styles.calculatedValue}>
+                  {initialDeposit}
+                </Text>
+                <Text style={styles.calculatedSymbol}>{tokenSymbol}</Text>
+              </View>
+              <Text style={styles.calculatedDepositNote}>
+                This is the amount you gotta deposit each month
+              </Text>
+            </View>
           </View>
+
+          <View style={styles.sectionSeparator} />
 
           <View style={styles.summarySection}>
             <Text style={styles.sectionTitle}>Summary</Text>
@@ -1237,7 +1278,7 @@ export default function CreateSavingsScreen() {
             </View>
 
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Initial Deposit</Text>
+              <Text style={styles.summaryLabel}>Monthly Deposit</Text>
               <Text style={styles.summaryValue}>
                 {initialDeposit ? `${initialDeposit} ${tokenSymbol}` : "-"}
               </Text>
@@ -1282,6 +1323,12 @@ export default function CreateSavingsScreen() {
             onPress={handleCreateSavingsPool}
             disabled={isCreatingPool}
           >
+            <LinearGradient
+              colors={["#2ECC71", "#27AE60"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.createButtonGradient}
+            />
             {isCreatingPool ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
@@ -1299,12 +1346,12 @@ export default function CreateSavingsScreen() {
             type: statusModal.type,
             title: statusModal.title,
             message: statusModal.message,
-            transactionHash: statusModal.transactionHash
+            transactionHash: statusModal.transactionHash,
           });
-          
+
           // If transaction was successful, navigate back to the savings tab
           if (statusModal.type === "success") {
-            router.replace('/tabs/savings');
+            router.replace("/tabs/savings");
           }
         }}
         type={statusModal.type}

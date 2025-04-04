@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import Colors from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface CreateTokenBalanceCardProps {
   token: {
@@ -11,10 +11,9 @@ interface CreateTokenBalanceCardProps {
     price?: number;
     logo: any;
   };
-  onRefresh: () => void;
 }
 
-export default function CreateTokenBalanceCard({ token, onRefresh }: CreateTokenBalanceCardProps) {
+export default function CreateTokenBalanceCard({ token }: CreateTokenBalanceCardProps) {
   const { activeTheme } = useTheme();
   
   // Calculate USD value
@@ -31,16 +30,33 @@ export default function CreateTokenBalanceCard({ token, onRefresh }: CreateToken
       marginBottom: 20,
       borderWidth: 1,
       borderColor: Colors[activeTheme].border,
+      overflow: 'hidden',
+    },
+    gradientOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      opacity: 0.05,
     },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 8,
+      marginBottom: 12,
+    },
+    iconContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
     },
     icon: {
       width: 24,
       height: 24,
-      marginRight: 8,
       resizeMode: 'contain',
     },
     title: {
@@ -51,49 +67,61 @@ export default function CreateTokenBalanceCard({ token, onRefresh }: CreateToken
     row: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
+      alignItems: 'flex-end',
+    },
+    amountContainer: {
+      flex: 1,
     },
     amount: {
-      fontSize: 24,
+      fontSize: 28,
       fontWeight: '700',
       color: Colors[activeTheme].text,
+      marginBottom: 4,
     },
     usdValue: {
       fontSize: 14,
       color: Colors[activeTheme].textSecondary,
     },
-    refreshButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: Colors[activeTheme].primary,
-      justifyContent: 'center',
-      alignItems: 'center',
+    symbol: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: Colors[activeTheme].textSecondary,
+      marginLeft: 4,
+      alignSelf: 'flex-end',
+      marginBottom: 6,
     },
   });
 
+  // Define gradient colors based on token
+  const gradientColors = token.symbol === 'ETH' 
+    ? ['#627EEA', '#3C5EE7'] as const
+    : ['#2775CA', '#2775CA'] as const;
+
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={gradientColors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientOverlay}
+      />
       <View style={styles.header}>
-        <Image 
-          source={token.logo} 
-          style={styles.icon}
-          resizeMode="contain"
-        />
+        <View style={styles.iconContainer}>
+          <Image 
+            source={token.logo} 
+            style={styles.icon}
+            resizeMode="contain"
+          />
+        </View>
         <Text style={styles.title}>Available Balance</Text>
       </View>
       <View style={styles.row}>
-        <View>
-          <Text style={styles.amount}>{token.balance} {token.symbol}</Text>
+        <View style={styles.amountContainer}>
+          <Text style={styles.amount}>{token.balance}</Text>
           <Text style={styles.usdValue}>${balanceUSD} USD</Text>
         </View>
-        <TouchableOpacity 
-          style={styles.refreshButton}
-          onPress={onRefresh}
-        >
-          <Ionicons name="refresh-outline" size={16} color="#FFFFFF" />
-        </TouchableOpacity>
+        <Text style={styles.symbol}>{token.symbol}</Text>
       </View>
     </View>
   );
-} 
+}
