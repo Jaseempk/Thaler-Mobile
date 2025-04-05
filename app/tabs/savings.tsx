@@ -423,7 +423,7 @@ export default function SavingsScreen() {
                   { color: isDarkMode ? "#AAAAAA" : "#888888" },
                 ]}
               >
-                {pool.duration / 30 || 6} Month Plan
+                {Math.floor(pool.duration / 30) || 6} Months Plan
               </Text>
             </View>
           </View>

@@ -53,12 +53,10 @@ export default function EarlyWithdrawalScreen() {
     name: string;
     description: string;
     logo: any;
-    logoUrl: string;
-    bannerUrl: string;
+    bannerImage: any;
     website: string;
     address: string;
     longDescription: string;
-    bannerImage: any;
     impact: string;
     tags: string[];
     stats: {
@@ -79,10 +77,8 @@ export default function EarlyWithdrawalScreen() {
         name: "The Water Project",
         description: "Providing clean water to communities in need across sub-Saharan Africa. Over 2.5M people helped since 2006.",
         longDescription: "The Water Project works to unlock human potential by providing sustainable water projects to communities in sub-Saharan Africa who suffer needlessly from a lack of access to clean water and proper sanitation. Your crypto donation helps build wells, water catchment systems, and spring protections to bring clean, safe water to entire communities.",
-        logo: null, // Will be set from logoUrl
-        bannerImage: null, // Will be set from bannerUrl
-        logoUrl: "https://thewaterproject.org/wp-content/themes/waterproject/images/logo.svg",
-        bannerUrl: "https://thewaterproject.org/wp-content/uploads/2021/11/563_913c37cf9fe6a08-1024x683.jpg",
+        logo: require("../../assets/images/charities/logos/waterproject.png"),
+        bannerImage: require("../../assets/images/charities/banners/waterproject.jpg"),
         impact: "One $50 donation provides clean water to a school of 475 students for years to come",
         website: "https://thewaterproject.org",
         address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620", // Example address
@@ -101,10 +97,8 @@ export default function EarlyWithdrawalScreen() {
         name: "Cool Earth",
         description: "Fighting climate change by protecting rainforests in partnership with indigenous communities.",
         longDescription: "Cool Earth is a climate charity that works alongside rainforest communities to halt deforestation and its impact on climate change. Your crypto donation helps support sustainable livelihoods and education programmes, empowering communities to fight back against changing climates and threats to the rainforest.",
-        logo: null, // Will be set from logoUrl
-        bannerImage: null, // Will be set from bannerUrl
-        logoUrl: "https://www.coolearth.org/wp-content/themes/coolearth/dist/img/logo-white.svg",
-        bannerUrl: "https://www.coolearth.org/wp-content/uploads/2021/07/©Cool-Earth-Papua-New-Guinea-20201018-WA0015-1024x683.jpg",
+        logo: require("../../assets/images/charities/logos/coolearth.png"),
+        bannerImage: require("../../assets/images/charities/banners/coolearth.jpg"),
         impact: "£25 can help keep tropical rainforest standing, protecting vital habitat for wildlife and thousands of communities",
         website: "https://www.coolearth.org",
         address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620", // Example address
@@ -123,10 +117,8 @@ export default function EarlyWithdrawalScreen() {
         name: "UNICEF CryptoFund",
         description: "Supporting education and innovation for children through blockchain technology and cryptocurrency.",
         longDescription: "UNICEF's CryptoFund is a new financial vehicle allowing UNICEF to receive, hold, and disburse cryptocurrency - a first for the UN. The fund supports open-source technology benefiting children and young people around the world, with a focus on education, health, and protection.",
-        logo: null, // Will be set from logoUrl
-        bannerImage: null, // Will be set from bannerUrl
-        logoUrl: "https://www.unicef.org/sites/default/files/styles/logo/public/UNICEF-Logo-RGB_150ppi.png",
-        bannerUrl: "https://www.unicef.org/innovation/sites/unicef.org.innovation/files/styles/media_large/public/2019-10/Crypto_1.jpg",
+        logo: require("../../assets/images/charities/logos/unicef.jpg"),
+        bannerImage: require("../../assets/images/charities/banners/unicef.jpg"),
         impact: "Your donation helps fund startups working on data science, extended reality, AI and blockchain solutions for children",
         website: "https://www.unicef.org/innovation/stories/unicef-cryptofund",
         address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620", // Example address
@@ -145,10 +137,8 @@ export default function EarlyWithdrawalScreen() {
         name: "Save the Children",
         description: "Providing relief to families fighting hunger, climate shocks, and supporting children in conflict zones.",
         longDescription: "For over 100 years Save the Children's mission has been based on the simple principle that all children have the right to be healthy, educated and protected. They provide relief to families fighting the double impacts of a worsening global hunger crisis and climate shocks, while supporting children in dangerous conflict zones.",
-        logo: null, // Will be set from logoUrl
-        bannerImage: null, // Will be set from bannerUrl
-        logoUrl: "https://www.savethechildren.org/content/dam/usa/images/logos/save-the-children-logo-white.png",
-        bannerUrl: "https://www.savethechildren.org/content/dam/usa/images/hunger/hunger-crisis-update-2023-hero.jpg",
+        logo: require("../../assets/images/charities/logos/savethechildren.webp"),
+        bannerImage: require("../../assets/images/charities/banners/savethechildren.jpg"),
         impact: "Your donation helps set up temporary learning spaces, provide fuel and water infrastructure, and create safe shelters for children",
         website: "https://www.savethechildren.org",
         address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620", // Example address
@@ -628,7 +618,12 @@ export default function EarlyWithdrawalScreen() {
                           },
                         ]}
                       >
-                        <Text style={styles.currentMarkerLabel}>
+                        <Text
+                          style={[
+                            styles.currentMarkerLabel,
+                            { backgroundColor: 'transparent' },
+                          ]}
+                        >
                           You are here
                         </Text>
                       </View>
@@ -771,9 +766,10 @@ export default function EarlyWithdrawalScreen() {
                       {/* Banner Image with Gradient Overlay */}
                       <View style={styles.bannerImageContainer}>
                         <Image
-                          source={{ uri: charity.bannerUrl }}
+                          source={charity.bannerImage}
                           style={styles.bannerImage}
                           resizeMode="cover"
+                          accessibilityLabel={`${charity.name} banner image`}
                         />
                         <LinearGradient
                           colors={[
@@ -789,13 +785,17 @@ export default function EarlyWithdrawalScreen() {
                       <View
                         style={[
                           styles.charityLogoContainer,
-                          { backgroundColor: Colors[activeTheme].background },
+                          { backgroundColor: "#FFFFFF" },
                         ]}
                       >
                         <Image
-                          source={{ uri: charity.logoUrl }}
-                          style={styles.charityLogo}
+                          source={charity.logo}
+                          style={[
+                            styles.charityLogo,
+                            { borderRadius: 25 },
+                          ]}
                           resizeMode="contain"
+                          accessibilityLabel={`${charity.name} logo`}
                         />
                       </View>
                     </View>
@@ -811,18 +811,6 @@ export default function EarlyWithdrawalScreen() {
                           >
                             {charity.name}
                           </Text>
-                          <TouchableOpacity
-                            style={styles.infoButton}
-                            onPress={() =>
-                              Alert.alert(charity.name, charity.longDescription)
-                            }
-                          >
-                            <Ionicons
-                              name="information-circle-outline"
-                              size={16}
-                              color={Colors[activeTheme].primary}
-                            />
-                          </TouchableOpacity>
                         </View>
                       </View>
 
@@ -973,8 +961,12 @@ export default function EarlyWithdrawalScreen() {
               >
                 <View style={styles.selectedCharityRow}>
                   <Image
-                    source={{ uri: selectedCharity?.logoUrl }}
-                    style={styles.smallCharityLogo}
+                    source={selectedCharity?.logo}
+                    style={[
+                      styles.smallCharityLogo,
+                      { backgroundColor: "#FFFFFF" },
+                    ]}
+                    accessibilityLabel={`${selectedCharity?.name} logo`}
                   />
                   <Text
                     style={[
@@ -1339,13 +1331,17 @@ const styles = StyleSheet.create({
   },
   currentMarkerLabel: {
     position: "absolute",
-    bottom: 24,
+    bottom: 30,
     fontSize: 12,
     fontWeight: "500",
     color: "#FF9800",
     width: 80,
     textAlign: "center",
     marginLeft: -30,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    backgroundColor: 'transparent',
   },
   donationRequirementCard: {
     backgroundColor: "rgba(255, 152, 0, 0.1)",
@@ -1446,7 +1442,7 @@ const styles = StyleSheet.create({
   charityLogoContainer: {
     width: 60,
     height: 60,
-    borderRadius: 12,
+    borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
     position: "absolute",
@@ -1458,6 +1454,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
     padding: 5,
+    overflow: "hidden",
+    backgroundColor: "#FFFFFF",
   },
   charityLogo: {
     width: 50,
@@ -1482,9 +1480,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     flex: 1,
-  },
-  infoButton: {
-    padding: 4,
   },
   charityDescription: {
     fontSize: 14,
@@ -1565,10 +1560,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   smallCharityLogo: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
+    width: 30,
+    height: 30,
+    marginRight: 10,
+    borderRadius: 15, // Added to make the small logo circular too
   },
   selectedCharityName: {
     fontSize: 16,
