@@ -58,6 +58,43 @@ export function useTokenBalances() {
     });
   };
 
+  // Get a specific token's balance
+  const getTokenBalance = (symbol: string): string => {
+    const token = balances.find(t => t.symbol === symbol);
+    return token ? token.balance : '0';
+  };
+
+  // Get a specific token's USD value
+  const getTokenUSDValue = (symbol: string): string => {
+    const token = balances.find(t => t.symbol === symbol);
+    if (!token || !token.price) return '0';
+    return (parseFloat(token.balance) * token.price).toFixed(2);
+  };
+
+  // Get a specific token's full data
+  const getTokenData = (symbol: string): TokenBalance | null => {
+    return balances.find(t => t.symbol === symbol) || null;
+  };
+
+  // Get cached balances for specific tokens
+  const getCachedBalances = (symbols: string[]): {
+    [key: string]: { balance: string; price: number | null };
+  } => {
+    const result: { [key: string]: { balance: string; price: number | null } } = {};
+    
+    symbols.forEach(symbol => {
+      const token = balances.find(t => t.symbol === symbol);
+      if (token) {
+        result[symbol] = {
+          balance: token.balance,
+          price: token.price || null
+        };
+      }
+    });
+    
+    return result;
+  };
+
   // Fetch ETH price and 24h change from CoinGecko
   const fetchEthPrice = async () => {
     try {
@@ -200,6 +237,10 @@ export function useTokenBalances() {
     totalBalanceUSD,
     isLoading,
     error,
-    refreshBalances: () => fetchBalances(true)
+    refreshBalances: () => fetchBalances(true),
+    getTokenBalance,
+    getTokenUSDValue,
+    getTokenData,
+    getCachedBalances
   };
 } 

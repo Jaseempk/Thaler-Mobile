@@ -1,6 +1,6 @@
 // Contract addresses - these would be updated based on deployment environment
 export const THALER_SAVINGS_POOL_ADDRESS =
-  "0x2473824e1989F7e4FEA28F04D627399928945ea0"; // Placeholder
+  "0x5AF37fb2fff2d7D0520C80f1eA4F317024d4fc2C"; // Placeholder
 
 // Time constants from the contract (in seconds)
 export const TIME_CONSTANTS = {
@@ -9,6 +9,7 @@ export const TIME_CONSTANTS = {
   TWELVE_MONTHS: 31536000,
   INTERVAL: 2592000, // 1 month
 };
+
 // ABIs
 export const THALER_SAVINGS_POOL_ABI = [
   { inputs: [], stateMutability: "nonpayable", type: "constructor" },

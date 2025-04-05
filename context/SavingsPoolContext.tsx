@@ -61,7 +61,9 @@ interface SavingsPoolContextType {
   ) => Promise<string>;
   withdrawFromERC20Pool: (
     poolId: string,
-    charityAddress: string
+    charityAddress: string,
+    tokenAddress: string,
+    amountToWithdraw: string
   ) => Promise<string>;
   refreshPools: () => Promise<void>;
 }
@@ -288,15 +290,24 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       const initialDepositWei = BigInt(
         Math.floor(Number(initialDeposit) * 1e18)
       );
-
+      console.log("duration:", duration);
+      console.log("totalIntervals:", totalIntervals);
+      console.log("amountToSaveWei:", amountToSaveWei.toString(16));
+      console.log("initialDepositWei:", initialDepositWei.toString(16));
       // Encode function data using viem
       const data = encodeFunctionData({
         abi: THALER_SAVINGS_POOL_ABI,
         functionName: "createSavingsPoolEth",
-        args: [amountToSaveWei, duration, initialDepositWei, totalIntervals],
+        args: [
+          amountToSaveWei,
+          duration * 24 * 60 * 60,
+          initialDepositWei,
+          totalIntervals,
+        ],
       });
 
       console.log("dey");
+      console.log("initialDepositWei:", initialDepositWei.toString(16));
 
       // Prepare transaction request
       const transactionRequest = {
@@ -367,20 +378,23 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
         value: "0x0",
       };
 
-      console.log("enthe");
-
       // Send approval transaction
       const approvetxHash = await provider.request({
         method: "eth_sendTransaction",
         params: [approveReq],
       });
-      console.log("kuntham");
 
       // Wait for approval transaction - increased wait time
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
-      console.log("oude");
       console.log("duration:", duration);
+      console.log("durationInSeconds:", duration * 24 * 60 * 60);
+      console.log("totalIntervals:", totalIntervals);
+      console.log("amountToSaveWei:", amountToSaveWei);
+      console.log("initialDepositWei:", initialDepositWei);
+      console.log("tokenAddress:", tokenAddress);
+      // amountToSaveWei: 120.000000
+      //initialDepositWei:10.000000
 
       // Then create the savings pool
       const createData = encodeFunctionData({
@@ -389,7 +403,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
         args: [
           tokenAddress,
           amountToSaveWei,
-          duration,
+          duration * 24 * 60 * 60,
           initialDepositWei,
           totalIntervals,
         ],
@@ -409,40 +423,40 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
       let txHash;
       let retries = 0;
       const maxRetries = 3;
+      txHash = await provider.request({
+        method: "eth_sendTransaction",
+        params: [transactionRequest],
+      });
 
-      while (retries < maxRetries) {
-        try {
-          // Add a delay before sending the transaction to allow previous tx to be processed
-          await new Promise((resolve) =>
-            setTimeout(resolve, 2000 * (retries + 1))
-          );
+      // while (retries < maxRetries) {
+      //   try {
+      //     // Add a delay before sending the transaction to allow previous tx to be processed
+      //     await new Promise((resolve) =>
+      //       setTimeout(resolve, 2000 * (retries + 1))
+      //     );
+      //     console.log("dhaaa");
+      //     // Send transaction
 
-          // Send transaction
-          txHash = await provider.request({
-            method: "eth_sendTransaction",
-            params: [transactionRequest],
-          });
+      //     // If successful, break out of retry loop
+      //     break;
+      //   } catch (error: any) {
+      //     console.error(`Attempt ${retries + 1} failed:`, error);
 
-          // If successful, break out of retry loop
-          break;
-        } catch (error: any) {
-          console.error(`Attempt ${retries + 1} failed:`, error);
-
-          // If it's a nonce error, wait longer and retry
-          if (error.message && error.message.includes("nonce too low")) {
-            retries++;
-            if (retries >= maxRetries) {
-              throw new Error(
-                "Failed after multiple attempts: " + error.message
-              );
-            }
-            console.log(`Retrying... (${retries}/${maxRetries})`);
-          } else {
-            // If it's not a nonce error, rethrow
-            throw error;
-          }
-        }
-      }
+      //     // If it's a nonce error, wait longer and retry
+      //     if (error.message && error.message.includes("nonce too low")) {
+      //       retries++;
+      //       if (retries >= maxRetries) {
+      //         throw new Error(
+      //           "Failed after multiple attempts: " + error.message
+      //         );
+      //       }
+      //       console.log(`Retrying... (${retries}/${maxRetries})`);
+      //     } else {
+      //       // If it's not a nonce error, rethrow
+      //       throw error;
+      //     }
+      //   }
+      // }
 
       console.log("kooi");
 
@@ -461,7 +475,10 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   };
 
   // Deposit to ETH pool
-  const depositToEthPool = async (poolId: string, amount: string): Promise<string> => {
+  const depositToEthPool = async (
+    poolId: string,
+    amount: string
+  ): Promise<string> => {
     if (!address || !contract) throw new Error("Wallet not connected");
 
     setIsLoading(true);
@@ -507,7 +524,10 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   };
 
   // Deposit to ERC20 pool
-  const depositToERC20Pool = async (poolId: string, amount: string): Promise<string> => {
+  const depositToERC20Pool = async (
+    poolId: string,
+    amount: string
+  ): Promise<string> => {
     if (!address || !contract) throw new Error("Wallet not connected");
 
     setIsLoading(true);
@@ -633,7 +653,9 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
   // Withdraw from ERC20 pool
   const withdrawFromERC20Pool = async (
     poolId: string,
-    charityAddress: string
+    charityAddress: string,
+    tokenAddress: string,
+    amountToWithdraw: string
   ): Promise<string> => {
     if (!address || !contract) throw new Error("Wallet not connected");
 
@@ -646,12 +668,42 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
 
       console.log("poolId:", poolId);
       console.log("charityAddress:", charityAddress);
+      console.log("tokenAddress:", amountToWithdraw);
+
+      console.log("addresss:", address);
+
+      // Approve the contract to spend tokens
+      const approveData = encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [
+          address as `0x${string}`,
+          BigInt(Math.floor(Number(amountToWithdraw) * 1e6)),
+        ],
+      });
+
+      const approveReq = {
+        to: tokenAddress,
+        data: approveData,
+        value: "0x0",
+      };
+
+      // Send approval transaction
+      await provider.request({
+        method: "eth_sendTransaction",
+        params: [approveReq],
+      });
+
+      // Wait for approval to be mined
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
       const data = encodeFunctionData({
         abi: THALER_SAVINGS_POOL_ABI,
         functionName: "withdrawFromERC20SavingPool",
         args: [poolId, charityAddress],
       });
+
+      console.log("athe athe");
 
       // Prepare transaction request
       const transactionRequest = {
@@ -662,7 +714,7 @@ export const SavingsPoolProvider: React.FC<SavingsPoolProviderProps> = ({
 
       const txHash = await provider.request({
         method: "eth_sendTransaction",
-        params: [transactionRequest, { chainId: "84532" }],
+        params: [transactionRequest],
       });
 
       await new Promise((resolve) => setTimeout(resolve, 5000));

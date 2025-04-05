@@ -30,11 +30,12 @@ import { useWallet } from "../../context/WalletContext";
 import { useSavingsPool } from "../../context/SavingsPoolContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTokenBalances } from "../../hooks/useTokenBalances";
-import CreateTokenBalanceCard from "../../components/wallet/CreateTokenBalanceCard";
+import TokenBalanceCard from "../../components/wallet/TokenBalanceCard";
 import StatusModal from "../../components/modals/StatusModal";
 import { getEthereumLogo } from "../../utils/themeUtils";
 import GradientButton from "../../components/ui/GradientButton";
 import { useStatusModal } from "../../hooks/useStatusModal";
+import { shadows, layouts, typography } from "../../styles/common";
 
 // Enable LayoutAnimation for Android
 if (
@@ -46,6 +47,7 @@ if (
 
 // Import token logos
 const usdcLogo = require("../../assets/images/usdc.png");
+const ethLogo = getEthereumLogo("light");
 
 // Constants for measurements and animations
 const TOGGLE_PADDING = 4;
@@ -94,16 +96,18 @@ export default function CreateSavingsScreen() {
   const { createEthSavingsPool, createERC20SavingsPool, isLoading } =
     useSavingsPool();
   const { activeTheme } = useTheme();
-  const { balances, refreshBalances } = useTokenBalances();
 
-  // Get theme-based Ethereum logo
-  const ethLogo = getEthereumLogo(activeTheme);
+  // Use our enhanced useTokenBalances hook
+  const { 
+    balances, 
+    isLoading: balancesLoading, 
+    error: balancesError,
+    getCachedBalances,
+    refreshBalances
+  } = useTokenBalances();
 
-  // Cache token balances and prices
-  const [cachedBalances, setCachedBalances] = useState<{
-    ETH?: { balance: string; price: number | null };
-    USDC?: { balance: string; price: number | null };
-  }>({});
+  // Get cached balances for ETH and USDC
+  const tokenBalances = getCachedBalances(['ETH', 'USDC']);
 
   // Use our new status modal hook
   const { 
@@ -113,6 +117,42 @@ export default function CreateSavingsScreen() {
     showErrorModal, 
     hideModal 
   } = useStatusModal();
+
+  // Cache token balances and prices
+  const [cachedBalances, setCachedBalances] = useState<{
+    ETH?: { balance: string; price: number | null };
+    USDC?: { balance: string; price: number | null };
+  }>({});
+
+  // Update cached balances when balances change
+  useEffect(() => {
+    if (balances && balances.length > 0) {
+      const newCachedBalances: {
+        ETH?: { balance: string; price: number | null };
+        USDC?: { balance: string; price: number | null };
+      } = {};
+
+      // Find ETH balance
+      const ethBalance = balances.find(token => token.symbol === 'ETH');
+      if (ethBalance) {
+        newCachedBalances.ETH = {
+          balance: ethBalance.balance,
+          price: ethBalance.price || null
+        };
+      }
+
+      // Find USDC balance
+      const usdcBalance = balances.find(token => token.symbol === 'USDC');
+      if (usdcBalance) {
+        newCachedBalances.USDC = {
+          balance: usdcBalance.balance,
+          price: usdcBalance.price || null
+        };
+      }
+
+      setCachedBalances(newCachedBalances);
+    }
+  }, [balances]);
 
   const [tokenType, setTokenType] = useState<"ETH" | "ERC20">("ETH");
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
@@ -921,17 +961,18 @@ export default function CreateSavingsScreen() {
     );
   };
 
-  // Update the CreateTokenBalanceCard component call to remove onRefresh prop
+  // Update the TokenBalanceCard component call to use the 'create' variant
   const renderBalanceCard = () => {
-    if (tokenType === "ETH" && cachedBalances.ETH) {
+    if (tokenType === "ETH" && tokenBalances.ETH) {
       return (
-        <CreateTokenBalanceCard
+        <TokenBalanceCard
           token={{
             symbol: "ETH",
-            balance: cachedBalances.ETH.balance,
-            price: cachedBalances.ETH.price || undefined,
+            balance: tokenBalances.ETH.balance,
+            price: tokenBalances.ETH.price || undefined,
             logo: ethLogo,
           }}
+          variant="create"
         />
       );
     }
@@ -939,16 +980,17 @@ export default function CreateSavingsScreen() {
     if (
       tokenType === "ERC20" &&
       selectedToken?.symbol === "USDC" &&
-      cachedBalances.USDC
+      tokenBalances.USDC
     ) {
       return (
-        <CreateTokenBalanceCard
+        <TokenBalanceCard
           token={{
             symbol: "USDC",
-            balance: cachedBalances.USDC.balance,
-            price: cachedBalances.USDC.price || undefined,
+            balance: tokenBalances.USDC.balance,
+            price: tokenBalances.USDC.price || undefined,
             logo: usdcLogo,
           }}
+          variant="create"
         />
       );
     }
@@ -993,12 +1035,6 @@ export default function CreateSavingsScreen() {
     try {
       setIsCreatingPool(true);
       
-      // Show loading modal
-      showLoadingModal(
-        "Creating Savings Pool",
-        "Please wait while we create your savings pool..."
-      );
-
       // Create the appropriate pool type
       let transactionHash;
       if (tokenSymbol === "ETH") {
@@ -1018,7 +1054,7 @@ export default function CreateSavingsScreen() {
         );
       }
 
-      // Show success modal
+      // Only show success modal after transaction completes
       showSuccessModal(
         "Savings Pool Created",
         "Your savings pool has been created successfully!",
@@ -1027,7 +1063,7 @@ export default function CreateSavingsScreen() {
     } catch (error) {
       console.error("Error creating savings pool:", error);
       
-      // Show error modal
+      // Only show error modal after transaction fails
       showErrorModal(
         "Error Creating Pool",
         error instanceof Error ? error.message : "An unknown error occurred"

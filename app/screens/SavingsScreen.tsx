@@ -120,7 +120,12 @@ const SavingsScreen = () => {
       if (selectedPool.isEth) {
         await withdrawFromEthPool(selectedPool.savingsPoolId, proof);
       } else {
-        await withdrawFromERC20Pool(selectedPool.savingsPoolId, proof);
+        await withdrawFromERC20Pool(
+          selectedPool.savingsPoolId,
+          proof,
+          selectedPool.tokenToSave,
+          selectedPool.amountToSave
+        );
       }
       setWithdrawModalVisible(false);
       setWithdrawProof("");

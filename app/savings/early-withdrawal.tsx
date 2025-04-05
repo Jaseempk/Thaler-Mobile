@@ -47,54 +47,124 @@ export default function EarlyWithdrawalScreen() {
   // Get theme-based Ethereum logo
   const ethLogo = getEthereumLogo(activeTheme);
 
-  // Mock charity data - in production this would come from an API
-  const CHARITIES = useMemo(
-    () => [
-      {
-        id: "1",
-        name: "Global Water Foundation",
-        description: "Providing clean water to communities in need",
-        logo: ethLogo,
-        website: "https://water.org",
-        address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
-      },
-      {
-        id: "2",
-        name: "Climate Action Now",
-        description: "Fighting climate change through reforestation",
-        logo: ethLogo,
-        website: "https://climateactionnow.org",
-        address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
-      },
-      {
-        id: "3",
-        name: "Education For All",
-        description: "Supporting education in underserved communities",
-        logo: ethLogo,
-        website: "https://educationforall.org",
-        address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
-      },
-      {
-        id: "4",
-        name: "Hunger Relief Initiative",
-        description: "Providing meals to those facing food insecurity",
-        logo: ethLogo,
-        website: "https://hungerrelief.org",
-        address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
-      },
-    ],
-    [ethLogo]
-  );
-
   // Define a Charity type for better type safety
   type Charity = {
     id: string;
     name: string;
     description: string;
     logo: any;
+    logoUrl: string;
+    bannerUrl: string;
     website: string;
     address: string;
+    longDescription: string;
+    bannerImage: any;
+    impact: string;
+    tags: string[];
+    stats: {
+      stat1: string | number;
+      stat2: string | number;
+      stat3: string | number;
+      label1: string;
+      label2: string;
+      label3: string;
+    };
   };
+
+  // Mock charity data - in production this would come from an API
+  const CHARITIES = useMemo(
+    () => [
+      {
+        id: "1",
+        name: "The Water Project",
+        description: "Providing clean water to communities in need across sub-Saharan Africa. Over 2.5M people helped since 2006.",
+        longDescription: "The Water Project works to unlock human potential by providing sustainable water projects to communities in sub-Saharan Africa who suffer needlessly from a lack of access to clean water and proper sanitation. Your crypto donation helps build wells, water catchment systems, and spring protections to bring clean, safe water to entire communities.",
+        logo: null, // Will be set from logoUrl
+        bannerImage: null, // Will be set from bannerUrl
+        logoUrl: "https://thewaterproject.org/wp-content/themes/waterproject/images/logo.svg",
+        bannerUrl: "https://thewaterproject.org/wp-content/uploads/2021/11/563_913c37cf9fe6a08-1024x683.jpg",
+        impact: "One $50 donation provides clean water to a school of 475 students for years to come",
+        website: "https://thewaterproject.org",
+        address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620", // Example address
+        tags: ["Water", "Health", "Africa"],
+        stats: {
+          stat1: "2.5M+",
+          stat2: 32,
+          stat3: 1240,
+          label1: "People Helped",
+          label2: "Countries Served",
+          label3: "Projects Completed"
+        }
+      },
+      {
+        id: "2",
+        name: "Cool Earth",
+        description: "Fighting climate change by protecting rainforests in partnership with indigenous communities.",
+        longDescription: "Cool Earth is a climate charity that works alongside rainforest communities to halt deforestation and its impact on climate change. Your crypto donation helps support sustainable livelihoods and education programmes, empowering communities to fight back against changing climates and threats to the rainforest.",
+        logo: null, // Will be set from logoUrl
+        bannerImage: null, // Will be set from bannerUrl
+        logoUrl: "https://www.coolearth.org/wp-content/themes/coolearth/dist/img/logo-white.svg",
+        bannerUrl: "https://www.coolearth.org/wp-content/uploads/2021/07/©Cool-Earth-Papua-New-Guinea-20201018-WA0015-1024x683.jpg",
+        impact: "£25 can help keep tropical rainforest standing, protecting vital habitat for wildlife and thousands of communities",
+        website: "https://www.coolearth.org",
+        address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620", // Example address
+        tags: ["Climate", "Environment", "Rainforest"],
+        stats: {
+          stat1: "1M+",
+          stat2: "3.5M tons",
+          stat3: 127,
+          label1: "Acres Protected",
+          label2: "Carbon Stored",
+          label3: "Communities Supported"
+        }
+      },
+      {
+        id: "3",
+        name: "UNICEF CryptoFund",
+        description: "Supporting education and innovation for children through blockchain technology and cryptocurrency.",
+        longDescription: "UNICEF's CryptoFund is a new financial vehicle allowing UNICEF to receive, hold, and disburse cryptocurrency - a first for the UN. The fund supports open-source technology benefiting children and young people around the world, with a focus on education, health, and protection.",
+        logo: null, // Will be set from logoUrl
+        bannerImage: null, // Will be set from bannerUrl
+        logoUrl: "https://www.unicef.org/sites/default/files/styles/logo/public/UNICEF-Logo-RGB_150ppi.png",
+        bannerUrl: "https://www.unicef.org/innovation/sites/unicef.org.innovation/files/styles/media_large/public/2019-10/Crypto_1.jpg",
+        impact: "Your donation helps fund startups working on data science, extended reality, AI and blockchain solutions for children",
+        website: "https://www.unicef.org/innovation/stories/unicef-cryptofund",
+        address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620", // Example address
+        tags: ["Education", "Children", "Innovation"],
+        stats: {
+          stat1: "12+",
+          stat2: 8,
+          stat3: "100M+",
+          label1: "Startups Funded",
+          label2: "Countries Reached",
+          label3: "Children Impacted"
+        }
+      },
+      {
+        id: "4",
+        name: "Save the Children",
+        description: "Providing relief to families fighting hunger, climate shocks, and supporting children in conflict zones.",
+        longDescription: "For over 100 years Save the Children's mission has been based on the simple principle that all children have the right to be healthy, educated and protected. They provide relief to families fighting the double impacts of a worsening global hunger crisis and climate shocks, while supporting children in dangerous conflict zones.",
+        logo: null, // Will be set from logoUrl
+        bannerImage: null, // Will be set from bannerUrl
+        logoUrl: "https://www.savethechildren.org/content/dam/usa/images/logos/save-the-children-logo-white.png",
+        bannerUrl: "https://www.savethechildren.org/content/dam/usa/images/hunger/hunger-crisis-update-2023-hero.jpg",
+        impact: "Your donation helps set up temporary learning spaces, provide fuel and water infrastructure, and create safe shelters for children",
+        website: "https://www.savethechildren.org",
+        address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620", // Example address
+        tags: ["Children", "Hunger", "Emergency"],
+        stats: {
+          stat1: "$8.6M+",
+          stat2: 120,
+          stat3: "25M+",
+          label1: "Crypto Raised",
+          label2: "Countries Served",
+          label3: "Children Reached"
+        }
+      },
+    ],
+    []
+  );
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -113,22 +183,26 @@ export default function EarlyWithdrawalScreen() {
   // Status modal state
   const [statusModal, setStatusModal] = useState<{
     visible: boolean;
-    type: 'success' | 'error' | 'info' | 'warning';
+    type: "success" | "error" | "info" | "warning";
     title: string;
     message: string;
     amount: string;
     amountLabel: string;
     transactionHash: string;
     timestamp: Date;
-    actionButtons: Array<{ label: string; onPress: () => void; primary?: boolean }>;
+    actionButtons: Array<{
+      label: string;
+      onPress: () => void;
+      primary?: boolean;
+    }>;
   }>({
     visible: false,
-    type: 'success',
-    title: '',
-    message: '',
-    amount: '',
-    amountLabel: '',
-    transactionHash: '',
+    type: "success",
+    title: "",
+    message: "",
+    amount: "",
+    amountLabel: "",
+    transactionHash: "",
     timestamp: new Date(),
     actionButtons: [],
   });
@@ -300,8 +374,8 @@ export default function EarlyWithdrawalScreen() {
 
     try {
       console.log("poolisETh:", pool.isEth);
-      let txHash = '';
-      
+      let txHash = "";
+
       // Call the appropriate withdrawal function based on pool type
       if (pool.isEth) {
         txHash = await withdrawFromEthPool(
@@ -311,72 +385,74 @@ export default function EarlyWithdrawalScreen() {
       } else {
         txHash = await withdrawFromERC20Pool(
           pool.savingsPoolId,
-          selectedCharity.address
+          selectedCharity.address,
+          pool.tokenToSave,
+          pool.amountToSave
         );
       }
-      
+
       // Show success modal
       setStatusModal({
         visible: true,
-        type: 'success',
-        title: 'Transaction Success',
+        type: "success",
+        title: "Transaction Success",
         message: `You've successfully withdrawn from your savings pool with a ${donationPercentage}% donation to ${selectedCharity.name}.`,
         amount: pool.totalSaved,
-        amountLabel: pool.isEth ? 'ETH' : pool.tokenSymbol || 'Tokens',
+        amountLabel: pool.isEth ? "ETH" : pool.tokenSymbol || "Tokens",
         transactionHash: txHash,
         timestamp: new Date(),
         actionButtons: [
           {
-            label: 'View Details',
+            label: "View Details",
             onPress: () => {
               // Handle viewing transaction details
-              setStatusModal(prev => ({ ...prev, visible: false }));
+              setStatusModal((prev) => ({ ...prev, visible: false }));
             },
-            primary: false
+            primary: false,
           },
           {
-            label: 'Share Receipt',
+            label: "Share Receipt",
             onPress: () => {
               // Handle sharing receipt
-              setStatusModal(prev => ({ ...prev, visible: false }));
+              setStatusModal((prev) => ({ ...prev, visible: false }));
             },
-            primary: false
+            primary: false,
           },
           {
-            label: 'Go to Dashboard',
+            label: "Go to Dashboard",
             onPress: () => {
-              setStatusModal(prev => ({ ...prev, visible: false }));
-              router.replace('/tabs');
+              setStatusModal((prev) => ({ ...prev, visible: false }));
+              router.replace("/tabs");
             },
-            primary: true
-          }
-        ]
+            primary: true,
+          },
+        ],
       });
-      
+
       setIsLoading(false);
     } catch (error) {
       console.error("Error processing withdrawal:", error);
       setIsLoading(false);
-      
+
       // Show error modal
       setStatusModal({
         visible: true,
-        type: 'error',
-        title: 'Transaction Failed',
-        message: 'Failed to process withdrawal. Please try again.',
-        amount: '',
-        amountLabel: '',
-        transactionHash: '',
+        type: "error",
+        title: "Transaction Failed",
+        message: "Failed to process withdrawal. Please try again.",
+        amount: "",
+        amountLabel: "",
+        transactionHash: "",
         timestamp: new Date(),
         actionButtons: [
           {
-            label: 'Try Again',
+            label: "Try Again",
             onPress: () => {
-              setStatusModal(prev => ({ ...prev, visible: false }));
+              setStatusModal((prev) => ({ ...prev, visible: false }));
             },
-            primary: true
-          }
-        ]
+            primary: true,
+          },
+        ],
       });
     }
   };
@@ -690,49 +766,165 @@ export default function EarlyWithdrawalScreen() {
                     ]}
                     onPress={() => handleCharitySelect(charity)}
                   >
-                    <View style={styles.charityHeader}>
-                      <Image source={charity.logo} style={styles.charityLogo} />
-                      <View style={styles.charityTitleContainer}>
-                        <Text
-                          style={[
-                            styles.charityName,
-                            { color: Colors[activeTheme].text },
+                    {/* Charity Banner with Logo */}
+                    <View style={styles.charityBannerContainer}>
+                      {/* Banner Image with Gradient Overlay */}
+                      <View style={styles.bannerImageContainer}>
+                        <Image
+                          source={{ uri: charity.bannerUrl }}
+                          style={styles.bannerImage}
+                          resizeMode="cover"
+                        />
+                        <LinearGradient
+                          colors={[
+                            "rgba(0,0,0,0.7)",
+                            "rgba(0,0,0,0.3)",
+                            "rgba(0,0,0,0)",
                           ]}
-                        >
-                          {charity.name}
-                        </Text>
-                        <TouchableOpacity
-                          style={styles.infoButton}
-                          onPress={() =>
-                            Alert.alert(charity.name, charity.description)
-                          }
-                        >
-                          <Ionicons
-                            name="information-circle-outline"
-                            size={16}
-                            color={Colors[activeTheme].primary}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                    <Text
-                      style={[
-                        styles.charityDescription,
-                        { color: Colors[activeTheme].textSecondary },
-                      ]}
-                    >
-                      {charity.description}
-                    </Text>
-
-                    {selectedCharity?.id === charity.id && (
-                      <View style={styles.selectedIndicator}>
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={24}
-                          color={Colors[activeTheme].primary}
+                          style={styles.bannerGradient}
                         />
                       </View>
-                    )}
+
+                      {/* Charity Logo */}
+                      <View
+                        style={[
+                          styles.charityLogoContainer,
+                          { backgroundColor: Colors[activeTheme].background },
+                        ]}
+                      >
+                        <Image
+                          source={{ uri: charity.logoUrl }}
+                          style={styles.charityLogo}
+                          resizeMode="contain"
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.charityContent}>
+                      <View style={styles.charityHeader}>
+                        <View style={styles.charityTitleContainer}>
+                          <Text
+                            style={[
+                              styles.charityName,
+                              { color: Colors[activeTheme].text },
+                            ]}
+                          >
+                            {charity.name}
+                          </Text>
+                          <TouchableOpacity
+                            style={styles.infoButton}
+                            onPress={() =>
+                              Alert.alert(charity.name, charity.longDescription)
+                            }
+                          >
+                            <Ionicons
+                              name="information-circle-outline"
+                              size={16}
+                              color={Colors[activeTheme].primary}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+
+                      <Text
+                        style={[
+                          styles.charityDescription,
+                          { color: Colors[activeTheme].textSecondary },
+                        ]}
+                      >
+                        {charity.description}
+                      </Text>
+
+                      {/* Impact statement */}
+                      <View style={styles.impactContainer}>
+                        <Ionicons
+                          name="flash-outline"
+                          size={16}
+                          color={Colors[activeTheme].primary}
+                        />
+                        <Text
+                          style={[
+                            styles.impactText,
+                            { color: Colors[activeTheme].primary },
+                          ]}
+                        >
+                          {charity.impact}
+                        </Text>
+                      </View>
+
+                      {/* Tags */}
+                      <View style={styles.tagsContainer}>
+                        {charity.tags.map((tag, index) => (
+                          <View
+                            key={index}
+                            style={[
+                              styles.tagPill,
+                              { backgroundColor: Colors[activeTheme].secondaryLight },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.tagText,
+                                { color: Colors[activeTheme].textSecondary },
+                              ]}
+                            >
+                              {tag}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+
+                      {/* Stats */}
+                      <View style={styles.statsContainer}>
+                        <View style={styles.statItem}>
+                          <Text
+                            style={[
+                              styles.statValue,
+                              { color: Colors[activeTheme].text },
+                            ]}
+                          >
+                            {charity.stats.stat1}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.statLabel,
+                              { color: Colors[activeTheme].textSecondary },
+                            ]}
+                          >
+                            {charity.stats.label1}
+                          </Text>
+                        </View>
+                        <View style={styles.statDivider} />
+                        <View style={styles.statItem}>
+                          <Text
+                            style={[
+                              styles.statValue,
+                              { color: Colors[activeTheme].text },
+                            ]}
+                          >
+                            {charity.stats.stat2}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.statLabel,
+                              { color: Colors[activeTheme].textSecondary },
+                            ]}
+                          >
+                            {charity.stats.label2}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {selectedCharity?.id === charity.id && (
+                        <View style={styles.selectedIndicator}>
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={24}
+                            color={Colors[activeTheme].primary}
+                          />
+                        </View>
+                      )}
+                    </View>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -781,7 +973,7 @@ export default function EarlyWithdrawalScreen() {
               >
                 <View style={styles.selectedCharityRow}>
                   <Image
-                    source={selectedCharity?.logo}
+                    source={{ uri: selectedCharity?.logoUrl }}
                     style={styles.smallCharityLogo}
                   />
                   <Text
@@ -972,11 +1164,11 @@ export default function EarlyWithdrawalScreen() {
           )}
         </Animated.View>
       </ScrollView>
-      
+
       {/* Status Modal */}
       <StatusModal
         visible={statusModal.visible}
-        onClose={() => setStatusModal(prev => ({ ...prev, visible: false }))}
+        onClose={() => setStatusModal((prev) => ({ ...prev, visible: false }))}
         type={statusModal.type}
         title={statusModal.title}
         message={statusModal.message}
@@ -1216,21 +1408,70 @@ const styles = StyleSheet.create({
   },
   charityCard: {
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    marginBottom: 20,
     borderWidth: 2,
     position: "relative",
+    overflow: "hidden",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  charityBannerContainer: {
+    height: 150,
+    width: "100%",
+    position: "relative",
+    marginBottom: 30, // Space for the logo to overlap
+  },
+  bannerImageContainer: {
+    height: "100%",
+    width: "100%",
+    position: "relative",
+    overflow: "hidden",
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  bannerImage: {
+    width: "100%",
+    height: "100%",
+  },
+  bannerGradient: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  charityLogoContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    position: "absolute",
+    bottom: -30,
+    left: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+    padding: 5,
+  },
+  charityLogo: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  charityContent: {
+    padding: 16,
+    paddingTop: 36,
   },
   charityHeader: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 12,
-  },
-  charityLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
   },
   charityTitleContainer: {
     flex: 1,
@@ -1238,24 +1479,80 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   charityName: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "700",
     flex: 1,
   },
   infoButton: {
-    width: 30,
-    height: 30,
-    justifyContent: "center",
-    alignItems: "center",
+    padding: 4,
   },
   charityDescription: {
     fontSize: 14,
     lineHeight: 20,
+    marginBottom: 12,
+  },
+  impactContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    backgroundColor: "rgba(0, 150, 136, 0.1)",
+    padding: 10,
+    borderRadius: 8,
+  },
+  impactText: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginLeft: 6,
+    flex: 1,
+  },
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 16,
+  },
+  tagPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0, 0, 0, 0.05)",
+  },
+  statItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  statLabel: {
+    fontSize: 12,
+    textTransform: "capitalize",
+  },
+  statDivider: {
+    width: 1,
+    height: "80%",
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
+    alignSelf: "center",
   },
   selectedIndicator: {
     position: "absolute",
-    top: 12,
-    right: 12,
+    top: 16,
+    right: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 2,
   },
   donationCard: {
     borderRadius: 16,
