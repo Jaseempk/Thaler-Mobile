@@ -33,6 +33,7 @@ import { RootStackParamList } from "../../navigation/types";
 import { useRouter } from "expo-router";
 import { useTokenBalances } from "../../hooks/useTokenBalances";
 import * as Font from "expo-font";
+import { getEthereumLogo } from "../../utils/themeUtils";
 
 const { width } = Dimensions.get("window");
 
@@ -45,7 +46,7 @@ const recentActivity = [
     amount: "-0.05 ETH",
     type: "swap",
     avatar: "S",
-    avatarColor: "#627EEA",
+    avatarColor: "#454A75",
   },
   {
     id: "2",
@@ -130,11 +131,11 @@ export default function HomeScreen() {
     isPositive: parseFloat(token.priceChange24h || "0.00") >= 0,
     logo:
       token.symbol === "ETH"
-        ? require("../../assets/images/ethereum.png")
+        ? getEthereumLogo(activeTheme)
         : require("../../assets/images/usdc.png"),
     gradientColors:
       token.symbol === "ETH"
-        ? (["#627EEA", "#3C5BE0"] as [string, string])
+        ? (["#6B8AFF", "#454A75"] as [string, string])
         : (["#2775CA", "#2775CA"] as [string, string]),
   }));
 

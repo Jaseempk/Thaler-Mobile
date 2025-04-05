@@ -76,7 +76,7 @@ const SavingsPoolCard: React.FC<SavingsPoolCardProps> = ({
           <View
             style={[
               styles.tokenIcon,
-              { backgroundColor: pool.isEth ? "#627EEA" : "#F0B90B" },
+              { backgroundColor: pool.isEth ? "#454A75" : "#F0B90B" },
             ]}
           >
             <Text style={styles.tokenSymbol}>{tokenSymbol.charAt(0)}</Text>

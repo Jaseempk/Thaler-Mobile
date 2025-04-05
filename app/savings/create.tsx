@@ -32,6 +32,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useTokenBalances } from "../../hooks/useTokenBalances";
 import CreateTokenBalanceCard from "../../components/wallet/CreateTokenBalanceCard";
 import StatusModal from "../../components/modals/StatusModal";
+import { getEthereumLogo } from "../../utils/themeUtils";
 
 // Enable LayoutAnimation for Android
 if (
@@ -42,7 +43,6 @@ if (
 }
 
 // Import token logos
-const ethLogo = require("../../assets/images/ethereum.png");
 const usdcLogo = require("../../assets/images/usdc.png");
 
 // Constants for measurements and animations
@@ -93,6 +93,9 @@ export default function CreateSavingsScreen() {
     useSavingsPool();
   const { activeTheme } = useTheme();
   const { balances, refreshBalances } = useTokenBalances();
+
+  // Get theme-based Ethereum logo
+  const ethLogo = getEthereumLogo(activeTheme);
 
   // Cache token balances and prices
   const [cachedBalances, setCachedBalances] = useState<{

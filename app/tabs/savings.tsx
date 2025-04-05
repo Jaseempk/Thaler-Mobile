@@ -29,6 +29,7 @@ import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
 import LottieView from "lottie-react-native";
 import StatusModal from "../../components/modals/StatusModal";
+import { getEthereumLogo } from "../../utils/themeUtils";
 
 const { width } = Dimensions.get("window");
 
@@ -54,7 +55,7 @@ export default function SavingsScreen() {
   const [statusModalTxHash, setStatusModalTxHash] = useState("");
 
   // Import token logos
-  const ethLogo = require("../../assets/images/ethereum.png");
+  const ethLogo = getEthereumLogo(activeTheme);
   const usdcLogo = require("../../assets/images/usdc.png");
 
   // Animation value for header
@@ -311,6 +312,24 @@ export default function SavingsScreen() {
   }) => {
     const tokenLogo = getLogoForToken(pool.tokenSymbol);
     const progressWidth = `${pool.progress || 0}%`;
+    
+    // Define token logo border style based on theme
+    const tokenBorderStyle = {
+      borderWidth: 2,
+      borderColor: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
+      overflow: "hidden" as const,
+    };
+
+    // Define logo container style for proper padding
+    const logoContainerStyle = {
+      padding: 6,
+      backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.02)",
+      borderRadius: 22, // Slightly larger than the logo to account for padding
+      width: 44,
+      height: 44,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+    };
 
     // Create detail items with keys
     const poolDetails = [
@@ -370,12 +389,18 @@ export default function SavingsScreen() {
         <View style={styles.poolCardHeader}>
           <View style={styles.poolCardHeaderLeft}>
             {tokenLogo ? (
-              <Image source={tokenLogo} style={styles.tokenLogo} />
+              <View style={[logoContainerStyle, tokenBorderStyle]}>
+                <Image 
+                  source={tokenLogo} 
+                  style={styles.tokenLogo}
+                />
+              </View>
             ) : (
               <View
                 style={[
                   styles.tokenLogoFallback,
-                  { backgroundColor: pool.isEth ? "#627EEA" : "#2775CA" },
+                  { backgroundColor: pool.isEth ? "#454A75" : "#2775CA" },
+                  tokenBorderStyle
                 ]}
               >
                 <Text style={styles.tokenLogoText}>
@@ -1024,9 +1049,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   tokenLogo: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
     resizeMode: "contain",
   },
   tokenLogoFallback: {

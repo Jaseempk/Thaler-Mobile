@@ -71,15 +71,17 @@ const TokenBalanceCard: React.FC<TokenBalanceCardProps> = ({
       flex: 1,
     },
     logoContainer: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: "rgba(255, 255, 255, 0.25)",
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: "rgba(80, 80, 100, 0.5)",
       justifyContent: "center",
       alignItems: "center",
       marginRight: 12,
-      padding: 8,
+      padding: 0,
       overflow: "hidden",
+      borderWidth: 1,
+      borderColor: "rgba(255, 255, 255, 0.4)",
       ...Platform.select({
         ios: {
           shadowColor: "rgba(0, 0, 0, 0.2)",
@@ -93,8 +95,8 @@ const TokenBalanceCard: React.FC<TokenBalanceCardProps> = ({
       }),
     },
     tokenLogo: {
-      width: 22,
-      height: 22,
+      width: 40,
+      height: 40,
       resizeMode: "contain",
     },
     nameContainer: {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -31,54 +31,9 @@ import Slider from "@react-native-community/slider";
 import { BlurView } from "expo-blur";
 import { SavingsPool } from "../../models/savings";
 import StatusModal from "../../components/modals/StatusModal";
+import { getEthereumLogo } from "../../utils/themeUtils";
 
 const { width } = Dimensions.get("window");
-
-// Mock charity data - in production this would come from an API
-const CHARITIES = [
-  {
-    id: "1",
-    name: "Global Water Foundation",
-    description: "Providing clean water to communities in need",
-    logo: require("../../assets/images/ethereum.png"), // Using existing assets as placeholders
-    website: "https://water.org",
-    address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
-  },
-  {
-    id: "2",
-    name: "Climate Action Now",
-    description: "Fighting climate change through reforestation",
-    logo: require("../../assets/images/ethereum.png"),
-    website: "https://climateactionnow.org",
-    address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
-  },
-  {
-    id: "3",
-    name: "Education For All",
-    description: "Supporting education in underserved communities",
-    logo: require("../../assets/images/usdc.png"),
-    website: "https://educationforall.org",
-    address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
-  },
-  {
-    id: "4",
-    name: "Hunger Relief Initiative",
-    description: "Providing meals to those facing food insecurity",
-    logo: require("../../assets/images/usdc.png"),
-    website: "https://hungerrelief.org",
-    address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
-  },
-];
-
-// Define a Charity type for better type safety
-type Charity = {
-  id: string;
-  name: string;
-  description: string;
-  logo: any;
-  website: string;
-  address: string;
-};
 
 export default function EarlyWithdrawalScreen() {
   const router = useRouter();
@@ -88,6 +43,58 @@ export default function EarlyWithdrawalScreen() {
     useSavingsPool();
   const { address } = useWallet();
   const isDarkMode = activeTheme === "dark";
+
+  // Get theme-based Ethereum logo
+  const ethLogo = getEthereumLogo(activeTheme);
+
+  // Mock charity data - in production this would come from an API
+  const CHARITIES = useMemo(
+    () => [
+      {
+        id: "1",
+        name: "Global Water Foundation",
+        description: "Providing clean water to communities in need",
+        logo: ethLogo,
+        website: "https://water.org",
+        address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
+      },
+      {
+        id: "2",
+        name: "Climate Action Now",
+        description: "Fighting climate change through reforestation",
+        logo: ethLogo,
+        website: "https://climateactionnow.org",
+        address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
+      },
+      {
+        id: "3",
+        name: "Education For All",
+        description: "Supporting education in underserved communities",
+        logo: ethLogo,
+        website: "https://educationforall.org",
+        address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
+      },
+      {
+        id: "4",
+        name: "Hunger Relief Initiative",
+        description: "Providing meals to those facing food insecurity",
+        logo: ethLogo,
+        website: "https://hungerrelief.org",
+        address: "0x66aAf3098E1eB1F24348e84F509d8bcfD92D0620",
+      },
+    ],
+    [ethLogo]
+  );
+
+  // Define a Charity type for better type safety
+  type Charity = {
+    id: string;
+    name: string;
+    description: string;
+    logo: any;
+    website: string;
+    address: string;
+  };
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;

@@ -9,7 +9,7 @@ const accentBlueDark = '#1565C0';
 const accentBlueLight = '#64B5F6';
 
 // Token colors
-const ethGradient = ['#627EEA', '#3C5BE0'];
+const ethGradient = ['#6B8AFF', '#454A75'];
 const usdcGradient = ['#2775CA', '#2775CA'];
 const usdtGradient = ['#26A17B', '#1A9270'];
 const maticGradient = ['#8247E5', '#6F3CD0'];

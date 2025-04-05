@@ -92,9 +92,9 @@ export default function CreateTokenBalanceCard({ token }: CreateTokenBalanceCard
     },
   });
 
-  // Define gradient colors based on token
+  // Get gradient colors based on token
   const gradientColors = token.symbol === 'ETH' 
-    ? ['#627EEA', '#3C5EE7'] as const
+    ? ['#6B8AFF', '#454A75'] as const
     : ['#2775CA', '#2775CA'] as const;
 
   return (

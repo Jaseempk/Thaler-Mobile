@@ -15,9 +15,9 @@ import * as Clipboard from 'expo-clipboard';
 import Colors from '../constants/Colors';
 import { useTheme } from '../contexts/ThemeContext';
 import { useWallet } from '../context/WalletContext';
+import { getEthereumLogo } from '../utils/themeUtils';
 
 // Import token logos
-const ethLogo = require('../assets/images/ethereum.png');
 const usdcLogo = require('../assets/images/usdc.png');
 
 type ColorScheme = {
@@ -42,6 +42,9 @@ export default function DepositScreen() {
   const { activeTheme } = useTheme();
   const { address } = useWallet();
   const isDarkMode = activeTheme === 'dark';
+
+  // Get theme-based Ethereum logo
+  const ethLogo = getEthereumLogo(activeTheme);
 
   // Format address to show only start and end
   const formatAddress = (addr: string | null) => {

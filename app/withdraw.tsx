@@ -28,9 +28,9 @@ import { useTokenBalances } from "../hooks/useTokenBalances";
 import { useEmbeddedEthereumWallet } from "@privy-io/expo";
 import StatusModal from '../components/modals/StatusModal';
 import { Clipboard } from 'react-native';
+import { getEthereumLogo } from '../utils/themeUtils';
 
 // Import token logos
-const ethLogo = require("../assets/images/ethereum.png");
 const usdcLogo = require("../assets/images/usdc.png");
 
 // USDC contract ABI (minimal for balanceOf)
@@ -102,6 +102,9 @@ export default function WithdrawScreen() {
   // Initialize tokens with loading state
   const [tokens, setTokens] = useState<Token[]>([]);
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
+
+  // Get theme-based Ethereum logo
+  const ethLogo = getEthereumLogo(activeTheme);
 
   // Update tokens and selected token when balances are loaded
   useEffect(() => {
