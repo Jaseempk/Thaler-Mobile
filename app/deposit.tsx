@@ -16,6 +16,7 @@ import Colors from '../constants/Colors';
 import { useTheme } from '../contexts/ThemeContext';
 import { useWallet } from '../context/WalletContext';
 import { getEthereumLogo } from '../utils/themeUtils';
+import { formatAddress } from '../utils/formatUtils';
 
 // Import token logos
 const usdcLogo = require('../assets/images/usdc.png');
@@ -45,12 +46,6 @@ export default function DepositScreen() {
 
   // Get theme-based Ethereum logo
   const ethLogo = getEthereumLogo(activeTheme);
-
-  // Format address to show only start and end
-  const formatAddress = (addr: string | null) => {
-    if (!addr) return 'Loading...';
-    return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
-  };
 
   // Handle copy address
   const handleCopyAddress = async () => {

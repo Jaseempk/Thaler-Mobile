@@ -11,6 +11,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "../../constants/Colors";
 import { useTheme } from "../../contexts/ThemeContext";
+import TokenLogo from "../ui/TokenLogo";
 
 interface TokenData {
   id: string;
@@ -165,19 +166,11 @@ const TokenBalanceCard: React.FC<TokenBalanceCardProps> = ({
         <View style={styles.contentContainer}>
           <View style={styles.leftSection}>
             <View style={styles.logoContainer}>
-              {typeof token.logo === "string" ? (
-                <Image
-                  source={{ uri: token.logo }}
-                  style={styles.tokenLogo}
-                  resizeMode="contain"
-                />
-              ) : (
-                <Image
-                  source={token.logo}
-                  style={styles.tokenLogo}
-                  resizeMode="contain"
-                />
-              )}
+              <TokenLogo 
+                symbol={token.symbol} 
+                size={40}
+                backgroundColor="rgba(80, 80, 100, 0.5)"
+              />
             </View>
             <View style={styles.nameContainer}>
               <Text style={styles.tokenSymbol}>{token.symbol}</Text>

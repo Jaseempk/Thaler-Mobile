@@ -22,7 +22,7 @@ import { Easing } from "react-native";
 const { width } = Dimensions.get("window");
 
 // Define the types of status modals
-export type StatusType = "success" | "error" | "info" | "warning";
+export type StatusType = "success" | "error" | "info" | "warning" | "loading";
 
 // Define the action button type
 interface ActionButton {
@@ -165,6 +165,8 @@ export default function StatusModal({
         return "warning";
       case "info":
         return "information";
+      case "loading":
+        return "sync";
       default:
         return "checkmark";
     }
@@ -180,6 +182,8 @@ export default function StatusModal({
         return "rgba(251, 191, 36, 0.8)";
       case "info":
         return "rgba(96, 165, 250, 0.8)";
+      case "loading":
+        return "rgba(74, 222, 128, 0.8)";
       default:
         return "rgba(74, 222, 128, 0.8)";
     }
@@ -195,6 +199,8 @@ export default function StatusModal({
         return "rgba(251, 191, 36, 0.4)";
       case "info":
         return "rgba(96, 165, 250, 0.4)";
+      case "loading":
+        return "rgba(74, 222, 128, 0.4)";
       default:
         return "rgba(74, 222, 128, 0.4)";
     }
@@ -429,6 +435,12 @@ export default function StatusModal({
                         outputRange: [1, 1.05],
                       }),
                     },
+                    ...(type === "loading" ? [{
+                      rotate: pulseAnim.interpolate({
+                        inputRange: [1, 1.15, 1.3, 1.45, 1.6, 1.75, 1.9, 2],
+                        outputRange: ["0deg", "45deg", "90deg", "135deg", "180deg", "225deg", "270deg", "360deg"],
+                      }),
+                    }] : []),
                   ],
                 },
               ]}

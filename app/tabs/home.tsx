@@ -34,6 +34,7 @@ import { useRouter } from "expo-router";
 import { useTokenBalances } from "../../hooks/useTokenBalances";
 import * as Font from "expo-font";
 import { getEthereumLogo } from "../../utils/themeUtils";
+import { formatAddress } from "../../utils/formatUtils";
 
 const { width } = Dimensions.get("window");
 
@@ -81,14 +82,6 @@ export default function HomeScreen() {
     useTokenBalances();
 
   console.log("totalBalances:", totalBalanceUSD);
-
-  // Format the address for display
-  const formatAddress = (address: string | null) => {
-    if (!address) return "";
-    return `${address.substring(0, 6)}...${address.substring(
-      address.length - 4
-    )}`;
-  };
 
   // Get greeting based on time of day
   const getGreeting = () => {

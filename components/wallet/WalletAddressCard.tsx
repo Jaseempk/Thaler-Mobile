@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Clipboard } from 'react-nativ
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
+import { formatAddress } from '../../utils/formatUtils';
 
 interface WalletAddressCardProps {
   address: string | null;
@@ -17,10 +18,6 @@ const WalletAddressCard: React.FC<WalletAddressCardProps> = ({
   theme,
   onPress 
 }) => {
-  const formatAddress = (addr: string) => {
-    return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
-  };
-
   const copyToClipboard = () => {
     if (address) {
       Clipboard.setString(address);

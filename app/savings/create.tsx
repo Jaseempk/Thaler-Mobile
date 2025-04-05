@@ -33,6 +33,8 @@ import { useTokenBalances } from "../../hooks/useTokenBalances";
 import CreateTokenBalanceCard from "../../components/wallet/CreateTokenBalanceCard";
 import StatusModal from "../../components/modals/StatusModal";
 import { getEthereumLogo } from "../../utils/themeUtils";
+import GradientButton from "../../components/ui/GradientButton";
+import { useStatusModal } from "../../hooks/useStatusModal";
 
 // Enable LayoutAnimation for Android
 if (
@@ -103,50 +105,40 @@ export default function CreateSavingsScreen() {
     USDC?: { balance: string; price: number | null };
   }>({});
 
-  const [statusModal, setStatusModal] = useState<{
-    visible: boolean;
-    type: "success" | "error";
-    title: string;
-    message: string;
-    transactionHash?: string;
-  }>({
-    visible: false,
-    type: "success",
-    title: "",
-    message: "",
-  });
+  // Use our new status modal hook
+  const { 
+    statusModal, 
+    showLoadingModal, 
+    showSuccessModal, 
+    showErrorModal, 
+    hideModal 
+  } = useStatusModal();
 
-  // Update cached values when balances change
-  useEffect(() => {
-    const newCachedBalances: typeof cachedBalances = {};
+  const [tokenType, setTokenType] = useState<"ETH" | "ERC20">("ETH");
+  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
+  const [tokenAddress, setTokenAddress] = useState("");
+  const [tokenSymbol, setTokenSymbol] = useState("ETH");
+  const [amountToSave, setAmountToSave] = useState("");
+  const [duration, setDuration] = useState<number>(90); // 3 months in days
+  const [intervals, setIntervals] = useState<number>(3); // 3 deposits
+  const [showTokenModal, setShowTokenModal] = useState(false);
+  const [showAddTokenModal, setShowAddTokenModal] = useState(false);
+  const [availableTokens, setAvailableTokens] = useState<Token[]>([USDC_TOKEN]);
+  const [newTokenAddress, setNewTokenAddress] = useState("");
+  const [newTokenSymbol, setNewTokenSymbol] = useState("");
+  const [newTokenName, setNewTokenName] = useState("");
+  const [isCreatingPool, setIsCreatingPool] = useState(false);
 
-    // Update ETH balance
-    const ethToken = balances.find((token) => token.symbol === "ETH");
-    if (ethToken) {
-      newCachedBalances.ETH = {
-        balance: ethToken.balance,
-        price: ethToken.price || null,
-      };
-    }
+  // Animation values
+  const tokenTypeAnimatedValue = useRef(new Animated.Value(tokenType === "ETH" ? 0 : 1)).current;
+  const durationAnimatedValue = useRef(new Animated.Value(duration === 90 ? 0 : duration === 180 ? 1 : 2)).current;
 
-    // Update USDC balance
-    const usdcToken = balances.find((token) => token.symbol === "USDC");
-    if (usdcToken) {
-      newCachedBalances.USDC = {
-        balance: usdcToken.balance,
-        price: usdcToken.price || null,
-      };
-    }
-
-    setCachedBalances(newCachedBalances);
-  }, [balances]);
-
-  // Calculate USD value using cached price
-  const ethBalanceUSD = cachedBalances.ETH?.price
-    ? (
-        parseFloat(cachedBalances.ETH.balance) * cachedBalances.ETH.price
-      ).toFixed(2)
-    : "0";
+  // Animation configurations
+  const animationConfig = {
+    duration: 300,
+    easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+    useNativeDriver: true
+  };
 
   // Calculate precise measurements
   const containerPadding = 20; // Form section padding
@@ -154,6 +146,7 @@ export default function CreateSavingsScreen() {
   const [tokenButtonWidth, setTokenButtonWidth] = useState(0);
   const [durationButtonWidth, setDurationButtonWidth] = useState(0);
 
+  // Define styles inside the component
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -624,33 +617,6 @@ export default function CreateSavingsScreen() {
     },
   });
 
-  // State management
-  const [tokenType, setTokenType] = useState<"ETH" | "ERC20">("ETH");
-  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
-  const [tokenAddress, setTokenAddress] = useState("");
-  const [tokenSymbol, setTokenSymbol] = useState("");
-  const [amountToSave, setAmountToSave] = useState("");
-  const [duration, setDuration] = useState<number>(90); // 3 months in days
-  const [intervals, setIntervals] = useState<number>(3); // 3 deposits
-  const [showTokenModal, setShowTokenModal] = useState(false);
-  const [showAddTokenModal, setShowAddTokenModal] = useState(false);
-  const [availableTokens, setAvailableTokens] = useState<Token[]>([USDC_TOKEN]);
-  const [newTokenAddress, setNewTokenAddress] = useState("");
-  const [newTokenSymbol, setNewTokenSymbol] = useState("");
-  const [newTokenName, setNewTokenName] = useState("");
-  const [isCreatingPool, setIsCreatingPool] = useState(false);
-
-  // Animation values
-  const tokenTypeAnimatedValue = useRef(new Animated.Value(tokenType === "ETH" ? 0 : 1)).current;
-  const durationAnimatedValue = useRef(new Animated.Value(duration === 90 ? 0 : duration === 180 ? 1 : 2)).current;
-
-  // Animation configurations
-  const animationConfig = {
-    duration: 300,
-    easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-    useNativeDriver: true
-  };
-
   // Calculate initial deposit based on total amount and intervals
   const calculateInitialDeposit = useCallback(() => {
     if (!amountToSave || parseFloat(amountToSave) <= 0 || intervals <= 0) {
@@ -1015,76 +981,59 @@ export default function CreateSavingsScreen() {
 
   // Create savings pool
   const handleCreateSavingsPool = async () => {
-    if (!validateForm()) return;
-
-    if (!walletAddress) {
-      Alert.alert(
-        "Wallet Not Connected",
-        "Please connect your wallet to create a savings pool"
+    if (!amountToSave || !initialDeposit || !duration || !intervals) {
+      // Show validation error
+      showErrorModal(
+        "Validation Error",
+        "Please fill in all required fields"
       );
       return;
     }
 
-    setIsCreatingPool(true);
-
     try {
-      // Convert duration from days to seconds
-      const durationInSeconds = duration * 24 * 60 * 60;
-      let txHash: string;
+      setIsCreatingPool(true);
+      
+      // Show loading modal
+      showLoadingModal(
+        "Creating Savings Pool",
+        "Please wait while we create your savings pool..."
+      );
 
-      if (tokenType === "ETH") {
-        txHash = await createEthSavingsPool(
+      // Create the appropriate pool type
+      let transactionHash;
+      if (tokenSymbol === "ETH") {
+        transactionHash = await createEthSavingsPool(
           amountToSave,
-          durationInSeconds,
+          duration,
           initialDeposit,
           intervals
         );
-
-        setTimeout(() => {
-          setStatusModal({
-            visible: true,
-            type: "success",
-            title: "Transaction Successful",
-            message: `ETH Savings Pool Created Successfully`,
-            transactionHash: txHash,
-          });
-          setIsCreatingPool(false);
-        }, 500);
       } else {
-        console.log("tokenAddress:", tokenAddress);
-        txHash = await createERC20SavingsPool(
+        transactionHash = await createERC20SavingsPool(
           tokenAddress,
           amountToSave,
-          durationInSeconds,
+          duration,
           initialDeposit,
           intervals
         );
-
-        setTimeout(() => {
-          setStatusModal({
-            visible: true,
-            type: "success",
-            title: "Transaction Successful",
-            message: `${
-              tokenSymbol || "ERC20"
-            } Savings Pool Created Successfully`,
-            transactionHash: txHash,
-          });
-          setIsCreatingPool(false);
-        }, 500);
       }
+
+      // Show success modal
+      showSuccessModal(
+        "Savings Pool Created",
+        "Your savings pool has been created successfully!",
+        transactionHash
+      );
     } catch (error) {
       console.error("Error creating savings pool:", error);
-
-      setTimeout(() => {
-        setStatusModal({
-          visible: true,
-          type: "error",
-          title: "Transaction Failed",
-          message: String(error),
-        });
-        setIsCreatingPool(false);
-      }, 500);
+      
+      // Show error modal
+      showErrorModal(
+        "Error Creating Pool",
+        error instanceof Error ? error.message : "An unknown error occurred"
+      );
+    } finally {
+      setIsCreatingPool(false);
     }
   };
 
@@ -1355,36 +1304,22 @@ export default function CreateSavingsScreen() {
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.createButton}
+          <GradientButton
+            title="Create Savings Pool"
             onPress={handleCreateSavingsPool}
             disabled={isCreatingPool}
-          >
-            <LinearGradient
-              colors={["#2A5741", "#1E3B2F"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.createButtonGradient}
-            />
-            {isCreatingPool ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.createButtonText}>Create Savings Pool</Text>
-            )}
-          </TouchableOpacity>
+            loading={isCreatingPool}
+            colors={["#2A5741", "#1E3B2F"]}
+            style={styles.createButton}
+            size="large"
+          />
         </ScrollView>
       </KeyboardAvoidingView>
       <StatusModal
         visible={statusModal.visible}
         onClose={() => {
-          // Properly reset the modal state
-          setStatusModal({
-            visible: false,
-            type: statusModal.type,
-            title: statusModal.title,
-            message: statusModal.message,
-            transactionHash: statusModal.transactionHash,
-          });
+          // Hide the modal
+          hideModal();
 
           // If transaction was successful, navigate back to the savings tab
           if (statusModal.type === "success") {
